@@ -1,6 +1,5 @@
 <?php
 session_start();
-include 'send_verification_code.php'; // Include the function to send the OTP email
 
 // Database connection
 $servername = "localhost";
@@ -15,77 +14,60 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get and sanitize user inputs
-    $email = trim($_POST['email']);
-    $confirm_email = trim($_POST['confirm_email']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $organization = trim($_POST['organization']);
-    $department = trim($_POST['department']);
+// Validate form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $department = $_POST['department'] ?? '';
 
-    // Validate email match
-    if ($email !== $confirm_email) {
-        header("Location: signup.php?error=" . urlencode("Emails do not match"));
-        exit();
+    if (empty($department)) {
+        header("Location: signup.php?error=Please select a department");
+        exit;
     }
 
-    // Validate password match
-    if ($password !== $confirm_password) {
-        header("Location: signup.php?error=" . urlencode("Passwords do not match"));
-        exit();
+    // Create department-specific table
+    $table = strtolower($department) . "_department";
+    $createTableSQL = "
+        CREATE TABLE IF NOT EXISTS `$table` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(50),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ";
+    if (!$conn->query($createTableSQL)) {
+        header("Location: signup.php?error=Database error when creating department table");
+        exit;
     }
 
-    // Hash the password
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    // Username and role pairs
+    $defaultAccounts = [
+        ["{$department}_dean", 'Dean'],
+        ["{$department}_facultyadviser", 'Faculty'],
+        ["{$department}_sbopresindent", 'Presindent'],
+        ["{$department}_sbovice", 'Vice'],
+        ["{$department}_sbotresurer", 'Tresurer'],
+        ["{$department}_sboauditor", 'Auditor'],
+        ["{$department}_sbosoo", 'SOO'],
+    ];
 
-    // Check if email already exists
-    $check_email_query = "SELECT * FROM client_account WHERE clientemail = ?";
-    $stmt = $conn->prepare($check_email_query);
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $defaultPassword = password_hash("DefaultPass123", PASSWORD_DEFAULT);
 
-    if ($result->num_rows > 0) {
-        // Email already exists
-        $stmt->close();
-        $conn->close();
-        header("Location: signup.php?error=" . urlencode("Email already registered"));
-        exit();
-    }
-    $stmt->close(); // Close after checking
+    foreach ($defaultAccounts as [$defaultEmail, $role]) {
+        $check = $conn->prepare("SELECT id FROM `$table` WHERE username = ?");
+        $check->bind_param("s", $defaultEmail);
+        $check->execute();
+        $check->store_result();
 
-    // Generate 6-digit OTP
-    $verification_code = rand(100000, 999999);
-
-    // Send OTP via email
-    $email_sent = sendVerificationCode($email, $verification_code);
-
-    if ($email_sent === true) {
-        // Insert into database with OTP
-        $insert_query = "INSERT INTO client_account (clientemail, clientpassword, organization, department, verification_code) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($insert_query);
-        $stmt->bind_param("sssss", $email, $hashed_password, $organization, $department, $verification_code);
-
-        if ($stmt->execute()) {
-            // OTP sent and registration successful
-            $_SESSION['email_for_verification'] = $email;  // Store email in session for OTP verification
-            $stmt->close();
-            $conn->close();
-            header("Location: signup.php?verify=true");  // Redirect to show OTP modal
-            exit();
-        } else {
-            // If there's an error during insertion
-            $stmt->close();
-            $conn->close();
-            header("Location: signup.php?error=" . urlencode("Error during registration"));
-            exit();
+        if ($check->num_rows === 0) {
+            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role) VALUES (?, ?, ?)");
+            $insert->bind_param("sss", $defaultEmail, $defaultPassword, $role);
+            $insert->execute();
         }
-    } else {
-        // If OTP email failed to send
-        $conn->close();
-        header("Location: signup.php?error=" . urlencode($email_sent));  // Send error message back
-        exit();
     }
+
+    header("Location: signup.php?success=Department '$department' added with default users");
+    exit;
+} else {
+    header("Location: signup.php");
+    exit;
 }
-?>

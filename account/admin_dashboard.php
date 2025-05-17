@@ -108,7 +108,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
         <h1 style="margin-bottom: 0;">User Management</h1>
         <p style="margin-top: 5px; color: #666;">Manage user department and accounts</p>
         <div>
-            <a href="signup.php" class="add-user-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 20px; float: right; cursor: pointer;" >+ Add User</a>
+            <a href="signup.php" class="add-user-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 20px; float: right; cursor: pointer;" >+ Add Department</a>
         </div>
         <div style="margin: 20px 0; clear: both;">
       <input type="text" placeholder="Search User..." style="width: 50%; padding: 8px; border-radius: 20px; border: 1px solid #ccc;">
