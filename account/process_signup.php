@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ["{$department}_sbosoo", "{$department}SOO"],
     ];
 
-    $defaultPassword = password_hash("DefaultPass123", PASSWORD_DEFAULT);
+    $defaultPassword = password_hash("user12345", PASSWORD_DEFAULT);
 
     foreach ($defaultAccounts as [$defaultEmail, $role]) {
         $check = $conn->prepare("SELECT id FROM `$table` WHERE username = ?");
