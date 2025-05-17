@@ -41,13 +41,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Username and role pairs
     $defaultAccounts = [
-        ["{$department}_dean", 'Dean'],
-        ["{$department}_facultyadviser", 'Faculty'],
-        ["{$department}_sbopresindent", 'Presindent'],
-        ["{$department}_sbovice", 'Vice'],
-        ["{$department}_sbotresurer", 'Tresurer'],
-        ["{$department}_sboauditor", 'Auditor'],
-        ["{$department}_sbosoo", 'SOO'],
+        ["{$department}_dean", "{$department}Dean"],
+        ["{$department}_facultyadviser", "{$department}Faculty"],
+        ["{$department}_sbopresindent", "{$department}Presindent"],
+        ["{$department}_sbovice", "{$department}Vice"],
+        ["{$department}_sbotresurer", "{$department}Tresurer"],
+        ["{$department}_sboauditor", "{$department}Auditor"],
+        ["{$department}_sbosoo", "{$department}SOO"],
     ];
 
     $defaultPassword = password_hash("DefaultPass123", PASSWORD_DEFAULT);
