@@ -116,7 +116,8 @@ if (!isset($_SESSION['admin_logged_in'])) {
         <table  style="width: 100%; border-collapse: collapse;" width="100%" id="userTable">
             <thead>
                 <tr style="background-color: #003366; color: white; padding: 10px;">
-                    <th>Email</th>
+                    <th>Username</th>
+                    <th>Password</th>  
                     <th>Department</th>
                     <th>User Type</th>
                     <th>Status</th>
@@ -203,17 +204,19 @@ document.getElementById("userManagementTab").addEventListener("click", function 
 
     // Fetch users
     fetch("get_users.php")
-        .then(response => response.json())
+    .then(response => response.json())
         .then(users => {
             const tbody = document.querySelector("#userTable tbody");
             tbody.innerHTML = "";
+
             users.forEach(user => {
                 const row = `<tr>
-                    <td>${user.clientemail}</td>
+                    <td>${user.email}</td>
+                    <td>${user.password}</td>
                     <td>${user.department}</td>
-                    <td>${user.organization}</td>
-                    <td>${user.verification_code ? "Verified" : "Unverified"}</td>
-                    <td><button onclick="deleteUser('${user.id}')">Delete</button></td>
+                    <td>${user.role}</td>
+                    <td>${user.status}</td>
+                    <td><button onclick="alert('Delete feature not implemented')">Delete</button></td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
