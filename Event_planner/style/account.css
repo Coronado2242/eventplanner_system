@@ -1,0 +1,122 @@
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    height: 100vh;
+  }
+
+  .left-section {
+    background: linear-gradient(to right, #0b0b3b, #3a3a52);
+    color: white;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .left-section img {
+    width: 200px;
+    margin-bottom: 2rem;
+  }
+
+  .left-section h1 {
+    font-weight: 900;
+    margin: 0;
+    font-size: 2rem;
+  }
+
+  .right-section {
+    background: #ffffff;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+  }
+
+  .close-button {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 2rem;
+    color: #000;
+    text-decoration: none;
+  }
+
+  .form-box {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .form-box h2 {
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+  }
+
+  .form-box input[type="text"],
+  .form-box input[type="email"],
+  .form-box input[type="password"],
+  .form-box select {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+
+  .password-wrapper {
+    position: relative;
+  }
+
+  .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+  }
+
+
+  .form-box button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #074a78;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 1rem;
+  }
+
+  .form-box .links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .form-box .links a {
+    text-decoration: none;
+    color: #0645ad;
+  }
+
+  .error {
+    color: red;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+
+
+  
