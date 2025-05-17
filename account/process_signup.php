@@ -31,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             username VARCHAR(255) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
             role VARCHAR(50),
+            email VARCHAR(255) DEFAULT '',
+            fullname VARCHAR(255) DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     ";
@@ -50,17 +52,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ["{$department}_sbosoo", "{$department}SOO"],
     ];
 
-    $defaultPassword = password_hash("user12345", PASSWORD_DEFAULT);
+    $defaultPassword = "user12345";
 
-    foreach ($defaultAccounts as [$defaultEmail, $role]) {
+    foreach ($defaultAccounts as [$username, $role]) {
         $check = $conn->prepare("SELECT id FROM `$table` WHERE username = ?");
-        $check->bind_param("s", $defaultEmail);
+        $check->bind_param("s", $username);
         $check->execute();
         $check->store_result();
 
         if ($check->num_rows === 0) {
-            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role) VALUES (?, ?, ?)");
-            $insert->bind_param("sss", $defaultEmail, $defaultPassword, $role);
+            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role, email, fullname) VALUES (?, ?, ?, '', '')");
+            $insert->bind_param("sss", $username, $defaultPassword, $role);
             $insert->execute();
         }
     }
