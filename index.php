@@ -23,7 +23,7 @@ session_start();
         <li><a href="calendar1.php">Calendar</a></li>
         
         <!-- Only show user dropdown if admin or client is logged in -->
-        <?php if (isset($_SESSION['admin_logged_in']) || isset($_SESSION['client_logged_in'])): ?>
+        <?php if (isset($_SESSION['admin_logged_in']) || isset($_SESSION['role'])): ?>
             <li>
     <div class="admin-info">
         <i class="icon-calendar"></i>
@@ -34,17 +34,18 @@ session_start();
             <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
         <?php endif; ?>
 
-        <!-- Display client email if set -->
-        <?php if (isset($_SESSION['client_email'])): ?>
-            <span><?php echo htmlspecialchars($_SESSION['client_email']); ?></span>
-        <?php endif; ?>
-
         <!-- User Dropdown -->
         <div class="user-dropdown" id="userDropdown">
             <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
             <div class="dropdown-menu" id="dropdownMenu">
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
                     <a href="account/admin_dashboard.php">Admin Dashboard</a>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
+                    <a href="dashboard/ccsdean_dashboard.php">CCS Dean Dashboard</a>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSFaculty'): ?>
+                    <a href="dashboard/ccsfaculty_dashboard.php">CCS Faculty Dashboard</a>
                 <?php endif; ?>
                 <a href="account/logout.php">Logout</a>
             </div>
