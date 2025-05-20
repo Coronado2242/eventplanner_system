@@ -65,11 +65,17 @@ session_start();
     <section class="hero">
         <div class="overlay">
             <h1>WELCOME TO <span style="color:black;">Event</span><span style="color:blue;">Sync</span></h1>
-            <p>LET'S START A PLAN</p>
-            <div class="buttons">
-                <a href="#" class="btn propose">PROPOSE PLAN</a>
-                <a href="#" class="btn read">Read more</a>
-            </div>
+ <?php
+$role = isset($_SESSION['role']) ? strtolower($_SESSION['role']) : '';
+if (substr($role, -3) === 'soo'):
+?>
+    <p>LET'S START A PLAN</p>
+    <div class="buttons">
+        <a href="#" class="btn propose">PROPOSE PLAN</a>
+        <a href="#" class="btn read">Read more</a>
+    </div>
+<?php endif; ?>
+
         </div>
     </section>
     <!-- Dropdown Script -->
@@ -86,6 +92,7 @@ document.addEventListener("click", function(event) {
         menu.style.display = "none";
     }
 });
+
 </script>
 </body>
 </html>
