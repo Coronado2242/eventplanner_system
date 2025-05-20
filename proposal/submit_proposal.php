@@ -19,7 +19,7 @@ function uploadFile($fileInputName) {
     return $targetFile;
 }
 
-// Sanitize inputs
+// inputs
 $department = $_POST['department'];
 $event_type = $_POST['event_type'];
 $start_date = $_POST['start_date'];
