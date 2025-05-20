@@ -36,6 +36,8 @@ $reports = uploadFile('reports');
 $letter = uploadFile('letter_attachment');
 
 // Insert to database
+$status = "Pending";
+    
 $stmt = $conn->prepare("INSERT INTO proposals 
 (department, event_type, start_date, end_date, venue, time, adviser_form, certification, financial, constitution, reports, letter_attachment, status)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
