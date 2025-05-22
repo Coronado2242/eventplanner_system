@@ -19,7 +19,6 @@ session_start();
         <nav>
             <ul>
                 <li><a href="index.php">Home</a></li>
-                <li><a href="contactus.php">Contact Us</a></li>
                 <li><a href="aboutus.php" class="active">About Us</a></li>
                 <li><a href="calendar1.php">Calendar</a></li>
                 <!-- Only show user dropdown if admin or client is logged in -->

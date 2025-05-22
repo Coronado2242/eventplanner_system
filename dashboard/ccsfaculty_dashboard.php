@@ -25,7 +25,7 @@ session_start();
             <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
             <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
-
+            
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>

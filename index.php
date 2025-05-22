@@ -18,7 +18,6 @@ session_start();
         <nav>
     <ul>
         <li><a href="#" class="active">Home</a></li>
-        <li><a href="contactus.php">Contact Us</a></li>
         <li><a href="aboutus.php">About Us</a></li>
         <li><a href="calendar1.php">Calendar</a></li>
         
