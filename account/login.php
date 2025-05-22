@@ -25,7 +25,8 @@ if (isset($_SESSION['client_logged_in'])) {
 <body>
 
   <div class="left-section">
-    <img src="your_logo_path.png" alt="University Logo">
+  <img src="../img/lspulogo.jpg" alt="University Logo"
+  style="width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); object-fit: cover;">
     <h1>EVENT <span style="color:#0d6efd;">SYNC</span></h1>
   </div>
 

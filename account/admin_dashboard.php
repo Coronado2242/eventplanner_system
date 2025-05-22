@@ -121,7 +121,6 @@ if (!isset($_SESSION['admin_logged_in'])) {
                     <th>Department</th>
                     <th>User Type</th>
                     <th>Status</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody style="text-align: center; padding: 10px; border-bottom: 1px solid #ddd;">
@@ -206,34 +205,57 @@ document.getElementById("userManagementTab").addEventListener("click", function 
     fetch("get_users.php")
     .then(response => response.json())
         .then(users => {
-            const tbody = document.querySelector("#userTable tbody");
-            tbody.innerHTML = "";
+        const table = document.getElementById("userTable");
+        const departments = {};
 
-            users.forEach(user => {
-                const row = `<tr>
+        // Group users by department
+        users.forEach(user => {
+            if (!departments[user.department]) {
+                departments[user.department] = [];
+            }
+            departments[user.department].push(user);
+        });
+
+        // Clear current table content
+        table.innerHTML = "";
+
+        for (const department in departments) {
+            const group = departments[department];
+
+            // Create a section heading
+            const heading = document.createElement("tr");
+            heading.innerHTML = `<th colspan="6" style="background:#004080; color: white; text-align: center; padding: 10px;">${department.toUpperCase()}</th>`;
+            table.appendChild(heading);
+
+            // Add column headers for each department section
+            const header = document.createElement("tr");
+            header.innerHTML = `
+                <th>Username</th>
+                <th>Password</th>  
+                <th>Department</th>
+                <th>User Type</th>
+                <th>Status</th>
+            `;
+            table.appendChild(header);
+
+            // Populate user rows
+            group.forEach(user => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
                     <td>${user.email}</td>
                     <td>${user.password}</td>
                     <td>${user.department}</td>
                     <td>${user.role}</td>
                     <td>${user.status}</td>
-                    <td><button onclick="alert('Delete feature not implemented')">Delete</button></td>
-                </tr>`;
-                tbody.innerHTML += row;
+                `;
+                table.appendChild(row);
             });
-        })
+        }
+    })
+
         .catch(err => console.error("Error loading users:", err));
 });
 
-function deleteUser(id) {
-    if (confirm("Delete this user?")) {
-        fetch(`delete_user.php?id=${id}`)
-            .then(res => res.text())
-            .then(msg => {
-                alert(msg);
-                document.getElementById("userManagementTab").click(); // refresh
-            });
-    }
-}
 </script>
 <script>
 document.getElementById("venueTab").addEventListener("click", function () {

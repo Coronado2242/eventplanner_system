@@ -14,7 +14,8 @@ session_start();
 </head>
 <body>
     <header class="navbar">
-        <div class="logo">Event<span style="color:blue;">Sync</span></div>
+    
+        <div class="logo"><img src="img/lspulogo.jpg" style="height: 50px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">Event<span style="color:blue;">Sync</span></div>
         <nav>
     <ul>
         <li><a href="#" class="active">Home</a></li>

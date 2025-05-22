@@ -49,8 +49,8 @@ session_start();
     <div class="toggle-btn">&#9776;</div>
     <ul>
         <li id="dashboardTab" class="active">Dashboard</li>
-        <li id="userManagementTab">Approval</li>
-        <li id="venueTab">Venue</li>
+        <li id="approvalTab">Approval</li>
+        <li id="venueTab">Requirements</li>
     </ul>
 </aside>
 
@@ -66,16 +66,9 @@ session_start();
 </div>
 
 <!-- User Management Content -->
-<div id="userManagementContent" style="display:none;">
+<div id="approvalContent" style="display:none;">
     <main class="content" >
-        <h1 style="margin-bottom: 0;">User Management</h1>
-        <p style="margin-top: 5px; color: #666;">Manage user department and accounts</p>
-        <div>
-            <a href="signup.php" class="add-user-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 20px; float: right; cursor: pointer;" >+ Add Department</a>
-        </div>
-        <div style="margin: 20px 0; clear: both;">
-      <input type="text" placeholder="Search User..." style="width: 50%; padding: 8px; border-radius: 20px; border: 1px solid #ccc;">
-    </div>
+        <h1 style="margin-bottom: 0;">Request Approval</h1>
         <table  style="width: 100%; border-collapse: collapse;" width="100%" id="userTable">
             <thead>
                 <tr style="background-color: #003366; color: white; padding: 10px;">
@@ -127,17 +120,17 @@ session_start();
 <script>
 document.getElementById("dashboardTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "block";
-    document.getElementById("userManagementContent").style.display = "none";
+    document.getElementById("approvalContent").style.display = "none";
     document.getElementById("venueContent").style.display = "none";
     this.classList.add("active");
     document.getElementById("venueTab").classList.remove("active");
-    document.getElementById("userManagementTab").classList.remove("active");
+    document.getElementById("approvalTab").classList.remove("active");
 });
 
-document.getElementById("userManagementTab").addEventListener("click", function () {
+document.getElementById("approvalTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "none";
     document.getElementById("venueContent").style.display = "none";
-    document.getElementById("userManagementContent").style.display = "block";
+    document.getElementById("approvalContent").style.display = "block";
     this.classList.add("active");
     document.getElementById("venueTab").classList.remove("active");
     document.getElementById("dashboardTab").classList.remove("active");
@@ -149,7 +142,7 @@ function deleteUser(id) {
             .then(res => res.text())
             .then(msg => {
                 alert(msg);
-                document.getElementById("userManagementTab").click(); // refresh
+                document.getElementById("approvalTab").click(); // refresh
             });
     }
 }
@@ -157,11 +150,11 @@ function deleteUser(id) {
 <script>
 document.getElementById("venueTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("userManagementContent").style.display = "none";
+    document.getElementById("approvalContent").style.display = "none";
     document.getElementById("venueContent").style.display = "block";
     this.classList.add("active");
     document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("userManagementTab").classList.remove("active");
+    document.getElementById("approvalTab").classList.remove("active");
 
     // Fetch users
     fetch("get_venues.php")

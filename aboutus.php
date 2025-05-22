@@ -78,15 +78,15 @@ session_start();
 
     <div class="team">
         <div class="member">
-            <img src="alyssa.jpg" alt="Alyssa Rubie Caguin">
+            <img src="img/alyssa.jpg" alt="Alyssa Rubie Caguin">
             <p>CAGUIN, ALYSSA RUBIE M.</p>
         </div>
         <div class="member">
-            <img src="ranzel.jpg" alt="Ranzel B. Facundo">
+            <img src="img/ranzel.jpg" alt="Ranzel B. Facundo">
             <p>FACUNDO, RANZEL B.</p>
         </div>
         <div class="member">
-            <img src="james.jpg" alt="James Leorix Magnaye">
+            <img src="img/james.jpeg" alt="James Leorix Magnaye">
             <p>MAGNAYE, JAMES LEORIX M.</p>
         </div>
     </div>
