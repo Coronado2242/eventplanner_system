@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $defaultAccounts = [
         ["{$department}_dean", "{$department}Dean"],
         ["{$department}_facultyadviser", "{$department}Faculty"],
-        ["{$department}_sbopresindent", "{$department}Presindent"],
+        ["{$department}_sbopresindent", "{$department}President"],
         ["{$department}_sbovice", "{$department}Vice"],
         ["{$department}_sbotresurer", "{$department}Tresurer"],
         ["{$department}_sboauditor", "{$department}Auditor"],
