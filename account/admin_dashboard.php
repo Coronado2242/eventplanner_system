@@ -11,18 +11,169 @@ if (!isset($_SESSION['admin_logged_in'])) {
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="../style/dashboard_style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 </head>
+<style>
+    body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.topbar {
+    background: #ccc;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topbar .logo {
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.topbar nav a {
+    margin: 0 15px;
+    text-decoration: none;
+    color: black;
+    font-weight: bold;
+}
+
+.admin-info {
+    display: inline-block;
+    margin-left: 20px;
+}
+
+.sidebar {
+    width: 220px;
+    background: #004080;
+    position: fixed;
+    top: 47px;
+    bottom: 0;
+    padding-top: 10px;
+    color: white;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    padding: 15px 20px;
+    cursor: pointer;
+}
+
+.sidebar ul li.active, .sidebar ul li:hover {
+    background: #0066cc;
+}
+
+.content {
+    margin-left: 240px;
+    padding: 20px;
+    margin-top: 60px;
+}
+
+.cards {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.card {
+    background: #f4f4f4;
+    padding: 20px;
+    flex: 1;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.positive {
+    color: green;
+}
+
+.negative {
+    color: red;
+}
+
+.charts {
+    display: flex;
+    margin-top: 30px;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.calendar {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.legend span {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+    border-radius: 50%;
+}
+
+.green { background: green; }
+.red { background: red; }
+.orange { background: orange; }
+
+.logout-btn {
+    margin-left: 15px;
+    padding: 5px 10px;
+    background: maroon;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.logout-btn:hover {
+    background: darkred;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    right: 0;
+    margin-top: 10px;
+    border-radius: 5px;
+    z-index: 100;
+}
+.dropdown-menu a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+}
+.dropdown-menu a:hover {
+    background-color: #f0f0f0;
+}
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: 20px;
+    cursor: pointer;
+}
+.fa-user {
+    font-size: 18px;
+}
+</style>
 <body>
 
 <header class="topbar">
     <div class="logo">EVENT ADMIN PORTAL</div>
     <nav>
         <a href="../index.php">Home</a>
-        <a href="../contactus.php">Contact Us</a>
         <a href="../aboutus.php">About Us</a>
         <a href="../calendar1.php">Calendar</a>
         <div class="admin-info">

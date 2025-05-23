@@ -71,7 +71,7 @@ if (substr($role, -3) === 'soo'):
 ?>
     <p>LET'S START A PLAN</p>
     <div class="buttons">
-        <a href="#" class="btn propose">PROPOSE PLAN</a>
+        <a href="proposal/proposal.php" class="btn propose">PROPOSE PLAN</a>
         <a href="#" class="btn read">Read more</a>
     </div>
 <?php endif; ?>

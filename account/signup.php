@@ -94,7 +94,8 @@
 <body>
 
 <div class="left-panel">
-  <img src="../images/logo.png" alt="University Logo">
+<img src="../img/lspulogo.jpg" alt="University Logo"
+style="width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); object-fit: cover;">
   <h1>EVENT <span>SYNC</span></h1>
 </div>
 

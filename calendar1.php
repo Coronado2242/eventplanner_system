@@ -13,6 +13,31 @@ session_start();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"> 
 </head>
+<style>
+    body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar {
+    flex-shrink: 0;
+}
+
+.calendar-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#calendarFrame {
+    flex: 1;
+    width: 100%;
+    border: none;
+}
+
+</style>
 <body>
     <header class="navbar">
         <div class="logo">Event<span style="color:blue;">Sync</span></div>
@@ -59,7 +84,9 @@ session_start();
             </ul>
         </nav>
     </header>
-    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+    <main class="calendar-container">
+    <iframe id="calendarFrame"></iframe>
+</main>
 
 <!-- Dropdown Script -->
 <script>
