@@ -80,22 +80,11 @@
 </head>
 <body>
 
-<!-- Propose Plan Button -->
-<div class="text-center my-4">
-  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proposeModal">
-    Propose Plan
-  </button>
-</div>
 
 <!-- Modal -->
-<div class="modal fade" id="proposeModal" tabindex="-1" aria-labelledby="proposeModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-xl-custom">
-    <div class="modal-content">
+
       <form action="submit_proposal.php" method="POST" enctype="multipart/form-data">
-        <div class="modal-header">
-          <h5 class="modal-title" id="proposeModalLabel">Event Proposal Form</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+
 
         <div class="modal-body">
           <div class="row">
@@ -176,9 +165,7 @@
         </div>
 
       </form>
-    </div>
-  </div>
-</div>
+ 
 
 <!-- FullCalendar Script -->
 <script>
@@ -204,6 +191,13 @@
       eventColor: '#007bff'
     });
     calendar.render();
+  });
+  
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var myModal = new bootstrap.Modal(document.getElementById('proposeModal'));
+    myModal.show();
   });
 </script>
 

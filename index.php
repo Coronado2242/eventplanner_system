@@ -12,6 +12,40 @@ session_start();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"> 
 </head>
+<style>
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 2% auto;
+  padding: 30px;
+  border-radius: 10px;
+  width: 95%;
+  height: 75%;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+
+.close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.close-button:hover {
+  color: #000;
+}
+
+</style>
 <body>
     <header class="navbar">
     
@@ -71,13 +105,21 @@ if (substr($role, -3) === 'soo'):
 ?>
     <p>LET'S START A PLAN</p>
     <div class="buttons">
-        <a href="proposal/proposal.php" class="btn propose">PROPOSE PLAN</a>
+        <a href="#" class="btn propose">PROPOSE PLAN</a>
         <a href="#" class="btn read">Read more</a>
     </div>
 <?php endif; ?>
 
         </div>
     </section>
+
+        <!-- Modal -->
+        <div id="proposeModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button" onclick="closeModal()">&times;</span><b>PROPOSE A PLAN</b>
+        <iframe src="proposal/proposal.php" frameborder="0" style="width:100%; height:100%;"></iframe>
+      </div>
+    </div>
     <!-- Dropdown Script -->
 <script>
 function toggleDropdown() {
@@ -92,7 +134,25 @@ document.addEventListener("click", function(event) {
         menu.style.display = "none";
     }
 });
-
 </script>
+<script>
+document.querySelector('.btn.propose').addEventListener('click', function(e) {
+    e.preventDefault(); // Prevent link behavior
+    document.getElementById('proposeModal').style.display = 'block';
+});
+
+function closeModal() {
+    document.getElementById('proposeModal').style.display = 'none';
+}
+
+// Optional: close modal when clicking outside content
+window.onclick = function(event) {
+    const modal = document.getElementById('proposeModal');
+    if (event.target === modal) {
+        modal.style.display = "none";
+    }
+}
+</script>
+
 </body>
 </html>
