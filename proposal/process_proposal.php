@@ -27,7 +27,7 @@ $createTableSQL = "CREATE TABLE IF NOT EXISTS proposals (
     constitution VARCHAR(255),
     reports VARCHAR(255),
     letter_attachment VARCHAR(255),
-    status VARCHAR(50),
+    status VARCHAR(50), 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 

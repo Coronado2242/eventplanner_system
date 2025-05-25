@@ -1,203 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Event Proposal</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+  <meta charset="UTF-8" />
+  <title>Event Proposal Modal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
   <style>
-    .modal-xl-custom {
-      max-width: 1200px;
+    .input-rounded {
+      background-color: #e5e5e5;
+      border: none;
+      border-radius: 30px;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: #333;
+      width: 100%;
     }
-
-    .fc {
-      font-size: 0.85rem;
-    }
-
-    .form-label {
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .attachment-column input,
-    .bottom-attachments input {
+    .file-box {
+      background-color: #e5e5e5;
+      border-radius: 25px;
+      padding: 15px;
       margin-bottom: 15px;
     }
-
-    .calendar-box {
-      border: 1px solid #dee2e6;
-      border-radius: 12px;
-      padding: 16px;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    .file-box label {
+      font-weight: 600;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
     }
-
-    .calendar-header {
+    .upload-btn {
+      background-color: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 6px 15px;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    iframe {
+      width: 100%;
+      height: 300px;
+      border: none;
+      border-radius: 15px;
+    }
+    .submit-btn {
+      background-color: #0056d2;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
       font-size: 16px;
       font-weight: bold;
-      text-align: center;
-      margin-bottom: 8px;
     }
-
-    #calendar {
-      height: 350px;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .submit-section {
-      text-align: right;
-      margin-top: 15px;
-    }
-
-    .modal-body {
-      background: #f1f3f5;
-    }
-
-    .modal-title {
-      font-size: 1.3rem;
-      font-weight: bold;
-    }
-
-    .form-control {
-      border-radius: 8px;
-    }
-
-    .btn-primary {
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-weight: 600;
-    }
-
-    .mb-2 {
-      margin-bottom: 1rem !important;
+    .modal-header .btn-close {
+      font-size: 1.5rem;
     }
   </style>
 </head>
 <body>
 
+<div class="container mt-5">
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proposalModal">
+    Open Proposal Form
+  </button>
+</div>
 
-<!-- Modal -->
+<div class="modal fade" id="proposalModal" tabindex="-1" aria-labelledby="proposalModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="fw-bold text-uppercase mb-0" id="proposalModalLabel">Propose Plan</h3>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
 
-      <form action="submit_proposal.php" method="POST" enctype="multipart/form-data">
-
-
-        <div class="modal-body">
+      <div class="modal-body">
+        <!-- Change action to your PHP handler file -->
+        <form action="submit_proposal.php" method="post" enctype="multipart/form-data">
           <div class="row">
-            <!-- Left: Input Fields -->
+
+            <!-- LEFT COLUMN -->
             <div class="col-md-4">
-              <div class="mb-2">
-                <label class="form-label">Department:</label>
-                <input type="text" class="form-control" name="department" required>
+              <div class="mb-3">
+                <select name="department" class="input-rounded" required>
+                  <option value="">Department: *Please Select*</option>
+                  <option value="CHMT">CHMT</option>
+                  <option value="CCS">CCS</option>
+                  <option value="CTE">CTE</option>
+                  <option value="COE">COE</option>
+                  <option value="CCJE">CCJE</option>
+                  <option value="CA">CA</option>
+                  <option value="CBBA">CBBA</option>
+                  <option value="CFMD">CFMD</option>
+                </select>
               </div>
-              <div class="mb-2">
-                <label class="form-label">Type of Event:</label>
-                <input type="text" class="form-control" name="event_type" required>
+
+              <div class="mb-3">
+                <input type="text" name="event_type" class="input-rounded" placeholder="Type of Event:" required />
               </div>
-              <div class="mb-2">
-                <label class="form-label">Start Date:</label>
-                <input type="date" class="form-control" name="start_date" id="start_date" required>
+
+              <div class="mb-3">
+                <input
+                  type="text"
+                  name="date_range"
+                  class="input-rounded"
+                  placeholder="Date: mm/dd/yyyy - mm/dd/yyyy"
+                  required
+                />
               </div>
-              <div class="mb-2">
-                <label class="form-label">End Date:</label>
-                <input type="date" class="form-control" name="end_date" id="end_date" required>
+
+              <div class="mb-3">
+                <input type="text" name="venue" class="input-rounded" placeholder="Venue:" required />
               </div>
-              <div class="mb-2">
-                <label class="form-label">Venue:</label>
-                <input type="text" class="form-control" name="venue" required>
-              </div>
-              <div class="mb-2">
-                <label class="form-label">Time:</label>
-                <input type="text" class="form-control" name="time" required>
+
+              <div class="mb-3">
+                <input type="text" name="time" class="input-rounded" placeholder="Time:" required />
               </div>
             </div>
 
-            <!-- Center: 4 Attachments -->
-            <div class="col-md-4 attachment-column">
-              <div>
-                <label class="form-label">Adviser Commitment Form:</label>
-                <input type="file" class="form-control" name="adviser_form" required>
+            <!-- MIDDLE COLUMN (Uploads) -->
+            <div class="col-md-4">
+              <div class="file-box">
+                <label>Requirement*<br />Letter Attachment</label>
+                <input type="file" name="letter_attachment" required />
+                <button type="button" class="upload-btn">Upload 📎</button>
               </div>
-              <div>
-                <label class="form-label">Certification from Dean:</label>
-                <input type="file" class="form-control" name="certification" required>
+
+              <div class="file-box">
+                <label>Requirement*<br />Constitution and by-laws of the Org.</label>
+                <input type="file" name="constitution" required />
+                <button type="button" class="upload-btn">Upload 📎</button>
               </div>
-              <div>
-                <label class="form-label">Financial Report:</label>
-                <input type="file" class="form-control" name="financial" required>
+
+              <div class="file-box">
+                <label>Requirement*<br />Accomplishment reports</label>
+                <input type="file" name="reports" required />
+                <button type="button" class="upload-btn">Upload 📎</button>
               </div>
-              <div>
-                <label class="form-label">Constitution and By-laws:</label>
-                <input type="file" class="form-control" name="constitution" required>
+
+              <div class="file-box">
+                <label>Requirement*<br />Adviser Commitment form</label>
+                <input type="file" name="adviser_form" required />
+                <button type="button" class="upload-btn">Upload 📎</button>
               </div>
             </div>
 
-            <!-- Right: Calendar & Attachments -->
-            <div class="col-md-4 d-flex flex-column justify-content-between">
-              <div class="calendar-box mb-4">
-                <div class="calendar-header" id="calendarMonth">MONTH YEAR</div>
-                <div id="calendar"></div>
+            <!-- RIGHT COLUMN (Calendar + 2 uploads) -->
+            <div class="col-md-4">
+              <div class="mb-3">
+                <iframe
+                  src="https://calendar.google.com/calendar/embed?src=en.philippines%23holiday%40group.v.calendar.google.com&ctz=Asia%2FManila"
+                ></iframe>
               </div>
 
-              <!-- Bottom 2 Attachments -->
-              <div class="bottom-attachments">
-                <div class="mb-2">
-                  <label class="form-label">Accomplishment Reports:</label>
-                  <input type="file" class="form-control" name="reports" required>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label">Letter of Intent:</label>
-                  <input type="file" class="form-control" name="letter_attachment" required>
-                </div>
+              <div class="file-box">
+                <label>Requirement*<br />Certification from Responsive Dean/Associate Dean</label>
+                <input type="file" name="certification" required />
+                <button type="button" class="upload-btn">Upload 📎</button>
               </div>
 
-              <!-- Submit Button -->
-              <div class="submit-section">
-                <button type="submit" class="btn btn-primary mt-3">Submit Proposal</button>
+              <div class="file-box">
+                <label>Requirement*<br />Financial Report</label>
+                <input type="file" name="financial" required />
+                <button type="button" class="upload-btn">Upload 📎</button>
+              </div>
+
+              <div class="text-center mt-3">
+                <button type="submit" class="submit-btn">Submit Proposal</button>
               </div>
             </div>
 
           </div>
-        </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
-      </form>
- 
-
-<!-- FullCalendar Script -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      selectable: true,
-      select: function(info) {
-        document.getElementById('start_date').value = info.startStr;
-        document.getElementById('end_date').value = info.endStr;
-      },
-      datesSet: function(info) {
-        const monthNames = [
-          "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY",
-          "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER",
-          "NOVEMBER", "DECEMBER"
-        ];
-        const currentMonth = monthNames[info.start.getMonth()];
-        const currentYear = info.start.getFullYear();
-        document.getElementById('calendarMonth').innerText = `${currentMonth} ${currentYear}`;
-      },
-      eventColor: '#007bff'
-    });
-    calendar.render();
-  });
-  
-</script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    var myModal = new bootstrap.Modal(document.getElementById('proposeModal'));
-    myModal.show();
+  flatpickr("input[name='date_range']", {
+    mode: "range",
+    dateFormat: "m/d/Y"
   });
 </script>
 

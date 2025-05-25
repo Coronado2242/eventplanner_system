@@ -1,100 +1,82 @@
 <?php
-// Enable error reporting (optional for development)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-// DB connection
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "calendar";
-
-$conn = new mysqli($host, $user, $pass, $db);
+$conn = new mysqli("localhost", "root", "", "calendar");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Create table if it doesn't exist
-$createTableSQL = "CREATE TABLE IF NOT EXISTS proposals (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    department VARCHAR(100),
-    event_type VARCHAR(100),
-    start_date DATE,
-    end_date DATE,
-    venue VARCHAR(255),
-    time VARCHAR(50),
-    adviser_form VARCHAR(255),
-    certification VARCHAR(255),
-    financial VARCHAR(255),
-    constitution VARCHAR(255),
-    reports VARCHAR(255),
-    letter_attachment VARCHAR(255),
-    status VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)";
-$conn->query($createTableSQL);
+                // Fetch events for FullCalendar
+if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
+    $result = $conn->query("SELECT * FROM proposals");
 
-// Upload helper function
-function uploadFile($fileInputName) {
-    $targetDir = "uploads/";
-    if (!is_dir($targetDir)) {
-        mkdir($targetDir, 0777, true);
+    $events = [];
+    while ($row = $result->fetch_assoc()) {
+        $color = '#6c757d';
+        if ($row['status'] === 'Pending') $color = '#FFA500';
+        if ($row['status'] === 'Approved') $color = '#28a745';
+        if ($row['status'] === 'Disapproved') $color = '#dc3545';
+
+        $events[] = [
+            'title' => $row['event_type'] . " (" . $row['department'] . ")",
+            'start' => $row['start_date'],
+            'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')),
+            'color' => $color,
+            'status' => $row['status']
+        ];
     }
 
-    if (isset($_FILES[$fileInputName]) && $_FILES[$fileInputName]['error'] === UPLOAD_ERR_OK) {
-        $filename = basename($_FILES[$fileInputName]["name"]);
-        $cleanedName = preg_replace('/[^a-zA-Z0-9\._-]/', '_', $filename);
-        $targetFile = $targetDir . time() . "_" . $cleanedName;
+    header('Content-Type: application/json');
+    echo json_encode($events);
+    exit();
+}
 
-        if (move_uploaded_file($_FILES[$fileInputName]["tmp_name"], $targetFile)) {
-            return $targetFile;
+// Safely get POST values
+$department  = $_POST['department'] ?? '';
+$event_type  = $_POST['event_type'] ?? '';
+$date_range  = $_POST['date_range'] ?? '';
+$venue       = $_POST['venue'] ?? '';
+$time        = $_POST['time'] ?? '';
+
+// Parse date range into start and end
+$dates = explode(' to ', str_replace(' - ', ' to ', $date_range));
+$start_date = isset($dates[0]) ? date('Y-m-d', strtotime($dates[0])) : null;
+$end_date   = isset($dates[1]) ? date('Y-m-d', strtotime($dates[1])) : null;
+
+// Handle file uploads
+function uploadFile($name) {
+    if (isset($_FILES[$name]) && $_FILES[$name]['error'] === UPLOAD_ERR_OK) {
+        $targetDir = "uploads/";
+        if (!is_dir($targetDir)) mkdir($targetDir);
+        $filename = time() . '_' . basename($_FILES[$name]["name"]);
+        $targetFilePath = $targetDir . $filename;
+        if (move_uploaded_file($_FILES[$name]["tmp_name"], $targetFilePath)) {
+            return $filename;
         }
     }
     return null;
 }
 
-// Get form values
-$department    = $_POST['department'] ?? '';
-$event_type    = $_POST['event_type'] ?? '';
-$start_date    = $_POST['start_date'] ?? '';
-$end_date      = $_POST['end_date'] ?? '';
-$venue         = $_POST['venue'] ?? '';
-$time          = $_POST['time'] ?? '';
-$status        = "Pending";
+$letter_attachment = uploadFile("letter_attachment");
+$constitution      = uploadFile("constitution");
+$reports           = uploadFile("reports");
+$adviser_form      = uploadFile("adviser_form");
+$certification     = uploadFile("certification");
+$financial         = uploadFile("financial");
 
-// Upload attachments
-$adviser_form  = uploadFile('adviser_form');
-$certification = uploadFile('certification');
-$financial     = uploadFile('financial');
-$constitution  = uploadFile('constitution');
-$reports       = uploadFile('reports');
-$letter        = uploadFile('letter_attachment');
+// Insert into database
+$sql = "INSERT INTO proposals 
+    (department, event_type, start_date, end_date, venue, time,
+     adviser_form, certification, financial, constitution, reports, letter_attachment, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')";
 
-// Prepare and bind
-$stmt = $conn->prepare("INSERT INTO proposals 
-    (department, event_type, start_date, end_date, venue, time, adviser_form, certification, financial, constitution, reports, letter_attachment, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-if (!$stmt) {
-    die("Prepare failed: " . $conn->error);
-}
-
-$stmt->bind_param(
-    "sssssssssssss", 
-    $department, $event_type, $start_date, $end_date, $venue, $time, 
-    $adviser_form, $certification, $financial, $constitution, $reports, $letter, $status
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ssssssssssss", 
+    $department, $event_type, $start_date, $end_date, $venue, $time,
+    $adviser_form, $certification, $financial, $constitution, $reports, $letter_attachment
 );
-
-// Execute and give feedback
-if ($stmt->execute()) {
-    echo "<p style='color: green; font-weight: bold;'>✔ Proposal submitted successfully!</p>";
-    // Optional: redirect to form page with success flag
-    // header("Location: proposal_form.php?success=1");
-    // exit();
-} else {
-    echo "<p style='color: red;'>✖ Error submitting proposal: " . htmlspecialchars($stmt->error) . "</p>";
-}
-
+$stmt->execute();
 $stmt->close();
 $conn->close();
+
+header("Location: calendar.php");
+exit();
 ?>
