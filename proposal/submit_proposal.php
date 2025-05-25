@@ -1,5 +1,19 @@
 <?php
+<<<<<<< HEAD
 $conn = new mysqli("localhost", "root", "", "calendar");
+=======
+// Enable error reporting (optional for development)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// DB connection
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db   = "eventplanner";
+
+$conn = new mysqli($host, $user, $pass, $db);
+>>>>>>> b6543867a0ef613295feb306d99e0570b6501854
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }

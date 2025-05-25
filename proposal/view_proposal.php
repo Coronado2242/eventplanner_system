@@ -1,5 +1,5 @@
 <?php
-$conn = new mysqli("localhost", "root", "", "calendar");
+$conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
 $sql = "SELECT * FROM proposals WHERE status = 'Pending' ORDER BY start_date DESC";
