@@ -7,7 +7,7 @@ error_reporting(E_ALL);
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "calendar";
+$db   = "eventplanner";
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {

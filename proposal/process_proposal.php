@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db = "calendar"; 
+$db = "eventplanner"; 
 
 // Create database connection
 $conn = new mysqli($host, $user, $pass, $db);

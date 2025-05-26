@@ -261,7 +261,7 @@ session_start();
 <div id="approvalContent" style="display:none;">
     <main class="content" >
         <h1 style="margin-bottom: 0;">Request Approval</h1>
-
+    <iframe id="approvalFrame" style="width:100%; height:600px; border:none;"></iframe>
     </main>
 </div>
 
@@ -322,6 +322,15 @@ document.addEventListener("click", function(event) {
 
 document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("calendarFrame").src = "../calendar/calendar.php";
+    });
+
+    document.querySelector(".toggle-btn").addEventListener("click", function () {
+    const sidebar = document.querySelector(".sidebar");
+    sidebar.classList.toggle("collapsed");  
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("approvalFrame").src = "../request/forapproval.php";
     });
 
     document.querySelector(".toggle-btn").addEventListener("click", function () {
