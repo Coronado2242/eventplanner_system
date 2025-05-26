@@ -92,7 +92,6 @@ session_start();
 }
 
 .hero {
-    background: url('your-background-image.png') no-repeat center center/cover;
     height: 90vh;
     position: relative;
 }
