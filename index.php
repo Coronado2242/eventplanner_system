@@ -248,7 +248,7 @@ session_start();
   display: none;
   position: fixed;
   z-index: 999;
-  left: 0; top: 0;
+  left: 0; top: 8%;
   width: 100%; height: 100%;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.6);

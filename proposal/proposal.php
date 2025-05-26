@@ -59,21 +59,7 @@
 </head>
 <body>
 
-<div class="container mt-5">
-  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proposalModal">
-    Open Proposal Form
-  </button>
-</div>
 
-<div class="modal fade" id="proposalModal" tabindex="-1" aria-labelledby="proposalModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="fw-bold text-uppercase mb-0" id="proposalModalLabel">Propose Plan</h3>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
         <!-- Change action to your PHP handler file -->
         <form action="submit_proposal.php" method="post" enctype="multipart/form-data">
           <div class="row">
@@ -171,10 +157,6 @@
 
           </div>
         </form>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
