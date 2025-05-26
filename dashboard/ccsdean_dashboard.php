@@ -266,8 +266,8 @@ session_start();
 </div>
 
 
-<!-- Venue Content -->
-<div id="requirementContent" style="display:none;">
+<!-- requirement Content -->
+<div id="requirementContent" style="display:none;" name="requirementsFrame">
     <main class="content" >
         <h1 style="margin-bottom: 0;">Requirements</h1>
 <iframe id="requirementsFrame" style="width:100%; height:600px; border:none;"></iframe>
@@ -321,30 +321,24 @@ document.addEventListener("click", function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "../calendar/calendar.php";
-    });
+    // Load iframe contents
+    document.getElementById("calendarFrame").src = "../calendar/calendar.php";
+    document.getElementById("approvalFrame").src = "../request/forapproval.php";
+    document.getElementById("requirementsFrame").src = "../request/requirements.php";
 
-    document.querySelector(".toggle-btn").addEventListener("click", function () {
-    const sidebar = document.querySelector(".sidebar");
-    sidebar.classList.toggle("collapsed");  
+    // Check for 'tab' in URL
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+
+    if (tab === "requirements") {
+        document.getElementById("requirementTab").click();
+    } else if (tab === "approval") {
+        document.getElementById("approvalTab").click();
+    } else {
+        document.getElementById("dashboardTab").click(); // default
+    }
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("approvalFrame").src = "../request/forapproval.php";
-    });
-
-    document.querySelector(".toggle-btn").addEventListener("click", function () {
-    const sidebar = document.querySelector(".sidebar");
-    sidebar.classList.toggle("collapsed");
-});
-document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("requirementsFrame").src = "../request/requirements.php";
-    });
-
-    document.querySelector(".toggle-btn").addEventListener("click", function () {
-    const sidebar = document.querySelector(".sidebar");
-    sidebar.classList.toggle("collapsed");
-});
 </script>
 
 

@@ -27,7 +27,7 @@ while ($row = mysqli_fetch_assoc($result)) {
     echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
     echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
     echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-    echo '<div><strong>Requirements</strong><br><a href="view_attachment.php?id=' . urlencode($row['id']) . '" target="_blank" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a></div>';
+    echo '<div><strong>Requirements</strong><br><a href="../dashboard/ccsdean_dashboard.php?tab=requirements" target="requirementsTab" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a></div>';
     echo '</div>';
 
     echo '<div style="margin-top: 20px;">';
