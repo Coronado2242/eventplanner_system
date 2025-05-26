@@ -17,21 +17,44 @@ session_start();
     padding: 0;
     font-family: Arial, sans-serif;
     height: 100%;
-    background: url('img/homebg1.jpg') no-repeat center center fixed;
+    background: url('img/homebg2.jpg') no-repeat center center fixed;
     background-size: cover;
+}
+.logo {
+    display: flex;
+    align-items: center; 
+}
+.logo img {
+    margin-right: 10px; 
+    height: 50px; 
+    border-radius: 50%; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(#ddd, #999);
-    padding: 10px 50px;
+    background-color: rgba(255, 255, 255, 0.50); 
+    padding: 15px 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .navbar .logo {
-    font-size: 24px;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    font-size: 26px;
+    font-weight: 700;
+    color: #222;
+}
+
+.navbar .logo span {
+    color: #007bff;
 }
 
 .navbar ul {
@@ -39,20 +62,33 @@ session_start();
     display: flex;
     margin: 0;
     padding: 0;
-}
-
-.navbar ul li {
-    margin-left: 20px;
+    gap: 25px;
 }
 
 .navbar ul li a {
     text-decoration: none;
-    color: black;
-    font-weight: bold;
+    color: #000;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s;
 }
 
+.navbar ul li a:hover,
 .navbar ul li a.active {
-    color: maroon;
+    background-color: #007bff;
+    color: white;
+}
+
+.user-dropdown i {
+    font-size: 20px;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.user-dropdown i:hover {
+    color: #007bff;
 }
 
 .hero {
@@ -63,14 +99,26 @@ session_start();
 
 .overlay {
     position: absolute;
-    top: 30%;
+    top: 15%;
     left: 10%;
     color: white;
 }
 
 .overlay h1 {
-    font-size: 40px;
+    font-size: 50px;
     font-weight: bold;
+    line-height: 1.2;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+}
+
+.welcome-line {
+    font-size: 60px;
+    letter-spacing: 3px;
+}
+
+.brand-line {
+    font-size: 130px;
+    font-weight: 800;
 }
 
 .overlay p {
@@ -97,7 +145,7 @@ session_start();
 }
 
 .btn.read {
-    background-color: maroon;
+    background-color: blue;
     color: white;
 }
 
@@ -232,7 +280,7 @@ session_start();
 <body>
     <header class="navbar">
     
-        <div class="logo"><img src="img/lspulogo.jpg" style="height: 50px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">Event<span style="color:blue;">Sync</span></div>
+        <div class="logo"><img src="img/lspulogo.jpg">Event<span style="color:blue;">Sync</span></div>
         <nav>
     <ul>
         <li><a href="#" class="active">Home</a></li>
@@ -271,7 +319,6 @@ session_start();
 </li>
 
         <?php else: ?>
-            <!-- Show sign in only if no one is logged in -->
             <li><a href="account/login.php">Sign In</a></li>
         <?php endif; ?>
     </ul>
@@ -281,7 +328,10 @@ session_start();
 
     <section class="hero">
         <div class="overlay">
-            <h1>WELCOME TO <span style="color:black;">Event</span><span style="color:blue;">Sync</span></h1>
+            <h1>
+                <span class="welcome-line">WELCOME TO</span><br>
+                <span class="brand-line"><span style="color:black;">Event</span><span style="color:blue;">Sync</span></span>
+            </h1>
  <?php
 $role = isset($_SESSION['role']) ? strtolower($_SESSION['role']) : '';
 if (substr($role, -3) === 'soo'):
