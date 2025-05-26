@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             role VARCHAR(50),
             email VARCHAR(255) DEFAULT '',
             fullname VARCHAR(255) DEFAULT '',
+            firstlogin VARCHAR(255) DEFAULT 'yes',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     ";
@@ -61,8 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check->store_result();
 
         if ($check->num_rows === 0) {
-            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role, email, fullname) VALUES (?, ?, ?, '', '')");
-            $insert->bind_param("sss", $username, $defaultPassword, $role);
+            $email = '';
+            $fullname = '';
+            $firstlogin = 'yes';
+            
+            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role, email, fullname, firstlogin) VALUES (?, ?, ?, ?, ?, ?)");
+            $insert->bind_param("ssssss", $username, $defaultPassword, $role, $email, $fullname, $firstlogin);
+            
             $insert->execute();
         }
     }

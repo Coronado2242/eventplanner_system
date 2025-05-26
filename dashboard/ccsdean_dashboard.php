@@ -16,7 +16,7 @@ if (!$conn) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CCS Dean Dashboard</title>
+    <title>CCS Dean Portal</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -496,7 +496,6 @@ document.addEventListener("click", function(event) {
 document.addEventListener("DOMContentLoaded", function () {
     // Load iframe contents
     document.getElementById("calendarFrame").src = "../calendar/calendar.php";
-    document.getElementById("approvalFrame").src = "../request/forapproval.php";
     document.getElementById("requirementsFrame").src = "../request/requirements.php";
 
     // Check for 'tab' in URL
