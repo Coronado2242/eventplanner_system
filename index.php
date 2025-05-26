@@ -26,7 +26,7 @@ session_start();
 }
 .logo img {
     margin-right: 10px; 
-    height: 50px; 
+    height: 49px; 
     border-radius: 50%; 
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }

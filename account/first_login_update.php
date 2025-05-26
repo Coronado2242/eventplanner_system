@@ -32,6 +32,8 @@ if (!isset($_SESSION['user_logged_in']) || !isset($_SESSION['user_id'])) {
                 <h5 class="modal-title">Complete Your Profile</h5>
             </div>
             <div class="modal-body">
+                <input type="text" name="username" class="form-control" required value="<?= htmlspecialchars($_SESSION['username']) ?>" readonly>
+
                 <div class="form-group">
                     <label>Full Name</label>
                     <input type="text" name="fullname" class="form-control" required>
