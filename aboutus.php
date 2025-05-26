@@ -11,26 +11,49 @@ session_start();
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"> 
 </head>
 <style>
-body {
+    body, html {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
     height: 100%;
-    background: url('img/homebg1.jpg') no-repeat center center fixed;
+    background: url('img/homebg2.jpg') no-repeat center center fixed;
     background-size: cover;
+}
+.logo {
+    display: flex;
+    align-items: center; 
+}
+.logo img {
+    margin-right: 10px; 
+    height: 49px; 
+    border-radius: 50%; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(#ddd, #999);
-    padding: 10px 50px;
+    background-color: rgba(255, 255, 255, 0.50); 
+    padding: 15px 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .navbar .logo {
-    font-size: 24px;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    font-size: 26px;
+    font-weight: 700;
+    color: #222;
+}
+
+.navbar .logo span {
+    color: #007bff;
 }
 
 .navbar ul {
@@ -38,20 +61,33 @@ body {
     display: flex;
     margin: 0;
     padding: 0;
-}
-
-.navbar ul li {
-    margin-left: 20px;
+    gap: 25px;
 }
 
 .navbar ul li a {
     text-decoration: none;
-    color: black;
-    font-weight: bold;
+    color: #000;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s;
 }
 
+.navbar ul li a:hover,
 .navbar ul li a.active {
-    color: maroon;
+    background-color: #007bff;
+    color: white;
+}
+
+.user-dropdown i {
+    font-size: 20px;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.user-dropdown i:hover {
+    color: #007bff;
 }
 
 .hero {
@@ -62,14 +98,26 @@ body {
 
 .overlay {
     position: absolute;
-    top: 30%;
+    top: 15%;
     left: 10%;
     color: white;
 }
 
 .overlay h1 {
-    font-size: 40px;
+    font-size: 50px;
     font-weight: bold;
+    line-height: 1.2;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+}
+
+.welcome-line {
+    font-size: 60px;
+    letter-spacing: 3px;
+}
+
+.brand-line {
+    font-size: 130px;
+    font-weight: 800;
 }
 
 .overlay p {
@@ -96,8 +144,103 @@ body {
 }
 
 .btn.read {
-    background-color: maroon;
+    background-color: blue;
     color: white;
+}
+
+.section-title {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 32px;
+    font-weight: bold;
+    color: black;
+    text-shadow: 2px 2px 3px rgba(0,0,0,0.3);
+}
+
+/* Contact Cards */
+.contact-section {
+    padding: 40px;
+    text-align: center;
+}
+
+.contact-cards {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin: 30px 0;
+}
+
+.contact-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.contact-card img {
+    margin-bottom: 10px;
+}
+
+.chat-button {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #003399;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 8px;
+}
+
+/* Help Section */
+.help-section {
+    margin-top: 50px;
+}
+
+.help-section h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.help-section p {
+    margin-top: 5px;
+    font-size: 16px;
+}
+
+.help-section a {
+    color: #003399;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    right: 0;
+    margin-top: 10px;
+    border-radius: 5px;
+    z-index: 100;
+}
+.dropdown-menu a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+}
+.dropdown-menu a:hover {
+    background-color: #f0f0f0;
+}
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: 20px;
+    cursor: pointer;
+}
+.fa-user {
+    font-size: 18px;
 }
 
 .container {
@@ -138,41 +281,12 @@ h1 {
 }
 
 
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    background-color: white;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    right: 0;
-    margin-top: 10px;
-    border-radius: 5px;
-    z-index: 100;
-}
-.dropdown-menu a {
-    display: block;
-    padding: 10px;
-    text-decoration: none;
-    color: #333;
-}
-.dropdown-menu a:hover {
-    background-color: #f0f0f0;
-}
-.user-dropdown {
-    position: relative;
-    display: inline-block;
-    margin-left: 20px;
-    cursor: pointer;
-}
-.fa-user {
-    font-size: 18px;
-}
-
 </style>
 
 <body>
 
 <header class="navbar">
-        <div class="logo">Event<span style="color:blue;">Sync</span></div>
+        <div class="logo"><img src="img/lspulogo.jpg">Event<span style="color:blue;">Sync</span></div>
         <nav>
             <ul>
                 <li><a href="index.php">Home</a></li>

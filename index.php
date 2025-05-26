@@ -279,7 +279,6 @@ session_start();
 </style>
 <body>
     <header class="navbar">
-    
         <div class="logo"><img src="img/lspulogo.jpg">Event<span style="color:blue;">Sync</span></div>
         <nav>
     <ul>

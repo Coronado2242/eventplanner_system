@@ -9,10 +9,10 @@ session_start();
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css' rel='stylesheet' />
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js'></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-    }
+body {
+  font-family: Arial, sans-serif;
+  background: transparent;
+}
     #calendar {
       max-width: 700px;
       margin: 40px auto;

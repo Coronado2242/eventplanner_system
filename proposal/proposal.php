@@ -149,7 +149,9 @@
                 <input type="file" name="financial" required />
                 <button type="button" class="upload-btn">Upload 📎</button>
               </div>
-
+              <div class="text-center mt-3">
+                <button type="submit" class="submit-btn">Request Budget</button>
+              </div>
               <div class="text-center mt-3">
                 <button type="submit" class="submit-btn">Submit Proposal</button>
               </div>
