@@ -40,15 +40,16 @@ body {
 
 body::before {
   content: "";
-  position: fixed;   /* fixed to cover viewport */
+  position: fixed; 
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(255, 255, 255, 0.4); /* white overlay with opacity */
-  z-index: -1; /* behind everything */
-  pointer-events: none; /* so it doesn’t block clicks */
+  background: rgba(255, 255, 255, 0.4); 
+  z-index: -1;
+  pointer-events: none; 
 }
+
 .topbar {
     display: flex;
     justify-content: space-between;
@@ -68,7 +69,7 @@ body::before {
     font-size: 24px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
 }
 
 .topbar nav a {

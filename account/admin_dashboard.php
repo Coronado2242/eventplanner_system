@@ -16,17 +16,46 @@ if (!isset($_SESSION['admin_logged_in'])) {
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 </head>
 <style>
-    body {
-    margin: 0;
-    font-family: Arial, sans-serif;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: url('../img/homebg2.jpg') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed; 
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.4); 
+  z-index: -1;
+  pointer-events: none; 
 }
 
 .topbar {
-    background: #ccc;
-    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: rgba(255, 255, 255, 0.50); 
+    padding: 15px 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .topbar .logo {
@@ -35,12 +64,24 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 .topbar nav a {
-    margin: 0 15px;
     text-decoration: none;
-    color: black;
-    font-weight: bold;
+    color: #000;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s;
 }
-
+.logo {
+    display: flex;
+    align-items: center; 
+}
+.logo img {
+    margin-right: 10px; 
+    height: 49px; 
+    border-radius: 50%; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
 .admin-info {
     display: inline-block;
     margin-left: 20px;
@@ -171,7 +212,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 <body>
 
 <header class="topbar">
-    <div class="logo">EVENT ADMIN PORTAL</div>
+<div class="logo"><img src="../img/lspulogo.jpg">EVENT ADMIN PORTAL</div>
     <nav>
         <a href="../index.php">Home</a>
         <a href="../aboutus.php">About Us</a>
