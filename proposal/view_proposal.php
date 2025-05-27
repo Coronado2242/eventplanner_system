@@ -34,9 +34,9 @@ function getColor($dept) {
 
         .cards {
             display: flex;
-            flex-direction: column; /* stack vertically */
-            gap: 20px; /* space between cards */
-            align-items: center; /* center cards horizontally */
+            flex-direction: column; 
+            gap: 20px; 
+            align-items: center; 
         }
 
         .card {
