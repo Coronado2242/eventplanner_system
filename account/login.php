@@ -6,8 +6,8 @@ if (isset($_SESSION['admin_logged_in'])) {
     exit();
 }
 
-if (isset($_SESSION['client_logged_in'])) {
-    header('Location: client_dashboard.php');
+if (isset($_SESSION['admin_logged_in'])) {
+    header('Location: osas_dashboard.php');
     exit();
 }
 ?>

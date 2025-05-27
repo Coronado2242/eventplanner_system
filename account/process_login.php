@@ -1,32 +1,63 @@
 <?php
 session_start();
-
-// Connect to eventplanner database
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get user input
-$user = trim($_POST['username']);
-$pass = trim($_POST['password']);
+// Step 1: Get and sanitize user input
+$user = isset($_POST['username']) ? trim($_POST['username']) : '';
+$pass = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-// 1. Check admin_account
-$stmt = $conn->prepare("SELECT adminuser, adminpass, role FROM admin_account WHERE adminuser = ?");
+if (empty($user) || empty($pass)) {
+    die("Username or password is empty.");
+}
+
+// Step 2: Check in admin_account
+$stmt = $conn->prepare("SELECT adminid, adminuser, adminpass, role, firstlogin FROM admin_account WHERE adminuser = ?");
 $stmt->bind_param("s", $user);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($row = $result->fetch_assoc()) {
+
     if ($pass === $row['adminpass']) {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = $row['adminuser'];
         $_SESSION['role'] = $row['role'];
-        header('Location: ../account/admin_dashboard.php');
+        $_SESSION['admin_id'] = $row['adminid'];
+
+        // Handle first login redirect
+        if (isset($row['firstlogin']) && $row['firstlogin'] === 'yes') {
+            header("Location: osas_login_update.php");
+            exit();
+        }
+
+        // Redirect to role dashboard if it exists
+        $role = strtolower($row['role']);
+
+        switch ($role) {
+            case 'superadmin':
+                header("Location: ../account/admin_dashboard.php");
+                break;
+            case 'osas':
+                header("Location: ../account/osas_dashboard.php");
+                break;
+            default:
+                // fallback dashboard
+                header("Location: ../account/admin_dashboard.php");
+        }
+        exit();
+
+    } else {
+        // Password incorrect
+        header("Location: login.php?error=Incorrect+password+for+{$user}");
         exit();
     }
 }
+
+
 $stmt->close();
 
 // 2. Check department tables dynamically

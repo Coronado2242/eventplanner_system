@@ -98,20 +98,20 @@ session_start();
 
 .overlay {
     position: absolute;
-    top: 15%;
+    top: 10%;
     left: 10%;
     color: white;
 }
 
 .overlay h1 {
-    font-size: 50px;
+    font-size: 40px;
     font-weight: bold;
     line-height: 1.2;
     text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
 }
 
 .welcome-line {
-    font-size: 60px;
+    font-size: 50px;
     letter-spacing: 3px;
 }
 
@@ -306,6 +306,9 @@ session_start();
                 <?php endif; ?>
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
                     <a href="dashboard/ccsdean_dashboard.php">CCS Dean Dashboard</a>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSVice'): ?>
+                    <a href="dashboard/ccsvice_dashboard.php">CCS SBO Vice Dashboard</a>
                 <?php endif; ?>
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSFaculty'): ?>
                     <a href="dashboard/ccsfaculty_dashboard.php">CCS Faculty Dashboard</a>
