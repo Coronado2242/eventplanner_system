@@ -16,7 +16,7 @@ if (!$conn) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+    <title>CCS Dean Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -335,7 +335,7 @@ if (!$conn) {
 <body>
 
 <header class="topbar" >
-    <div class="logo">EVENT ADMIN PORTAL</div>
+    <div class="logo">CCS DEAN PORTAL</div>
     <div class="hamburger" onclick="toggleMobileNav()">☰</div>
     <nav id="mainNav">
         <a href="../index.php">Home</a>

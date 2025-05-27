@@ -1,7 +1,17 @@
 <?php
 session_start();
-?>
 
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db   = "eventplanner";
+
+$conn = mysqli_connect($host, $user, $pass, $db);
+
+if (!$conn) {
+    die("Connection failed: " . mysqli_connect_error());
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,11 +33,17 @@ session_start();
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: sticky; 
+    top: 0; 
+    z-index: 999;
 }
 
 .topbar .logo {
     font-weight: bold;
     font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .topbar nav a {
@@ -205,13 +221,123 @@ session_start();
     color: white;
     text-align: center;
 }
+@media (max-width: 768px) {
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .topbar nav {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .topbar nav a, .admin-info {
+        margin: 5px 0;
+    }
+
+        .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        top: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        z-index: 10;
+    }
+
+    .sidebar ul {
+        flex-direction: row;
+        display: flex;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidebar ul li {
+        flex: 1;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .sidebar .toggle-btn {
+        display: none;
+    }
+
+    .content {
+        margin: 0;
+        padding: 10px;
+    }
+
+    .cards {
+        flex-direction: column;
+    }
+
+    .charts {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    iframe {
+        height: 400px !important;
+    }
+
+    .user-dropdown {
+        margin-left: 0;
+    }
+
+    .dropdown-menu {
+        right: auto;
+        left: 0;
+    }
+}
+
+.hamburger {
+    display: none;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 5px 10px;
+    background: none;
+    border: none;
+}
+
+@media (max-width: 768px) {
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .hamburger {
+        display: block;
+        margin-left: auto;
+    }
+
+    nav#mainNav {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+    }
+
+    nav#mainNav.show {
+        display: flex;
+    }
+
+    nav#mainNav a {
+        padding: 10px;
+        border-top: 1px solid #ddd;
+    }
+}
 
 </style>
 <body>
 
-<header class="topbar">
+<header class="topbar" >
     <div class="logo">EVENT ADMIN PORTAL</div>
-    <nav>
+    <div class="hamburger" onclick="toggleMobileNav()">☰</div>
+    <nav id="mainNav">
         <a href="../index.php">Home</a>
         <a href="../aboutus.php">About Us</a>
         <a href="../calendar1.php">Calendar</a>
@@ -238,7 +364,6 @@ session_start();
 </header>
 
 <aside class="sidebar">
-    <div class="toggle-btn">&#9776;</div>
     <ul>
         <li id="dashboardTab" class="active"><i class="fa fa-home"></i> <span class="menu-text">Dashboard</span></li>
         <li id="approvalTab"><i class="fa fa-check-circle"></i> <span class="menu-text">Approval</span></li>
@@ -249,7 +374,7 @@ session_start();
 <!-- Dashboard Content -->
 <div id="dashboardContent">
 <main class="content">
-    <h1>CCS Faculty Dashboard</h1>
+    <h1>CCS Dean Dashboard</h1>
     <p>Welcome back! Here's what's happening today.</p>
 
     <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
@@ -257,22 +382,53 @@ session_start();
 </main>
 </div>
 
-<!-- User Management Content -->
+<!-- User Approval Content -->
 <div id="approvalContent" style="display:none;">
-    <main class="content" >
+    <main class="content">
         <h1 style="margin-bottom: 0;">Request Approval</h1>
+        <?php
+        $sql = "SELECT * FROM proposals WHERE status = 'Pending'";
+        $result = mysqli_query($conn, $sql);
 
+        while ($row = mysqli_fetch_assoc($result)) {
+            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 800px; position: relative; margin-bottom: 20px;">';
+            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
+            echo '<span style="position: absolute; top: 20px; right: 20px; color: #FFA07A; font-weight: bold;">' . htmlspecialchars($row['status']) . '</span>';
+            
+            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
+            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
+            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
+            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
+            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
+            echo '<div><strong>Requirements</strong><br>';
+            echo '<button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">View</button>';
+            echo '</div>';
+            echo '</div>';
+
+            echo '<div style="margin-top: 20px;">';
+            echo '<form method="POST" action="approve_request.php" style="display:inline;">';
+            echo '<input type="hidden" name="id" value="' . $row['id'] . '">';
+            echo '<button type="submit" name="approve" style="background-color: green; color: white; border: none; padding: 8px 16px; border-radius: 20px; margin-right: 10px;">Approve</button>';
+            echo '</form>';
+
+            echo '<form method="POST" action="approve_request.php" style="display:inline;">';
+            echo '<input type="hidden" name="id" value="' . $row['id'] . '">';
+            echo '<button type="submit" name="disapprove" style="background-color: red; color: white; border: none; padding: 8px 16px; border-radius: 20px;">Disapprove</button>';
+            echo '</form>';
+            echo '</div>';
+            echo '</div>';
+        }
+        ?>
     </main>
 </div>
 
 
-<!-- Venue Content -->
+<!-- requirement Content -->
 <div id="requirementContent" style="display:none;">
-    <main class="content" >
-        <h1 style="margin-bottom: 0;">Requirements</h1>
-
-
-    </main>
+      <main class="content">
+          <h1 style="margin-bottom: 0;">Requirements</h1>
+          <iframe id="requirementsFrame" src="../request/requirements.php" style="width:100%; height:600px; border:none;"></iframe>
+      </main>
 </div>
 
 
@@ -304,6 +460,23 @@ document.getElementById("requirementTab").addEventListener("click", function () 
     document.getElementById("dashboardTab").classList.remove("active");
     document.getElementById("approvalTab").classList.remove("active");
 });
+
+
+function showRequirementsTab() {
+    document.getElementById("dashboardContent").style.display = "none";
+    document.getElementById("approvalContent").style.display = "none";
+    document.getElementById("requirementContent").style.display = "block";
+
+    document.getElementById("dashboardTab").classList.remove("active");
+    document.getElementById("approvalTab").classList.remove("active");
+    document.getElementById("requirementTab").classList.add("active");
+}
+
+function toggleMobileNav() {
+    const nav = document.getElementById("mainNav");
+    nav.classList.toggle("show");
+}
+
 </script>
 <!-- Dropdown Script -->
 <script>
@@ -321,13 +494,25 @@ document.addEventListener("click", function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "../calendar/calendar.php";
-    });
+    // Load iframe contents
+    document.getElementById("calendarFrame").src = "../calendar/calendar.php";
+    document.getElementById("approvalFrame").src = "../request/forapproval.php";
+    document.getElementById("requirementsFrame").src = "../request/requirements.php";
 
-    document.querySelector(".toggle-btn").addEventListener("click", function () {
-    const sidebar = document.querySelector(".sidebar");
-    sidebar.classList.toggle("collapsed");
+    // Check for 'tab' in URL
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+
+    if (tab === "requirements") {
+        document.getElementById("requirementTab").click();
+    } else if (tab === "approval") {
+        document.getElementById("approvalTab").click();
+    } else {
+        document.getElementById("dashboardTab").click(); // default
+    }
 });
+
+
 </script>
 
 
