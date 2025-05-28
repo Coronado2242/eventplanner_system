@@ -1,5 +1,7 @@
 <?php
 session_start();
+$conn = new mysqli("localhost", "root", "", "eventplanner");
+$result = $conn->query("SELECT id, department, event_type, budget_approved, budget_amount FROM proposals WHERE budget_approved = 0");
 ?>
 
 <!DOCTYPE html>
@@ -206,6 +208,61 @@ session_start();
     text-align: center;
 }
 
+.approval-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+    margin-top: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.approval-table thead {
+    background-color: #004080;
+    color: white;
+}
+
+.approval-table th, .approval-table td {
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.approval-table tbody tr {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.approval-table tbody tr:hover {
+    transform: scale(1.01);
+    background-color: #f0f8ff;
+}
+
+.budget-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.approve-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.approve-btn:hover {
+    background-color: #218838;
+}
+
 </style>
 <body>
 
@@ -227,8 +284,8 @@ session_start();
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
                         <a href="admin_dashboard.php">Admin Dashboard</a>
                     <?php endif; ?>
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
-                        <a href="ccsdean_dashboard.php">CCS Dean Dashboard</a>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSVice'): ?>
+                        <a href="ccsvice_dashboard.php">CCS SBO Vice Dashboard</a>
                     <?php endif; ?>
                     <a href="../account/logout.php">Logout</a>
                 </div>
@@ -261,6 +318,32 @@ session_start();
 <div id="approvalContent" style="display:none;">
     <main class="content" >
         <h1 style="margin-bottom: 0;">Request Approval</h1>
+<table class="approval-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Department</th>
+            <th>Event Type</th>
+            <th>Budget (₱)</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php while($row = $result->fetch_assoc()): ?>
+            <tr data-id="<?= $row['id'] ?>">
+                <td><?= $row['id'] ?></td>
+                <td><?= htmlspecialchars($row['department']) ?></td>
+                <td><?= htmlspecialchars($row['event_type']) ?></td>
+                <td>
+                    <input type="number" name="budget" class="budget-input" placeholder="Enter amount">
+                </td>
+                <td>
+                    <button class="approve-btn" onclick="approveBudget(<?= $row['id'] ?>, this)">Approve</button>
+                </td>
+            </tr>
+        <?php endwhile; ?>
+    </tbody>
+</table>
 
     </main>
 </div>
@@ -328,6 +411,35 @@ document.addEventListener("DOMContentLoaded", function () {
     const sidebar = document.querySelector(".sidebar");
     sidebar.classList.toggle("collapsed");
 });
+</script>
+<script>
+function approveBudget(proposalId, button) {
+    const row = button.closest("tr");
+    const budget = row.querySelector("input[name='budget']").value;
+
+    if (!budget || isNaN(budget) || budget <= 0) {
+        alert("Please enter a valid budget.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("proposal_id", proposalId);
+    formData.append("budget", budget);
+
+    fetch("../request/update_budget.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.text())
+    .then(data => {
+        alert("✅ " + data);
+        row.remove(); // Remove the row after successful update
+    })
+    .catch(err => {
+        alert("❌ Error updating budget.");
+        console.error(err);
+    });
+}
 </script>
 
 

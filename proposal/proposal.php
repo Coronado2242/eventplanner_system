@@ -1,173 +1,100 @@
+<?php
+session_start();
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "eventplanner";
+$conn = new mysqli($host, $user, $pass, $db);
+
+if (!isset($_SESSION['proposal_id']) && isset($_SESSION['form_data'])) {
+    unset($_SESSION['form_data']);
+}
+
+// Check if there's an approved budget
+$budgetApproved = false;
+$budgetAmount = null;
+if (isset($_SESSION['proposal_id'])) {
+    $stmt = $conn->prepare("SELECT budget_approved, budget_amount FROM proposals WHERE id = ?");
+    $stmt->bind_param("i", $_SESSION['proposal_id']);
+    $stmt->execute();
+    $stmt->bind_result($approved, $amount);
+    if ($stmt->fetch()) {
+        $budgetApproved = $approved;
+        $budgetAmount = $amount;
+    }
+    $stmt->close();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Event Proposal Modal</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
-  <style>
-    .input-rounded {
-      background-color: #e5e5e5;
-      border: none;
-      border-radius: 30px;
-      padding: 10px 20px;
-      font-size: 16px;
-      color: #333;
-      width: 100%;
-    }
-    .file-box {
-      background-color: #e5e5e5;
-      border-radius: 25px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    .file-box label {
-      font-weight: 600;
-      font-size: 14px;
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-    }
-    .upload-btn {
-      background-color: #0d6efd;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 6px 15px;
-      font-size: 14px;
-      margin-top: 8px;
-    }
-    iframe {
-      width: 100%;
-      height: 300px;
-      border: none;
-      border-radius: 15px;
-    }
-    .submit-btn {
-      background-color: #0056d2;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-    }
-    .modal-header .btn-close {
-      font-size: 1.5rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Event Proposal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
-<body>
 
+<body class="p-5">
+<form action="<?= $budgetApproved ? 'submit_proposal.php' : 'request_budget.php' ?>" method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <select name="department" class="form-control" required>
+            <option value="">Select Department</option>
+            <?php
+            $departments = ["CHMT", "CCS", "CTE", "COE", "CCJE", "CA", "CBBA", "CFMD"];
+            foreach ($departments as $dept) {
+                $selected = ($_SESSION['form_data']['department'] ?? '') === $dept ? 'selected' : '';
+                echo "<option value='$dept' $selected>$dept</option>";
+            }
+            ?>
+        </select>
+    </div>
+    <div class="mb-3">
+        <input type="text" name="event_type" class="form-control" placeholder="Type of Event" required
+               value="<?= $_SESSION['form_data']['event_type'] ?? '' ?>">
+    </div>
+    <div class="mb-3">
+        <input type="text" name="date_range" class="form-control" placeholder="Date Range" required
+               value="<?= $_SESSION['form_data']['date_range'] ?? '' ?>">
+    </div>
+    <div class="mb-3">
+        <input type="text" name="venue" class="form-control" placeholder="Venue" required
+               value="<?= $_SESSION['form_data']['venue'] ?? '' ?>">
+    </div>
+    <div class="mb-3">
+        <input type="text" name="time" class="form-control" placeholder="Time" required
+               value="<?= $_SESSION['form_data']['time'] ?? '' ?>">
+    </div>
 
-        <!-- Change action to your PHP handler file -->
-        <form action="submit_proposal.php" method="post" enctype="multipart/form-data">
-          <div class="row">
+    <?php
+    $files = ['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'];
+    foreach ($files as $file) {
+        echo "<div class='mb-3'>
+                <label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>
+                <input type='file' name='$file' class='form-control' " . (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " />
+                ";
+        if (isset($_SESSION['uploaded'][$file])) {
+            echo "<small>File already uploaded: " . basename($_SESSION['uploaded'][$file]) . "</small>";
+        }
+        echo "</div>";
+    }
+    ?>
 
-            <!-- LEFT COLUMN -->
-            <div class="col-md-4">
-              <div class="mb-3">
-                <select name="department" class="input-rounded" required>
-                  <option value="">Department: *Please Select*</option>
-                  <option value="CHMT">CHMT</option>
-                  <option value="CCS">CCS</option>
-                  <option value="CTE">CTE</option>
-                  <option value="COE">COE</option>
-                  <option value="CCJE">CCJE</option>
-                  <option value="CA">CA</option>
-                  <option value="CBBA">CBBA</option>
-                  <option value="CFMD">CFMD</option>
-                </select>
-              </div>
+    <div class="text-center">
+        <?php if ($budgetApproved && $budgetAmount): ?>
+            <p class="alert alert-success">Approved Budget: ₱<?= htmlspecialchars($budgetAmount) ?></p>
+            <button type="submit" class="btn btn-primary">Submit Proposal</button>
+        <?php else: ?>
+            <button type="submit" class="btn btn-warning">Request Budget</button>
+        <?php endif; ?>
+    </div>
+</form>
 
-              <div class="mb-3">
-                <input type="text" name="event_type" class="input-rounded" placeholder="Type of Event:" required />
-              </div>
-
-              <div class="mb-3">
-                <input
-                  type="text"
-                  name="date_range"
-                  class="input-rounded"
-                  placeholder="Date: mm/dd/yyyy - mm/dd/yyyy"
-                  required
-                />
-              </div>
-
-              <div class="mb-3">
-                <input type="text" name="venue" class="input-rounded" placeholder="Venue:" required />
-              </div>
-
-              <div class="mb-3">
-                <input type="text" name="time" class="input-rounded" placeholder="Time:" required />
-              </div>
-            </div>
-
-            <!-- MIDDLE COLUMN (Uploads) -->
-            <div class="col-md-4">
-              <div class="file-box">
-                <label>Requirement*<br />Letter Attachment</label>
-                <input type="file" name="letter_attachment" required />
-                <button type="button" class="upload-btn">Upload 📎</button>
-              </div>
-
-              <div class="file-box">
-                <label>Requirement*<br />Constitution and by-laws of the Org.</label>
-                <input type="file" name="constitution" required />
-                <button type="button" class="upload-btn">Upload 📎</button>
-              </div>
-
-              <div class="file-box">
-                <label>Requirement*<br />Accomplishment reports</label>
-                <input type="file" name="reports" required />
-                <button type="button" class="upload-btn">Upload 📎</button>
-              </div>
-
-              <div class="file-box">
-                <label>Requirement*<br />Adviser Commitment form</label>
-                <input type="file" name="adviser_form" required />
-                <button type="button" class="upload-btn">Upload 📎</button>
-              </div>
-            </div>
-
-            <!-- RIGHT COLUMN (Calendar + 2 uploads) -->
-            <div class="col-md-4">
-              <div class="mb-3">
-                <iframe
-                  src="https://calendar.google.com/calendar/embed?src=en.philippines%23holiday%40group.v.calendar.google.com&ctz=Asia%2FManila"
-                ></iframe>
-              </div>
-
-              <div class="file-box">
-                <label>Requirement*<br />Certification from Responsive Dean/Associate Dean</label>
-                <input type="file" name="certification" required />
-                <button type="button" class="upload-btn">Upload 📎</button>
-              </div>
-
-              <div class="file-box">
-                <label>Requirement*<br />Financial Report</label>
-                <input type="file" name="financial" required />
-                <button type="button" class="upload-btn">Upload 📎</button>
-              </div>
-              <div class="text-center mt-3">
-                <button type="submit" class="submit-btn">Request Budget</button>
-              </div>
-              <div class="text-center mt-3">
-                <button type="submit" class="submit-btn">Submit Proposal</button>
-              </div>
-            </div>
-
-          </div>
-        </form>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-  flatpickr("input[name='date_range']", {
+flatpickr("input[name='date_range']", {
     mode: "range",
     dateFormat: "m/d/Y"
-  });
+});
 </script>
-
 </body>
 </html>
