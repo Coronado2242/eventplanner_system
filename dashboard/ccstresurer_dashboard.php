@@ -373,7 +373,7 @@ body::before {
 <body>
 
 <header class="topbar" >
-    <div class="logo"><img src="../img/lspulogo.jpg">CCS SBO TRESURER PORTAL</div>
+    <div class="logo"><img src="../img/lspulogo.jpg">CCS DEAN PORTAL</div>
     <div class="hamburger" onclick="toggleMobileNav()">☰</div>
     <nav id="mainNav">
         <a href="../index.php">Home</a>
@@ -391,8 +391,8 @@ body::before {
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
                         <a href="admin_dashboard.php">Admin Dashboard</a>
                     <?php endif; ?>
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSTresurer'): ?>
-                        <a href="ccstresurer_dashboard.php">CCS SBO Tresurer Dashboard</a>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
+                        <a href="ccsdean_dashboard.php">CCS Dean Dashboard</a>
                     <?php endif; ?>
                     <a href="../account/logout.php">Logout</a>
                 </div>
@@ -461,12 +461,69 @@ body::before {
 </div>
 
 
-<!-- requirement Content -->
+<!-- Requirements Content -->
 <div id="requirementContent" style="display:none;">
-      <main class="content">
-          <h1 style="margin-bottom: 0;">Requirements</h1>
-          <iframe id="requirementsFrame" src="../request/requirements.php" style="width:100%; height:600px; border:none;"></iframe>
-      </main>
+    <main class="content">
+        <h1 style="margin-bottom: 0;">Requirements</h1>
+
+        <?php
+        $host = "localhost";
+        $user = "root";
+        $pass = "";
+        $db   = "eventplanner";
+
+        $conn = mysqli_connect($host, $user, $pass, $db);
+
+        if (!$conn) {
+            die("Connection failed: " . mysqli_connect_error());
+        }
+
+        $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND budget_approved = 1";
+        $result = mysqli_query($conn, $sql);
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
+            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
+
+            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
+            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
+            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
+            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
+            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
+            echo '</div>';
+
+            // Attachments Section
+            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
+            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
+
+            $requirements = [
+                "Letter Attachment" => "letter_attachment",
+                "Adviser Commitment form" => "adviser_form",
+                "Constitution and by-laws of the Org." => "constitution",
+                "Certification from Responsive Dean/Associate Dean" => "certification",
+                "Accomplishment reports" => "reports",
+                "Financial Report" => "financial",
+                "Plan of Activities" => "plan",
+                "Budget Plan" => "budget"
+            ];
+
+            foreach ($requirements as $label => $field) {
+                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
+                echo '<small style="color: red;">Requirement*</small><br>';
+                echo '<strong>' . $label . '</strong><br>';
+                if (!empty($row[$field])) {
+                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
+                } else {
+                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
+                }
+                echo '</div>';
+            }
+
+            echo '</div>';
+            echo '</div>';
+        }
+        ?>
+    </main>
 </div>
 
 

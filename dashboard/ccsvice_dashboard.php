@@ -14,31 +14,75 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 </head>
 <style>
-    body {
-    margin: 0;
-    font-family: Arial, sans-serif;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: url('../img/homebg2.jpg') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed; 
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.4); 
+  z-index: -1;
+  pointer-events: none; 
 }
 
 .topbar {
-    background: #ccc;
-    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: rgba(255, 255, 255, 0.50); 
+    padding: 15px 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .topbar .logo {
     font-weight: bold;
     font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .topbar nav a {
-    margin: 0 15px;
     text-decoration: none;
-    color: black;
-    font-weight: bold;
+    color: #000;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s;
 }
-
+.logo {
+    display: flex;
+    align-items: center; 
+}
+.logo img {
+    margin-right: 10px; 
+    height: 49px; 
+    border-radius: 50%; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
 .admin-info {
     display: inline-block;
     margin-left: 20px;
@@ -48,7 +92,7 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
     width: 220px;
     background: #004080;
     position: fixed;
-    top: 47px;
+    top: 80px;
     bottom: 0; 
     color: white;
 }
@@ -207,6 +251,115 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
     color: white;
     text-align: center;
 }
+@media (max-width: 768px) {
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .topbar nav {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .topbar nav a, .admin-info {
+        margin: 5px 0;
+    }
+
+        .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        top: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        z-index: 10;
+    }
+
+    .sidebar ul {
+        flex-direction: row;
+        display: flex;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidebar ul li {
+        flex: 1;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .sidebar .toggle-btn {
+        display: none;
+    }
+
+    .content {
+        margin: 0;
+        padding: 10px;
+    }
+
+    .cards {
+        flex-direction: column;
+    }
+
+    .charts {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    iframe {
+        height: 400px !important;
+    }
+
+    .user-dropdown {
+        margin-left: 0;
+    }
+
+    .dropdown-menu {
+        right: auto;
+        left: 0;
+    }
+}
+
+.hamburger {
+    display: none;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 5px 10px;
+    background: none;
+    border: none;
+}
+
+@media (max-width: 768px) {
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .hamburger {
+        display: block;
+        margin-left: auto;
+    }
+
+    nav#mainNav {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+    }
+
+    nav#mainNav.show {
+        display: flex;
+    }
+
+    nav#mainNav a {
+        padding: 10px;
+        border-top: 1px solid #ddd;
+    }
+}
 
 .approval-table {
     width: 100%;
@@ -267,8 +420,9 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
 <body>
 
 <header class="topbar">
-    <div class="logo">EVENT ADMIN PORTAL</div>
-    <nav>
+    <div class="logo"><img src="../img/lspulogo.jpg">CCS DEAN PORTAL</div>
+    <div class="hamburger" onclick="toggleMobileNav()">☰</div>
+    <nav id="mainNav">
         <a href="../index.php">Home</a>
         <a href="../aboutus.php">About Us</a>
         <a href="../calendar1.php">Calendar</a>
@@ -295,7 +449,6 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
 </header>
 
 <aside class="sidebar">
-    <div class="toggle-btn">&#9776;</div>
     <ul>
         <li id="dashboardTab" class="active"><i class="fa fa-home"></i> <span class="menu-text">Dashboard</span></li>
         <li id="approvalTab"><i class="fa fa-check-circle"></i> <span class="menu-text">Approval</span></li>
@@ -506,6 +659,11 @@ function showRequirementsTab() {
     document.getElementById("dashboardTab").classList.remove("active");
     document.getElementById("approvalTab").classList.remove("active");
     document.getElementById("requirementTab").classList.add("active");
+}
+
+function toggleMobileNav() {
+    const nav = document.getElementById("mainNav");
+    nav.classList.toggle("show");
 }
 </script>
 
