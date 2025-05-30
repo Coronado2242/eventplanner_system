@@ -106,7 +106,7 @@ if (isset($_SESSION['proposal_id'])) {
                 foreach ($files as $file) {
                     echo "<div class='mb-3'>
                             <label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>
-                            <input type='file' name='$file' class='form-control' " . (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " />";
+                          <input type='file' name='$file' class='form-control' accept='.pdf,.doc,.docx' " . (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " /> ";
                     if (isset($_SESSION['uploaded'][$file])) {
                         echo "<small>File already uploaded: " . basename($_SESSION['uploaded'][$file]) . "</small>";
                     }
