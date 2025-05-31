@@ -11,8 +11,8 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Para sa file uploads, lagay natin sa array para ma-handle after form validation
-$uploadDir = "uploads/"; // folder for uploaded files
+// Para sa file uploads
+$uploadDir = "uploads/";
 $allowedExtensions = ['pdf', 'doc', 'docx'];
 
 function uploadFile($fileInputName) {
@@ -23,7 +23,7 @@ function uploadFile($fileInputName) {
         $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
         if (!in_array($fileExt, $allowedExtensions)) {
-            return false; // invalid extension
+            return false;
         }
 
         $targetFile = $uploadDir . uniqid() . "_" . $fileName;
@@ -34,7 +34,7 @@ function uploadFile($fileInputName) {
     return false;
 }
 
-// 1. Check if budget approved for the proposal id stored in session
+// 1. Check if budget approved for the proposal
 if (!isset($_SESSION['proposal_id'])) {
     die("No proposal in progress. Please fill the form first.");
 }
@@ -51,7 +51,7 @@ if (!$budget_approved) {
     die("Cannot submit proposal because budget is not approved yet.");
 }
 
-// 2. Validate form inputs (simple example)
+// 2. Validate form inputs
 $department = $_POST['department'] ?? '';
 $event_type = $_POST['event_type'] ?? '';
 $date_range = $_POST['date_range'] ?? '';
@@ -62,7 +62,7 @@ if (!$department || !$event_type || !$date_range || !$venue || !$time) {
     die("Please fill all required fields.");
 }
 
-// 3. Upload files and save paths
+// 3. Upload files
 $files = ['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'];
 $filePaths = [];
 
@@ -74,10 +74,8 @@ foreach ($files as $file) {
     $filePaths[$file] = $uploadPath;
 }
 
-// 4. Insert or update the proposal record (you can do either, depending on your flow)
-// Here assuming update to existing proposal:
-
-$stmt = $conn->prepare("UPDATE proposals SET department=?, event_type=?, date_range=?, venue=?, time=?, letter_attachment=?, constitution=?, reports=?, adviser_form=?, certification=?, financial=?, status='submitted', submitted_at=NOW() WHERE id=?");
+// 4. Update proposal and assign to VP
+$stmt = $conn->prepare("UPDATE proposals SET department=?, event_type=?, date_range=?, venue=?, time=?, letter_attachment=?, constitution=?, reports=?, adviser_form=?, certification=?, financial=?, status='submitted', level='VP', submitted_at=NOW() WHERE id=?");
 $stmt->bind_param("sssssssssssi",
     $department,
     $event_type,
@@ -105,3 +103,4 @@ echo "<script>
     window.location.href = 'proposal.php';
 </script>";
 exit;
+?>
