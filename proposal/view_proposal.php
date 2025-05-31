@@ -2,7 +2,11 @@
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-$sql = "SELECT * FROM proposals WHERE status = 'Pending' ORDER BY start_date DESC";
+// Sample: use session to get dean department
+session_start();
+$dean_department = $_SESSION['department'] ?? null;
+
+$sql = "SELECT * FROM proposals WHERE status = 'Pending' AND department = '$dean_department' ORDER BY start_date DESC";
 $result = $conn->query($sql);
 
 function getColor($dept) {
@@ -99,6 +103,29 @@ function getColor($dept) {
             margin-right: 8px;
             margin-bottom: 6px;
         }
+
+        .approval-buttons {
+            margin-top: 20px;
+        }
+
+        .approval-buttons button {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .approve-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .disapprove-btn {
+            background-color: #dc3545;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -117,8 +144,8 @@ if ($result && $result->num_rows > 0) {
         $end_date = htmlspecialchars($row['end_date']);
         $department = htmlspecialchars($row['department']);
         $time = htmlspecialchars($row['time']);
+        $proposal_id = $row['id'];
 
-        // Prepare attachments links
         $attachments = [];
         if (!empty($row['adviser_form'])) {
             $attachments[] = '<a href="' . htmlspecialchars($row['adviser_form']) . '" target="_blank">Adviser Commitment Form</a>';
@@ -151,10 +178,15 @@ if ($result && $result->num_rows > 0) {
                 <div class="info-item"><strong>Department</strong>$department</div>
                 <div class="info-item"><strong>Time</strong>$time</div>
                 <div class="info-item"><strong>Requirements</strong>
-                    <div class="attachments">
-                        $attachments_html
-                    </div>
+                    <div class="attachments">$attachments_html</div>
                 </div>
+            </div>
+            <div class="approval-buttons">
+                <form method="post" action="process_approval.php">
+                    <input type="hidden" name="proposal_id" value="$proposal_id">
+                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
+                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
+                </form>
             </div>
         </div>
         HTML;
@@ -168,6 +200,3 @@ $conn->close();
 
 </body>
 </html>
-
-
-
