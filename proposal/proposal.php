@@ -1,37 +1,6 @@
 <?php
 session_start();
 
-// === Authentication and Role Check ===
-// Redirect if user not logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-
-// Example: Check if user role is allowed to submit/view proposal
-// Adjust this according to your roles setup
-$allowed_roles = ['user', 'dean', 'vp']; // roles that can access this page
-if (!in_array($_SESSION['role'], $allowed_roles)) {
-    die("Access denied: You don't have permission to view this page.");
-}
-
-// If this is specifically for submission by normal users, use:
-// if ($_SESSION['role'] !== 'user') { die("Access denied"); }
-
-// === Department-based filtering for dean ===
-// For dean viewing proposals, check their department matches
-if ($_SESSION['role'] === 'dean') {
-    if (!isset($_SESSION['department'])) {
-        die("Access denied: No department found for dean.");
-    }
-    // Later, when querying proposals, use $_SESSION['department'] to filter
-}
-
-// === CSRF Protection (optional but recommended) ===
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
 // === Database connection ===
 $host = "localhost";
 $user = "root";
