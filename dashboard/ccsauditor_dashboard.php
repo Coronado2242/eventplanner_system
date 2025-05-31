@@ -151,7 +151,7 @@ if (!$conn) {
     <h1>Pending Proposals for Approval</h1>
 
     <?php
-    $sql = "SELECT * FROM proposals WHERE status = 'Pending'";
+    $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND level = 'CCS Auditor'";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) == 0) {
@@ -174,11 +174,11 @@ if (!$conn) {
             echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
             echo '<td>' . htmlspecialchars($row['department']) . '</td>';
             echo '<td>
-                <form method="POST" action="auditor_approve_request.php" style="display:inline;">
+                <form method="POST" action="../proposal/flow.php" style="display:inline;">
                     <input type="hidden" name="proposal_id" value="' . $row['id'] . '">
                     <button type="submit" name="approve" class="action-btn approve-btn">Approve</button>
                 </form>
-                <form method="POST" action="auditor_approve_request.php" style="display:inline;">
+                <form method="POST" action="../proposal/flow.php" style="display:inline;">
                     <input type="hidden" name="proposal_id" value="' . $row['id'] . '">
                     <button type="submit" name="disapprove" class="action-btn disapprove-btn">Disapprove</button>
                 </form>

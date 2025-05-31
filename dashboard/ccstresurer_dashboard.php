@@ -1,4 +1,5 @@
 <?php
+session_start();
 
 $servername = "localhost";
 $username = "root";
@@ -10,32 +11,40 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// 2. Handle Approve/Disapprove POST request
+// Handle Approve/Disapprove POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
     if ($action === 'approve') {
-        $status = 'Approved by Treasurer';
+        $status = 'Pending';          // move forward in approval flow
+        $new_level = 'CCS Auditor';   // next approver
     } elseif ($action === 'disapprove') {
         $status = 'Disapproved by Treasurer';
+        $new_level = 'CCS Treasurer'; // stay in same level or adjust if needed
     } else {
         $status = null;
     }
 
-    if ($status) {
-        $stmt = $conn->prepare("UPDATE proposals SET status=? WHERE id=?");
-        $stmt->bind_param("si", $status, $id);
-        $stmt->execute();
+    if ($status !== null) {
+        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
+        if (!$stmt) {
+            die("Prepare failed: " . $conn->error);
+        }
+        $stmt->bind_param("ssi", $status, $new_level, $id);
+        if (!$stmt->execute()) {
+            die("Execute failed: " . $stmt->error);
+        }
         $stmt->close();
 
+        // Redirect to avoid form resubmission and refresh page
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 }
 
-// 3. Get proposals for Treasurer approval
-$sql = "SELECT * FROM proposals WHERE level='Treasurer' ORDER BY created_at DESC";
+// Fetch proposals currently for Treasurer approval
+$sql = "SELECT * FROM proposals WHERE TRIM(level) = 'CCS Treasurer' ORDER BY created_at DESC";
 $result = $conn->query($sql);
 ?>
 
@@ -46,7 +55,7 @@ $result = $conn->query($sql);
 <title>Treasurer Dashboard</title>
 <style>
     table { width:100%; border-collapse: collapse; }
-    th, td { border:1px solid #ccc; padding:8px; }
+    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
     th { background:#eee; }
     button { padding:6px 10px; margin-right:4px; cursor:pointer; }
     .approve-btn { background:green; color:#fff; border:none; }
@@ -91,3 +100,7 @@ $result = $conn->query($sql);
 
 </body>
 </html>
+
+<?php
+$conn->close();
+?>
