@@ -28,11 +28,6 @@ if (isset($_SESSION['proposal_id'])) {
     if ($stmt->fetch()) {
         $budgetApproved = $approved;
         $budgetAmount = $amount;
-
-        // Department check for Dean: Only allow viewing proposals from their department
-        if ($_SESSION['role'] === 'dean' && $_SESSION['department'] !== $proposal_dept) {
-            die("Access denied: You cannot view proposals outside your department.");
-        }
     }
     $stmt->close();
 }
@@ -51,7 +46,23 @@ function e($str) {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <style>
-    /* Existing styles here */
+    iframe#calendarFrame {
+        width: 100%;
+        height: 600px;
+        border: none;
+    }
+
+    .calendar-container {
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .calendar-wrapper {
+        width: 100%;
+        overflow: hidden;
+    }
 </style>
 <body class="p-5">
 <div class="container-fluid">
@@ -59,8 +70,6 @@ function e($str) {
         <!-- Left Side: Form -->
         <div class="col-md-6">
             <form action="<?= $budgetApproved ? 'submit_proposal.php' : 'request_budget.php' ?>" method="POST" enctype="multipart/form-data">
-                <!-- CSRF Token -->
-                <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token']) ?>">
                 
                 <div class="mb-3">
                     <select name="department" class="form-control" required>
