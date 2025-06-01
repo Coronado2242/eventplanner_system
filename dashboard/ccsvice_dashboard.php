@@ -461,6 +461,43 @@ tr:nth-child(even) {
     margin-left: 5px;
 }
 
+.modal {
+    display: none; /* hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+  }
+  /* Modal content box */
+  .modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 5px;
+    width: 400px;
+    position: relative;
+  }
+  /* Close button */
+  .close-btn {
+    position: absolute;
+    right: 10px; top: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .modal {
+  display: none;
+  /* other styles for overlay */
+}
+.modal.active {
+  display: flex; /* or block, whatever you want */
+  /* styles for visible modal */
+}
+
+
 </style>
 <body>
 
@@ -646,15 +683,18 @@ tr:nth-child(even) {
         // Output the Approve form
         echo '<form method="POST" action="../proposal/flow.php" style="display:inline;">';
         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-        echo '<input type="hidden" name="level" value="VP">';
+        echo '<input type="hidden" name="level" value="CCSVice">';
         echo '<button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>';
         echo '</form>';
 
         // Output the Disapprove form
         echo '<form method="POST" action="../proposal/flow.php" style="display:inline; margin-left:5px;">';
         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-        echo '<input type="hidden" name="level" value="VP">';
-        echo '<button type="submit" name="action" value="disapprove" class="action-btn disapprove-btn">Disapprove</button>';
+        echo '<input type="hidden" name="level" value="CCSVice">';
+echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-proposal-id='" . htmlspecialchars($row['id']) . "'>Disapprove</button>";
+
+
+
         echo '</form>';
 
         echo '</td>';
@@ -666,9 +706,62 @@ tr:nth-child(even) {
     ?>
 </div>
 
+<!-- Disapprove Remarks Modal -->
+<div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="../proposal/flow.php">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+  <h5 class="modal-title" id="disapproveModalLabel">Disapprove Proposal</h5>
+  <button type="button" class="btn-close" id="closeModalBtn" aria-label="Close"></button>
+</div>
+
+        <div class="modal-body">
+          <input type="hidden" name="proposal_id" id="modal_proposal_id" value="">
+          <input type="hidden" name="level" value="CCSVice">
+          <input type="hidden" name="action" value="disapprove">
+          <div class="mb-3">
+            <label for="modal_remarks" class="form-label">Please provide your reason for disapproval:</label>
+            <textarea class="form-control" name="remarks" id="modal_remarks" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger">Submit Disapproval</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
 
 <!-- Tab Switching & User Fetching Script -->
 <script>
+
+    const modal = document.getElementById('disapproveModal');
+  const proposalIdInput = document.getElementById('modal_proposal_id');
+  const openButtons = document.querySelectorAll('.open-modal-btn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+
+  openButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const proposalId = button.getAttribute('data-proposal-id');
+      proposalIdInput.value = proposalId;
+      modal.classList.add('active');
+    });
+  });
+
+  closeModalBtn.addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      modal.classList.remove('active');
+    }
+  });
+
  const proposalContent = document.getElementById('proposalContent');
      const proposalTab = document.getElementById('proposalTab');
 
@@ -805,6 +898,20 @@ function toggleMobileNav() {
         document.getElementById("proposalContent").style.display = "block";
         this.classList.add("active");
     });
+
+
+
+  // Close modal kapag pinindot yung X
+  closeBtn.addEventListener('click', function() {
+    modal.style.display = 'none';
+  });
+
+  // Close modal kapag nag-click sa labas ng modal-content
+  window.addEventListener('click', function(event) {
+    if (event.target == modal) {
+      modal.style.display = 'none';
+    }
+  });
 </script>
 
 
