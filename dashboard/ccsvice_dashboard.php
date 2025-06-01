@@ -2,6 +2,10 @@
 session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 $result = $conn->query("SELECT id, department, event_type, budget_approved, budget_amount FROM proposals WHERE budget_approved = 0");
+
+
+
+
 ?>
 
 <!DOCTYPE html>
@@ -416,6 +420,47 @@ body::before {
     background-color: #218838;
 }
 
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-family: Arial, sans-serif;
+}
+
+thead tr {
+    background-color: #007BFF; /* example: blue header */
+    color: white;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.approve-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+.disapprove-btn {
+    background-color: #dc3545;
+    color: white;
+    margin-left: 5px;
+}
+
 </style>
 <body>
 
@@ -429,8 +474,7 @@ body::before {
         <div class="admin-info">
             <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
-            <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
-
+            <span><?php echo htmlspecialchars($_SESSION['role'] == 'CCSVice' ); ?></span>
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
@@ -453,6 +497,7 @@ body::before {
         <li id="dashboardTab" class="active"><i class="fa fa-home"></i> <span class="menu-text">Dashboard</span></li>
         <li id="approvalTab"><i class="fa fa-check-circle"></i> <span class="menu-text">Approval</span></li>
         <li id="requirementTab"><i class="fa fa-building"></i> <span class="menu-text">Requirements</span></li>
+        <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
     </ul>
 </aside>
 
@@ -568,9 +613,66 @@ body::before {
     </main>
 </div>
 
+<!-- Proposals Content -->
+<div id="proposalContent" class="content" style="display:none;">
+    <h1>Pending Proposals for Approval</h1>
+
+    <?php
+    $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND level = 'VP'";
+    $result = mysqli_query($conn, $sql);
+
+    if (mysqli_num_rows($result) == 0) {
+    echo "<p>No pending proposals at this time.</p>";
+} else {
+    echo '<table>';
+    echo '<thead><tr>
+            <th>Event Type</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Venue</th>
+            <th>Department</th>
+            <th>Actions</th>
+          </tr></thead><tbody>';
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($row['event_type']) . '</td>';
+        echo '<td>' . date("M d, Y", strtotime($row['start_date'])) . ' - ' . date("M d, Y", strtotime($row['end_date'])) . '</td>';
+        echo '<td>' . htmlspecialchars($row['time']) . '</td>';
+        echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
+        echo '<td>' . htmlspecialchars($row['department']) . '</td>';
+        echo '<td>';
+        
+        // Output the Approve form
+        echo '<form method="POST" action="../proposal/flow.php" style="display:inline;">';
+        echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
+        echo '<input type="hidden" name="level" value="VP">';
+        echo '<button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>';
+        echo '</form>';
+
+        // Output the Disapprove form
+        echo '<form method="POST" action="../proposal/flow.php" style="display:inline; margin-left:5px;">';
+        echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
+        echo '<input type="hidden" name="level" value="VP">';
+        echo '<button type="submit" name="action" value="disapprove" class="action-btn disapprove-btn">Disapprove</button>';
+        echo '</form>';
+
+        echo '</td>';
+        echo '</tr>';
+    }
+
+    echo '</tbody></table>';
+}
+    ?>
+</div>
+
 
 <!-- Tab Switching & User Fetching Script -->
 <script>
+ const proposalContent = document.getElementById('proposalContent');
+     const proposalTab = document.getElementById('proposalTab');
+
+
 document.getElementById("dashboardTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "block";
     document.getElementById("approvalContent").style.display = "none";
@@ -665,6 +767,44 @@ function toggleMobileNav() {
     const nav = document.getElementById("mainNav");
     nav.classList.toggle("show");
 }
+
+
+ function hideAllSections() {
+        document.getElementById("dashboardContent").style.display = "none";
+        document.getElementById("approvalContent").style.display = "none";
+        document.getElementById("requirementContent").style.display = "none";
+        document.getElementById("proposalContent").style.display = "none";
+
+        // Alisin ang 'active' class sa lahat ng sidebar items
+        document.querySelectorAll(".sidebar ul li").forEach(function(item) {
+            item.classList.remove("active");
+        });
+    }
+
+    // Event listeners para sa bawat sidebar tab
+    document.getElementById("dashboardTab").addEventListener("click", function() {
+        hideAllSections();
+        document.getElementById("dashboardContent").style.display = "block";
+        this.classList.add("active");
+    });
+
+    document.getElementById("approvalTab").addEventListener("click", function() {
+        hideAllSections();
+        document.getElementById("approvalContent").style.display = "block";
+        this.classList.add("active");
+    });
+
+    document.getElementById("requirementTab").addEventListener("click", function() {
+        hideAllSections();
+        document.getElementById("requirementContent").style.display = "block";
+        this.classList.add("active");
+    });
+
+    document.getElementById("proposalTab").addEventListener("click", function() {
+        hideAllSections();
+        document.getElementById("proposalContent").style.display = "block";
+        this.classList.add("active");
+    });
 </script>
 
 
