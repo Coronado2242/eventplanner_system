@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 }
 
 // Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
-$current_level = 'CCS Auditor';
+$current_level = 'OSAS';
 
 $sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending'";
 $stmt = $conn->prepare($sql);
@@ -57,7 +57,7 @@ $result = $stmt->get_result();
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>CCS Auditor Portal</title>
+    <title>OSAS Portal</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <style>
@@ -134,7 +134,7 @@ $result = $stmt->get_result();
         <a href="../aboutus.php">About Us</a>
         <a href="../calendar1.php">Calendar</a>
         <div class="admin-info">
-            <span><?php echo htmlspecialchars($_SESSION['role'] ?? 'Auditor'); ?></span>
+            <span><?php echo htmlspecialchars($_SESSION['role'] ?? 'President'); ?></span>
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
@@ -187,13 +187,13 @@ $result = $stmt->get_result();
                 <form method="POST" action="../proposal/flow.php" style="display:inline;">
                     <input type="hidden" name="proposal_id" value="' . $row['id'] . '">
                     <input type="hidden" name="action" value="approve">
-                    <input type="hidden" name="level" value="CCS Auditor">
+                    <input type="hidden" name="level" value="OSAS">
                     <button type="submit" class="action-btn approve-btn">Approve</button>
                 </form>
                 <form method="POST" action="../proposal/flow.php" style="display:inline;">
                     <input type="hidden" name="proposal_id" value="' . $row['id'] . '">
                     <input type="hidden" name="action" value="disapprove">
-                    <input type="hidden" name="level" value="CCS Auditor">
+                    <input type="hidden" name="level" value="OSAS">
                     <button type="submit" class="action-btn disapprove-btn">Disapprove</button>
                 </form>
             </td>';

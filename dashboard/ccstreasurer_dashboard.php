@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 
 $servername = "localhost";
@@ -11,41 +14,44 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle Approve/Disapprove POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
     if ($action === 'approve') {
-        $status = 'Pending';          // move forward in approval flow
-        $new_level = 'CCS Auditor';   // next approver
+        $status = 'Pending';
+        $new_level = 'CCS Auditor';  // next level after Treasurer
     } elseif ($action === 'disapprove') {
         $status = 'Disapproved by Treasurer';
-        $new_level = 'CCS Treasurer'; // stay in same level or adjust if needed
+        $new_level = 'CCS Treasurer'; // stays in Treasurer since disapproved
     } else {
-        $status = null;
+        die("Invalid action");
     }
 
-    if ($status !== null) {
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
-        if (!$stmt) {
-            die("Prepare failed: " . $conn->error);
-        }
-        $stmt->bind_param("ssi", $status, $new_level, $id);
-        if (!$stmt->execute()) {
-            die("Execute failed: " . $stmt->error);
-        }
-        $stmt->close();
-
-        // Redirect to avoid form resubmission and refresh page
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
+    $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
+    if (!$stmt) {
+        die("Prepare failed: " . $conn->error);
+    }
+    $stmt->bind_param("ssi", $status, $new_level, $id);
+    if ($stmt->execute()) {
+        echo "Update successful!";
+        header("Location: treasurer_dashboard.php"); // Redirect para mai-refresh ang list
+        exit;
+    } else {
+        die("Execute failed: " . $stmt->error);
     }
 }
 
 // Fetch proposals currently for Treasurer approval
-$sql = "SELECT * FROM proposals WHERE TRIM(level) = 'CCS Treasurer' ORDER BY created_at DESC";
-$result = $conn->query($sql);
+$current_level = 'CCS Treasurer';
+
+$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending'";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $current_level);
+
+$stmt->execute();
+$result = $stmt->get_result();
+
 ?>
 
 <!DOCTYPE html>
@@ -84,8 +90,12 @@ $result = $conn->query($sql);
             <td><?= htmlspecialchars($row['venue']) ?></td>
             <td><?= htmlspecialchars($row['status']) ?></td>
             <td>
-                <form method="post" style="margin:0;">
-                    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>" />
+                <form method="post" action="../proposal/flow.php" style="margin:0;">
+                    <!-- Important: assign proposal_id value here -->
+                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
+                    <input type="hidden" name="level" value="CCS Treasurer">
+
+
                     <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
                     <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
                 </form>
