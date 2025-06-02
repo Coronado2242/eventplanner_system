@@ -67,7 +67,7 @@ $res = $conn->query($query);
 while ($row = $res->fetch_array()) {
     $table = $row[0];
 
-    $stmt = $conn->prepare("SELECT id, username, password, role, firstlogin FROM `$table` WHERE username = ?");
+    $stmt = $conn->prepare("SELECT id, username, password, role, firstlogin, fullname FROM `$table` WHERE username = ?");
     $stmt->bind_param("s", $user);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -80,6 +80,7 @@ while ($row = $res->fetch_array()) {
             $_SESSION['role'] = $userRow['role'];
             $_SESSION['department_table'] = $table;
             $_SESSION['user_id'] = $userRow['id'];
+            $_SESSION['fullname'] = $userRow['fullname'];
 
             if ($userRow['firstlogin'] === 'yes') {
                 header("Location: first_login_update.php");

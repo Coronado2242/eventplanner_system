@@ -176,6 +176,9 @@ body, html {
                 <i class="icon-bell"></i>
 
                 <!-- Display role if set -->
+                <?php if (isset($_SESSION['fullname'])): ?>
+                    <span><?php echo htmlspecialchars($_SESSION['fullname']); ?></span>
+                <?php endif; ?>
                 <?php if (isset($_SESSION['role'])): ?>
                     <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
                 <?php endif; ?>

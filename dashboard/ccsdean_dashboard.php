@@ -591,7 +591,6 @@ document.addEventListener("click", function(event) {
 document.addEventListener("DOMContentLoaded", function () {
     // Load iframe contents
     document.getElementById("calendarFrame").src = "../calendar/calendar.php";
-    document.getElementById("requirementsFrame").src = "../request/requirements.php";
 
     // Check for 'tab' in URL
     const params = new URLSearchParams(window.location.search);

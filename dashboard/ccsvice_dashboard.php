@@ -511,14 +511,19 @@ tr:nth-child(even) {
         <div class="admin-info">
             <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
-            <span><?php echo htmlspecialchars($_SESSION['role'] == 'CCSVice' ); ?></span>
+<span>
+    <?php
+    if (isset($_SESSION['fullname']) && isset($_SESSION['role'])) {
+        echo htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")";
+    }
+    ?>
+</span>
+
+
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
-                        <a href="admin_dashboard.php">Admin Dashboard</a>
-                    <?php endif; ?>
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSVice'): ?>
                         <a href="ccsvice_dashboard.php">CCS SBO Vice Dashboard</a>
                     <?php endif; ?>
