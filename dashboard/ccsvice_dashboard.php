@@ -1,9 +1,8 @@
 <?php
+
 session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 $result = $conn->query("SELECT id, department, event_type, budget_approved, budget_amount FROM proposals WHERE budget_approved = 0");
-
-
 
 
 ?>
@@ -713,9 +712,11 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
     ?>
 </div>
 
+
+
 <!-- Budget Plan -->
 <div id="budgetForm" class="content" style="display:none;">
-    <h1>Pending Proposals for Approval</h1>
+    <h1>Budget Plan</h1>
 
     <?php
     $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND level = 'VP'";
@@ -746,7 +747,7 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
         echo '<form method="POST" action=" " style="display:inline;">';
         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
         echo '<input type="hidden" name="level" value="CCSVice">';
-        echo '<button type="submit" name="action" value="approve" class="action-btn upload-btn">Upload Budget</button>';
+        echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn">Upload Budget</button>';
         echo '</form>';
         
         // Output the Approve form
@@ -776,11 +777,13 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
 </div>
 
     <!--Upload Budget-->
-
-<div class="container mt-5">
+     
+<!-- Budget Plan Form (initially hidden) -->
+<div class="container mt-5 content" id="budgetPlanForm" style="display:none;">
   <h2 class="mb-4">Submit Budget Plan</h2>
 
-  <form action="submit_budget_pdf.php" method="POST">
+  <form action="" id="myForm" method="POST">
+    <input type="hidden" name="proposal_id" value="<?php echo $proposal_id; ?>">
 
     <div class="table-responsive">
       <table class="table table-bordered table-striped align-middle text-center">
@@ -798,23 +801,125 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
           <tr>
             <td><input type="text" name="event_name[]" class="form-control" /></td>
             <td><input type="text" name="particulars[]" class="form-control" /></td>
-            <td><input type="number" name="qty[]" class="form-control" step="1" /></td>
-            <td><input type="number" name="amount[]" class="form-control" step="0.01" /></td>
-            <td><input type="number" name="total[]" class="form-control" step="0.01" /></td>
+            <td><input type="number" name="qty[]" class="form-control qty-input" step="1" /></td>
+            <td><input type="text" name="amount[]" class="form-control amount-input" /></td>
+            <td><input type="number" name="total[]" class="form-control total-input" step="0.01" readonly /></td>
           </tr>
           <?php endfor; ?>
+          <tr>
+            <td colspan="4" class="text-end fw-bold">Grand Total:</td>
+            <td><input type="text" id="grandTotal" class="form-control fw-bold" readonly /></td>
+          </tr>
         </tbody>
       </table>
     </div>
 
     <div class="text-end mt-3">
-      <button type="submit" class="btn btn-primary px-5">Generate PDF and Submit</button>
+      <button type="submit" class="btn btn-primary px-5" name="submit_budget">Generate PDF and Submit</button>
     </div>
   </form>
 </div>
+<?php
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
+require('fpdf/fpdf.php'); // Make sure path to fpdf.php is correct
 
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db   = "eventplanner";
 
+$conn = mysqli_connect($host, $user, $pass, $db);
+if (!$conn) {
+    die("Connection failed: " . mysqli_connect_error());
+}
+
+// Assuming $proposal_id is passed or set here; if not, set a dummy id for testing
+$proposal_id = isset($_POST['proposal_id']) ? intval($_POST['proposal_id']) : 1;
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
+    $event_names = $_POST['event_name'];
+    $particulars = $_POST['particulars'];
+    $qtys = $_POST['qty'];
+    $amounts = $_POST['amount'];
+    $totals = $_POST['total'];
+
+    $grandTotal = 0;
+
+    // Calculate grand total
+    foreach ($totals as $t) {
+        $grandTotal += floatval($t);
+    }
+
+    // Insert data into database
+    foreach ($event_names as $i => $event_name) {
+        if (empty(trim($event_name)) && empty(trim($particulars[$i]))) continue;
+
+        $event = mysqli_real_escape_string($conn, $event_name);
+        $particular = mysqli_real_escape_string($conn, $particulars[$i]);
+        $qty = intval($qtys[$i]);
+        $amount = floatval($amounts[$i]);
+        $total = floatval($totals[$i]);
+
+        $sql = "INSERT INTO budget_plans 
+                (proposal_id, event_name, particulars, qty, amount, total, grand_total)
+                VALUES ('$proposal_id', '$event', '$particular', '$qty', '$amount', '$total', '$grandTotal')";
+        mysqli_query($conn, $sql);
+    }
+
+    // Create folder if not exists
+    $folder = __DIR__ . '/budget_pdfs';
+    if (!is_dir($folder)) {
+        if (!mkdir($folder, 0755, true)) {
+            die("Failed to create folder $folder");
+        }
+    }
+
+    // Prepare PDF
+    $filename = $folder . '/budget_plan_' . time() . '.pdf';
+
+    $pdf = new FPDF();
+    $pdf->AddPage();
+    $pdf->SetFont('Arial','B',14);
+    $pdf->Cell(0,10,'Budget Plan',0,1,'C');
+
+    $pdf->SetFont('Arial','B',12);
+    $pdf->Cell(40,10,'Event Name',1);
+    $pdf->Cell(50,10,'Particulars',1);
+    $pdf->Cell(20,10,'Qty',1,0,'C');
+    $pdf->Cell(30,10,'Amount',1,0,'R');
+    $pdf->Cell(30,10,'Total',1,1,'R');
+
+    $pdf->SetFont('Arial','',12);
+    for ($i = 0; $i < count($event_names); $i++) {
+        if (empty(trim($event_names[$i])) && empty(trim($particulars[$i]))) continue;
+
+        $pdf->Cell(40,10,$event_names[$i],1);
+        $pdf->Cell(50,10,$particulars[$i],1);
+        $pdf->Cell(20,10,$qtys[$i],1,0,'C');
+        $pdf->Cell(30,10,number_format(floatval($amounts[$i]),2),1,0,'R');
+        $pdf->Cell(30,10,number_format(floatval($totals[$i]),2),1,1,'R');
+    }
+
+    $pdf->SetFont('Arial','B',12);
+    $pdf->Cell(140,10,'Grand Total',1,0,'R');
+    $pdf->Cell(30,10,number_format($grandTotal, 2),1,1,'R');
+
+    // Save PDF file
+    $pdf->Output('F', $filename);
+
+    // Check if PDF was created
+    if (file_exists($filename)) {
+        echo "<p style='color:green;'>PDF created successfully: <a href='budget_pdfs/" . basename($filename) . "' target='_blank'>View PDF</a></p>";
+    } else {
+        echo "<p style='color:red;'>Failed to create PDF file.</p>";
+    }
+}
+?>
 
 
 
@@ -857,6 +962,56 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
 <!-- Tab Switching & User Fetching Script -->
 <script>
 
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('myForm');
+  const qtyInputs = document.querySelectorAll('.qty-input');
+  const amountInputs = document.querySelectorAll('.amount-input');
+  const totalInputs = document.querySelectorAll('.total-input');
+  const grandTotalInput = document.getElementById('grandTotal');
+
+  function sanitize(input) {
+    input.value = input.value.replace(/[^0-9.]/g, '');
+  }
+
+  function computeRowTotal(rowIndex) {
+    const qty = parseFloat(qtyInputs[rowIndex].value) || 0;
+    const amount = parseFloat(amountInputs[rowIndex].value) || 0;
+    const total = qty * amount;
+    totalInputs[rowIndex].value = total.toFixed(2);
+  }
+
+  function computeGrandTotal() {
+    let grandTotal = 0;
+    totalInputs.forEach(input => {
+      grandTotal += parseFloat(input.value) || 0;
+    });
+    grandTotalInput.value = grandTotal.toFixed(2);
+  }
+
+  qtyInputs.forEach((qtyInput, index) => {
+    qtyInput.addEventListener('input', () => {
+      sanitize(qtyInput);
+      computeRowTotal(index);
+      computeGrandTotal();
+    });
+  });
+
+  amountInputs.forEach((amountInput, index) => {
+    amountInput.addEventListener('input', () => {
+      sanitize(amountInput);
+      computeRowTotal(index);
+      computeGrandTotal();
+    });
+  });
+
+  // Optional: Prevent Enter key from submitting form
+  form.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.tagName === "INPUT") {
+      e.preventDefault();
+    }
+  });
+});
+
     const modal = document.getElementById('disapproveModal');
   const proposalIdInput = document.getElementById('modal_proposal_id');
   const openButtons = document.querySelectorAll('.open-modal-btn');
@@ -882,6 +1037,9 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
 
  const proposalContent = document.getElementById('proposalContent');
      const proposalTab = document.getElementById('proposalTab');
+
+     const budgetForm = document.getElementById('budgetForm');
+     const budget_planTab = document.getElementById('proposalTab');
 
 
 document.getElementById("dashboardTab").addEventListener("click", function () {
@@ -910,6 +1068,34 @@ document.getElementById("requirementTab").addEventListener("click", function () 
     document.getElementById("dashboardTab").classList.remove("active");
     document.getElementById("approvalTab").classList.remove("active");
 });
+
+  document.getElementById('uploadBudgetBtn').addEventListener('click', function() {
+    hideAllSections();
+    document.getElementById('budgetPlanForm').style.display = 'block';
+    document.getElementById("budget_planTab").classList.add("active");
+  });
+
+document.getElementById("submitBudgetBtn").addEventListener("click", function (e) {
+    e.preventDefault(); // stop default form submit
+
+    const formElement = document.getElementById("myForm");
+    const formData = new FormData(formElement);
+
+    fetch("budget_plan.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.text())
+    .then(result => {
+        alert("✅ Success! " + result);
+    })
+    .catch(error => {
+        console.error("❌ Error:", error);
+    });
+});
+
+
+  
 </script>
 <!-- Dropdown Script -->
 <script>
@@ -985,6 +1171,7 @@ function toggleMobileNav() {
         document.getElementById("approvalContent").style.display = "none";
         document.getElementById("requirementContent").style.display = "none";
         document.getElementById("proposalContent").style.display = "none";
+        document.getElementById("budgetForm").style.display = "none";
 
         // Alisin ang 'active' class sa lahat ng sidebar items
         document.querySelectorAll(".sidebar ul li").forEach(function(item) {
@@ -1018,6 +1205,13 @@ function toggleMobileNav() {
     });
 
 
+     document.getElementById("budget_planTab").addEventListener("click", function() {
+        hideAllSections();
+        document.getElementById("budgetForm").style.display = "block";
+        this.classList.add("active");
+    });
+
+    
 
   // Close modal kapag pinindot yung X
   closeBtn.addEventListener('click', function() {
@@ -1033,16 +1227,16 @@ function toggleMobileNav() {
 
 
 
-const budgetTab = document.getElementById("budget_planTab");
-    const budgetForm = document.getElementById("budgetForm");
+// const budgetTab = document.getElementById("budget_planTab");
+//     const budgetForm = document.getElementById("budgetForm");
 
-    function toggleBudgetForm() {
-      budgetForm.classList.toggle("active");
-    }
+//     function toggleBudgetForm() {
+//       budgetForm.classList.toggle("active");
+//     }
 
-    budgetTab.addEventListener("click", () => {
-      toggleBudgetForm();
-    });
+//     budgetTab.addEventListener("click", () => {
+//       toggleBudgetForm();
+//     });
     
     
 </script>
