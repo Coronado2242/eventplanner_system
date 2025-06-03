@@ -122,14 +122,7 @@ style="width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 4px 8px rg
     <form method="POST" action="process_venue.php">
       <input type="organization" name="organization" placeholder="Organizer" required>
       <input type="email" name="email" placeholder="Email" required>
-      <select name="status" required>
-          <option value="">Status</option>
-          <option value="active">Active</option>
-          <option value="offline">Offline</option>
-      </select>
       <input type="venue" name="venue" placeholder="Venue" required>
-
-
 
       <button type="submit" class="signup-button">ADD VENUE</button>
     </form>

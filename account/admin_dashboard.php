@@ -338,7 +338,6 @@ body::before {
                 <tr style="background-color: #003366; color: white; padding: 10px;">
                     <th>Organizer</th>
                     <th>Email</th>
-                    <th>Status</th>
                     <th>Venue</th>
                     <th>Actions</th>
                 </tr>
@@ -468,7 +467,6 @@ document.getElementById("venueTab").addEventListener("click", function () {
                 const row = `<tr>
                     <td>${user.organizer}</td>
                     <td>${user.email}</td>
-                    <td>${user.status}</td>
                     <td>${user.venue}</td>
                     <td><button onclick="deleteUser('${user.id}')">Delete</button></td>
                 </tr>`;

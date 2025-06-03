@@ -18,20 +18,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Get and sanitize user inputs
     $organizer = $conn->real_escape_string($_POST['organization']);
     $email = $conn->real_escape_string($_POST['email']);
-    $status = $conn->real_escape_string($_POST['status']);
     $venue = $conn->real_escape_string($_POST['venue']);
 
     // Prepare and execute the insert query
-    $insert_query = "INSERT INTO venue_db (organizer, email, status, venue) VALUES (?, ?, ?, ?)";
+    $insert_query = "INSERT INTO venue_db (organizer, email, venue) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($insert_query);
-    $stmt->bind_param("ssss", $organizer, $email, $status, $venue);
+    $stmt->bind_param("sss", $organizer, $email, $venue);
 
     if ($stmt->execute()) {
         $stmt->close();
         $conn->close();
         header("Location: venue.php?success=1");
         exit();
-        
     } else {
         $stmt->close();
         $conn->close();

@@ -77,7 +77,6 @@ function e($str) {
                         <?php
                         $departments = ["CHMT", "CCS", "CTE", "COE", "CCJE", "CA", "CBBA", "CFMD"];
                         foreach ($departments as $dept) {
-                            // If Dean, force department select to their own (readonly)
                             if ($_SESSION['role'] === 'dean' && $_SESSION['department'] !== $dept) {
                                 continue;
                             }
@@ -96,8 +95,18 @@ function e($str) {
                            value="<?= e($_SESSION['form_data']['date_range'] ?? '') ?>">
                 </div>
                 <div class="mb-3">
-                    <input type="text" name="venue" class="form-control" placeholder="Venue" required
-                           value="<?= e($_SESSION['form_data']['venue'] ?? '') ?>">
+                    <select name="venue" class="form-control" required>
+                        <option value="">Select Venue</option>
+                        <?php
+                        $venue_query = $conn->query("SELECT DISTINCT venue FROM venue_db ORDER BY venue ASC");
+                        $selectedVenue = $_SESSION['form_data']['venue'] ?? '';
+                        while ($row = $venue_query->fetch_assoc()) {
+                            $venue = $row['venue'];
+                            $selected = ($selectedVenue === $venue) ? 'selected' : '';
+                            echo "<option value='" . e($venue) . "' $selected>" . e($venue) . "</option>";
+                        }
+                        ?>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <input type="text" name="time" class="form-control" placeholder="Time" required
