@@ -15,6 +15,7 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
     <title>Admin Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 </head>
 <style>
@@ -540,6 +541,7 @@ tr:nth-child(even) {
         <li id="approvalTab"><i class="fa fa-check-circle"></i> <span class="menu-text">Approval</span></li>
         <li id="requirementTab"><i class="fa fa-building"></i> <span class="menu-text">Requirements</span></li>
         <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
+        <li id="budget_planTab"><i class="fa fa-file-alt"></i> Budget Plan</li>
     </ul>
 </aside>
 
@@ -710,6 +712,117 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
 }
     ?>
 </div>
+
+<!-- Budget Plan -->
+<div id="budgetForm" class="content" style="display:none;">
+    <h1>Pending Proposals for Approval</h1>
+
+    <?php
+    $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND level = 'VP'";
+    $result = mysqli_query($conn, $sql);
+
+    if (mysqli_num_rows($result) == 0) {
+    echo "<p>No pending proposals at this time.</p>";
+} else {
+    echo '<table>';
+    echo '<thead><tr>
+            <th>Event Type</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Venue</th>
+            <th>Department</th>
+            <th>Actions</th>
+          </tr></thead><tbody>';
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($row['event_type']) . '</td>';
+        echo '<td>' . date("M d, Y", strtotime($row['start_date'])) . ' - ' . date("M d, Y", strtotime($row['end_date'])) . '</td>';
+        echo '<td>' . htmlspecialchars($row['time']) . '</td>';
+        echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
+        echo '<td>' . htmlspecialchars($row['department']) . '</td>';
+        echo '<td>';
+
+        echo '<form method="POST" action=" " style="display:inline;">';
+        echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
+        echo '<input type="hidden" name="level" value="CCSVice">';
+        echo '<button type="submit" name="action" value="approve" class="action-btn upload-btn">Upload Budget</button>';
+        echo '</form>';
+        
+        // Output the Approve form
+//         echo '<form method="POST" action="../proposal/flow.php" style="display:inline;">';
+//         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
+//         echo '<input type="hidden" name="level" value="CCSVice">';
+//         echo '<button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>';
+//         echo '</form>';
+
+//         // Output the Disapprove form
+//         echo '<form method="POST" action="../proposal/flow.php" style="display:inline; margin-left:5px;">';
+//         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
+//         echo '<input type="hidden" name="level" value="CCSVice">';
+// echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-proposal-id='" . htmlspecialchars($row['id']) . "'>Disapprove</button>";
+
+
+
+        // echo '</form>';
+
+        echo '</td>';
+        echo '</tr>';
+    }
+
+    echo '</tbody></table>';
+}
+    ?>
+</div>
+
+    <!--Upload Budget-->
+
+<div class="container mt-5">
+  <h2 class="mb-4">Submit Budget Plan</h2>
+
+  <form action="submit_budget_pdf.php" method="POST">
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped align-middle text-center">
+        <thead class="table-dark">
+          <tr>
+            <th>Event Name</th>
+            <th>Particulars</th>
+            <th>Quantity</th>
+            <th>Amount</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php for ($i = 0; $i < 20; $i++): ?>
+          <tr>
+            <td><input type="text" name="event_name[]" class="form-control" /></td>
+            <td><input type="text" name="particulars[]" class="form-control" /></td>
+            <td><input type="number" name="qty[]" class="form-control" step="1" /></td>
+            <td><input type="number" name="amount[]" class="form-control" step="0.01" /></td>
+            <td><input type="number" name="total[]" class="form-control" step="0.01" /></td>
+          </tr>
+          <?php endfor; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-end mt-3">
+      <button type="submit" class="btn btn-primary px-5">Generate PDF and Submit</button>
+    </div>
+  </form>
+</div>
+
+
+
+
+
+
+
+
+
+
+    
 
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
@@ -917,6 +1030,21 @@ function toggleMobileNav() {
       modal.style.display = 'none';
     }
   });
+
+
+
+const budgetTab = document.getElementById("budget_planTab");
+    const budgetForm = document.getElementById("budgetForm");
+
+    function toggleBudgetForm() {
+      budgetForm.classList.toggle("active");
+    }
+
+    budgetTab.addEventListener("click", () => {
+      toggleBudgetForm();
+    });
+    
+    
 </script>
 
 
