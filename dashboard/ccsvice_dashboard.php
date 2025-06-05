@@ -747,7 +747,7 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
         echo '<form method="POST" action=" " style="display:inline;">';
         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
         echo '<input type="hidden" name="level" value="CCSVice">';
-        echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn">Upload Budget</button>';
+        echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn">Set Budget Plan</button>';
         echo '</form>';
         
         // Output the Approve form
