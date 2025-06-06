@@ -10,7 +10,15 @@ $conn = new mysqli($host, $user, $pass, $db);
 if (isset($_POST['department'], $_POST['event_type'], $_POST['date_range'], $_POST['venue'], $_POST['time'])) {
 
     // Optional: Save to session only for sticky values
-    $_SESSION['form_data'] = $_POST;
+    $_SESSION['form_data'] = [
+    'department'  => $_POST['department'],
+    'event_type'  => $_POST['event_type'],
+    'date_range'  => $_POST['date_range'],
+    'venue'       => $_POST['venue'],
+    'start_time'  => $_POST['start_time'],
+    'end_time'    => $_POST['end_time']
+];
+
 
     // Upload and store files
     $uploads = [];

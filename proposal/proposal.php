@@ -69,72 +69,110 @@ function e($str) {
     <div class="row">
         <!-- Left Side: Form -->
         <div class="col-md-6">
-            <form action="<?= $budgetApproved ? 'submit_proposal.php' : 'request_budget.php' ?>" method="POST" enctype="multipart/form-data">
-                
-                <div class="mb-3">
-                    <select name="department" class="form-control" required>
-                        <option value="">Select Department</option>
-                        <?php
-                        $departments = ["CHMT", "CCS", "CTE", "COE", "CCJE", "CA", "CBBA", "CFMD"];
-                        foreach ($departments as $dept) {
-                            if ($_SESSION['role'] === 'dean' && $_SESSION['department'] !== $dept) {
-                                continue;
-                            }
-                            $selected = (($_SESSION['form_data']['department'] ?? '') === $dept) ? 'selected' : '';
-                            echo "<option value='" . e($dept) . "' $selected>" . e($dept) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="event_type" class="form-control" placeholder="Type of Event" required
-                           value="<?= e($_SESSION['form_data']['event_type'] ?? '') ?>">
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="date_range" class="form-control" placeholder="Date Range" required
-                           value="<?= e($_SESSION['form_data']['date_range'] ?? '') ?>">
-                </div>
-                <div class="mb-3">
-                    <select name="venue" class="form-control" required>
-                        <option value="">Select Venue</option>
-                        <?php
-                        $venue_query = $conn->query("SELECT DISTINCT venue FROM venue_db ORDER BY venue ASC");
-                        $selectedVenue = $_SESSION['form_data']['venue'] ?? '';
-                        while ($row = $venue_query->fetch_assoc()) {
-                            $venue = $row['venue'];
-                            $selected = ($selectedVenue === $venue) ? 'selected' : '';
-                            echo "<option value='" . e($venue) . "' $selected>" . e($venue) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="time" class="form-control" placeholder="Time" required
-                           value="<?= e($_SESSION['form_data']['time'] ?? '') ?>">
-                </div>
-
-                <?php
-                $files = ['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'];
-                foreach ($files as $file) {
-                    echo "<div class='mb-3'>
-                            <label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>
-                          <input type='file' name='$file' class='form-control' accept='.pdf,.doc,.docx' " . (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " /> ";
-                    if (isset($_SESSION['uploaded'][$file])) {
-                        echo "<small>File already uploaded: " . e(basename($_SESSION['uploaded'][$file])) . "</small>";
-                    }
-                    echo "</div>";
-                }
+            <?php
+                $form_locked = isset($_SESSION['proposal_id']) && !$budgetApproved;
                 ?>
+                <form action="<?= $budgetApproved ? 'submit_proposal.php' : 'request_budget.php' ?>" method="POST" enctype="multipart/form-data">
 
-                <div class="text-center">
-                    <?php if ($budgetApproved && $budgetAmount): ?>
-                        <p class="alert alert-success">Approved Budget: ₱<?= e($budgetAmount) ?></p>
-                        <button type="submit" class="btn btn-primary">Submit Proposal</button>
-                    <?php else: ?>
-                        <button type="submit" class="btn btn-warning">Request Budget</button>
-                    <?php endif; ?>
-                </div>
-            </form>
+                    <!-- Department -->
+                    <div class="mb-3">
+                        <?php if ($form_locked): ?>
+                            <input type="text" class="form-control" value="<?= e($_SESSION['form_data']['department']) ?>" readonly>
+                            <input type="hidden" name="department" value="<?= e($_SESSION['form_data']['department']) ?>">
+                        <?php else: ?>
+                            <select name="department" class="form-control" required>
+                                <option value="">Select Department</option>
+                                <?php
+                                foreach (["CHMT", "CCS", "CTE", "COE", "CCJE", "CA", "CBBA", "CFMD"] as $dept) {
+                                    if ($_SESSION['role'] === 'dean' && $_SESSION['department'] !== $dept) continue;
+                                    $selected = (($_SESSION['form_data']['department'] ?? '') === $dept) ? 'selected' : '';
+                                    echo "<option value='" . e($dept) . "' $selected>" . e($dept) . "</option>";
+                                }
+                                ?>
+                            </select>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Event Type -->
+                    <div class="mb-3">
+                        <input type="text" name="event_type" class="form-control" placeholder="Type of Event"
+                            value="<?= e($_SESSION['form_data']['event_type'] ?? '') ?>"
+                            <?= $form_locked ? 'readonly' : 'required' ?>>
+                    </div>
+
+                    <!-- Date Range -->
+                    <div class="mb-3">
+                        <input type="text" name="date_range" class="form-control" placeholder="Date Range"
+                            value="<?= e($_SESSION['form_data']['date_range'] ?? '') ?>"
+                            <?= $form_locked ? 'readonly' : 'required' ?>>
+                    </div>
+
+                    <!-- Venue -->
+                    <div class="mb-3">
+                        <?php if ($form_locked): ?>
+                            <input type="text" class="form-control" value="<?= e($_SESSION['form_data']['venue']) ?>" readonly>
+                            <input type="hidden" name="venue" value="<?= e($_SESSION['form_data']['venue']) ?>">
+                        <?php else: ?>
+                            <select name="venue" class="form-control" required>
+                                <option value="">Select Venue</option>
+                                <?php
+                                $venue_query = $conn->query("SELECT DISTINCT venue FROM venue_db ORDER BY venue ASC");
+                                $selectedVenue = $_SESSION['form_data']['venue'] ?? '';
+                                while ($row = $venue_query->fetch_assoc()) {
+                                    $venue = $row['venue'];
+                                    $selected = ($selectedVenue === $venue) ? 'selected' : '';
+                                    echo "<option value='" . e($venue) . "' $selected>" . e($venue) . "</option>";
+                                }
+                                ?>
+                            </select>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Time Range -->
+                    <div class="mb-3">
+                        <label>Event Time</label>
+                        <div class="row g-2">
+                            <div class="col">
+                                <input type="text" id="startTime" name="start_time" class="form-control"
+                                    placeholder="Start Time" value="<?= e($_SESSION['form_data']['start_time'] ?? '') ?>"
+                                    <?= $form_locked ? 'readonly' : 'required' ?>>
+                            </div>
+                            <div class="col">
+                                <input type="text" id="endTime" name="end_time" class="form-control"
+                                    placeholder="End Time" value="<?= e($_SESSION['form_data']['end_time'] ?? '') ?>"
+                                    <?= $form_locked ? 'readonly' : 'required' ?>>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="time" id="combinedTime">
+
+                    <!-- File Uploads -->
+                    <?php
+                    foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'] as $file) {
+                        echo "<div class='mb-3'><label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>";
+                        if ($form_locked && isset($_SESSION['uploaded'][$file])) {
+                            echo "<p class='form-control-plaintext'>" . e(basename($_SESSION['uploaded'][$file])) . "</p>";
+                        } else {
+                            echo "<input type='file' name='$file' class='form-control' accept='.pdf,.doc,.docx' " . 
+                                (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " />";
+                            if (isset($_SESSION['uploaded'][$file])) {
+                                echo "<small>Already uploaded: " . e(basename($_SESSION['uploaded'][$file])) . "</small>";
+                            }
+                        }
+                        echo "</div>";
+                    }
+                    ?>
+
+                    <!-- Buttons -->
+                    <div class="text-center">
+                        <?php if ($budgetApproved && $budgetAmount): ?>
+                            <p class="alert alert-success">Approved Budget: ₱<?= e($budgetAmount) ?></p>
+                            <button type="submit" class="btn btn-primary">Submit Proposal</button>
+                        <?php else: ?>
+                            <button type="submit" class="btn btn-warning" <?= $form_locked ? 'disabled' : '' ?>>Request Budget</button>
+                        <?php endif; ?>
+                    </div>
+                </form>
         </div>
 
         <!-- Right Side: Calendar -->
@@ -147,17 +185,47 @@ function e($str) {
         </div>
     </div>
 </div>
-
+<?php if (!$form_locked): ?>
 <script>
 flatpickr("input[name='date_range']", {
     mode: "range",
     dateFormat: "m/d/Y"
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+
+flatpickr("#startTime", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "h:i K"
+});
+
+flatpickr("#endTime", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "h:i K"
+});
+
+document.querySelector("form").addEventListener("submit", function () {
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+    document.getElementById("combinedTime").value = start + " - " + end;
+});
+</script>
+<?php endif; ?>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("calendarFrame").src = "../calendar/calendar.php";
 });
 </script>
+<?php if ($budgetApproved): ?>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const inputs = document.querySelectorAll("form input, form select, form textarea");
+    inputs.forEach(el => el.disabled = true);
+});
+</script>
+<?php endif; ?>
+
 </body>
 
 </html>
