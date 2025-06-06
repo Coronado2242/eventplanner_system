@@ -555,6 +555,21 @@ tr:nth-child(even) {
 </main>
 </div>
 
+<?php
+$conn = new mysqli('localhost', 'root', '', 'eventplanner');
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Fetch proposals that are pending approval (example: add WHERE clause if needed)
+$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE status = 'pending'";
+$result = $conn->query($sql);
+
+if ($result === false) {
+    die("SQL Error: " . $conn->error);
+}
+?>
 <!-- User Management Content -->
 <div id="approvalContent" style="display:none;">
     <main class="content" >
@@ -565,6 +580,7 @@ tr:nth-child(even) {
             <th>ID</th>
             <th>Department</th>
             <th>Requirements</th>
+             <th>Budget File</th>
             <th>Event Type</th>
             <th>Budget (₱)</th>
             <th>Action</th>
@@ -576,6 +592,18 @@ tr:nth-child(even) {
                 <td><?= $row['id'] ?></td>
                 <td><?= htmlspecialchars($row['department']) ?></td>
                 <td><button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">View</button></td>
+
+   <td>
+<?php 
+if (!empty($row['budget_file'])): 
+    // Show just the filename as clickable link
+    $fileName = htmlspecialchars($row['budget_file']);
+    echo "<a href='../proposal/uploads/$fileName' target='_blank'>$fileName</a>";
+else: 
+    echo "No file";
+endif;
+?>
+</td>
                 <td><?= htmlspecialchars($row['event_type']) ?></td>
                 <td>
                     <input type="number" name="budget" class="budget-input" placeholder="Enter amount">
@@ -747,7 +775,8 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
         echo '<form method="POST" action=" " style="display:inline;">';
         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
         echo '<input type="hidden" name="level" value="CCSVice">';
-        echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn">Set Budget Plan</button>';
+       echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn" data-proposal-id="' . $row['id'] . '">Set Budget Plan</button>';
+
         echo '</form>';
         
         // Output the Approve form
@@ -777,13 +806,24 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
 </div>
 
     <!--Upload Budget-->
+
+    <?php
+// Show form if proposal_id is passed
+if (isset($_GET['budget']) && $_GET['budget'] == 1 && isset($_GET['proposal_id'])) {
+    $proposal_id = intval($_GET['proposal_id']);
+}
+    ?>
      
 <!-- Budget Plan Form (initially hidden) -->
 <div class="container mt-5 content" id="budgetPlanForm" style="display:none;">
   <h2 class="mb-4">Submit Budget Plan</h2>
 
   <form action="" id="myForm" method="POST">
-    <input type="hidden" name="proposal_id" value="<?php echo $proposal_id; ?>">
+<input type="hidden" name="proposal_id" id="budgetProposalId" value="">
+
+
+
+
 
     <div class="table-responsive">
       <table class="table table-bordered table-striped align-middle text-center">
@@ -815,16 +855,12 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
     </div>
 
     <div class="text-end mt-3">
-      <button type="submit" class="btn btn-primary px-5" name="submit_budget">Generate PDF and Submit</button>
+      <button type="submit" class="btn btn-primary px-5" name="submit_budget" id="budgetForm">Generate PDF and Submit</button>
     </div>
   </form>
 </div>
 <?php
 // Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 require('fpdf/fpdf.php'); // Make sure path to fpdf.php is correct
 
 $host = "localhost";
@@ -837,11 +873,15 @@ if (!$conn) {
     die("Connection failed: " . mysqli_connect_error());
 }
 
+
+
 // Assuming $proposal_id is passed or set here; if not, set a dummy id for testing
-$proposal_id = isset($_POST['proposal_id']) ? intval($_POST['proposal_id']) : 1;
+
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
+
+    $proposal_id = intval($_POST['proposal_id']);
     $event_names = $_POST['event_name'];
     $particulars = $_POST['particulars'];
     $qtys = $_POST['qty'];
@@ -854,6 +894,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
     foreach ($totals as $t) {
         $grandTotal += floatval($t);
     }
+
 
     // Insert data into database
     foreach ($event_names as $i => $event_name) {
@@ -871,16 +912,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
         mysqli_query($conn, $sql);
     }
 
-    // Create folder if not exists
-    $folder = __DIR__ . '/budget_pdfs';
-    if (!is_dir($folder)) {
-        if (!mkdir($folder, 0755, true)) {
-            die("Failed to create folder $folder");
-        }
-    }
+$folder = realpath(__DIR__ . '/../proposal/uploads');
 
-    // Prepare PDF
-    $filename = $folder . '/budget_plan_' . time() . '.pdf';
+if (!$folder) {
+    die("Uploads folder NOT found at: " . __DIR__ . '/../proposals/uploads');
+}
+
+$filename = $folder . '/budget_plan_' . time() . '.pdf';
 
     $pdf = new FPDF();
     $pdf->AddPage();
@@ -912,13 +950,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
     // Save PDF file
     $pdf->Output('F', $filename);
 
-    // Check if PDF was created
     if (file_exists($filename)) {
-        echo "<p style='color:green;'>PDF created successfully: <a href='budget_pdfs/" . basename($filename) . "' target='_blank'>View PDF</a></p>";
+        $budgetFileName = basename($filename);
+
+        // Update the proposals table with the PDF filename
+        $updateSql = "UPDATE proposals SET budget_file = '$budgetFileName' WHERE id = '$proposal_id'";
+        if (mysqli_query($conn, $updateSql)) {
+            echo "
+                  <a href='../proposal/uploads/$budgetFileName' target='_blank'>View PDF</a></p>";
+        } else {
+            echo "<p style='color:red;'>PDF created, but failed to update database: " . mysqli_error($conn) . "</p>";
+        }
     } else {
         echo "<p style='color:red;'>Failed to create PDF file.</p>";
     }
 }
+
 ?>
 
 
@@ -970,6 +1017,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const grandTotalInput = document.getElementById('grandTotal');
 
   function sanitize(input) {
+    // Allow only digits and dot, remove others
     input.value = input.value.replace(/[^0-9.]/g, '');
   }
 
@@ -1004,14 +1052,42 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Optional: Prevent Enter key from submitting form
-  form.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && e.target.tagName === "INPUT") {
-      e.preventDefault();
+  // Optional: on page load, compute totals for any pre-filled values
+  for (let i = 0; i < qtyInputs.length; i++) {
+  if (qtyInputs[i].value && amountInputs[i].value) {
+    computeRowTotal(i);
+  }
+}
+computeGrandTotal();
+
+});
+
+
+// -------------------------------------------------
+
+
+
+document.querySelectorAll('.upload-btn').forEach(button => {
+  button.addEventListener('click', function() {
+    // Kunin ang proposal_id mula sa hidden input ng form na pinanggalingan ng button
+    const form = this.closest('form');
+    const proposalId = form.querySelector('input[name="proposal_id"]').value;
+
+    // Ipakita ang budget form
+    const budgetForm = document.getElementById('budgetForm');
+    budgetForm.style.display = 'block';
+
+    // Ilagay ang proposal_id sa budget form hidden input
+    const budgetFormInput = budgetForm.querySelector('input[name="proposal_id"]');
+    if (budgetFormInput) {
+      budgetFormInput.value = proposalId;
     }
   });
 });
 
+
+
+// =========================================================================================
     const modal = document.getElementById('disapproveModal');
   const proposalIdInput = document.getElementById('modal_proposal_id');
   const openButtons = document.querySelectorAll('.open-modal-btn');
@@ -1068,13 +1144,26 @@ document.getElementById("requirementTab").addEventListener("click", function () 
     document.getElementById("dashboardTab").classList.remove("active");
     document.getElementById("approvalTab").classList.remove("active");
 });
+//==============================Upload budget js================================================
+ document.querySelectorAll('.upload-btn').forEach(btn => {
+  btn.addEventListener('click', function () {
+    // Kunin yung proposal ID mula sa button na kinlick
+    const proposalId = this.getAttribute('data-proposal-id');
 
-  document.getElementById('uploadBudgetBtn').addEventListener('click', function() {
+    // I-set sa hidden field
+    document.getElementById('budgetProposalId').value = proposalId;
+
+    // Ipakita ang budget form
     hideAllSections();
     document.getElementById('budgetPlanForm').style.display = 'block';
+
+    // Activate tab kung meron
     document.getElementById("budget_planTab").classList.add("active");
   });
+});
 
+
+//====================================submit budget js=================================================
 document.getElementById("submitBudgetBtn").addEventListener("click", function (e) {
     e.preventDefault(); // stop default form submit
 
@@ -1122,6 +1211,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 <script>
+
 function approveBudget(proposalId, button) {
     const row = button.closest("tr");
     const budget = row.querySelector("input[name='budget']").value;
@@ -1148,6 +1238,37 @@ function approveBudget(proposalId, button) {
         alert("❌ Error updating budget.");
         console.error(err);
     });
+}
+
+    // ===========================================================
+
+    function approveBudget(proposalId, button) {
+    const row = button.closest("tr");
+    const budget = row.querySelector("input[name='budget']").value;
+
+    if (!budget || isNaN(budget) || budget <= 0) {
+        alert("Please enter a valid budget.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("proposal_id", proposalId);
+    formData.append("budget", budget);
+
+    fetch("../request/update_budget.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.text())
+    .then(data => {
+        alert("✅ " + data);
+        row.remove(); 
+    })
+    .catch(err => {
+        alert("❌ Error updating budget.");
+        console.error(err);
+    });
+
 }
 
 function showRequirementsTab() {
