@@ -11,7 +11,7 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+    <title>CCS SBO Vice President Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -500,7 +500,7 @@ tr:nth-child(even) {
 <body>
 
 <header class="topbar">
-    <div class="logo"><img src="../img/lspulogo.jpg">CCS DEAN PORTAL</div>
+    <div class="logo"><img src="../img/lspulogo.jpg">CCS SBO VICE PRESIDENT PORTAL</div>
     <div class="hamburger" onclick="toggleMobileNav()">☰</div>
     <nav id="mainNav">
         <a href="../index.php">Home</a>
@@ -509,15 +509,13 @@ tr:nth-child(even) {
         <div class="admin-info">
             <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
-<span>
-    <?php
-    if (isset($_SESSION['fullname']) && isset($_SESSION['role'])) {
-        echo htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")";
-    }
-    ?>
-</span>
-
-
+            <span>
+                <?php
+                if (isset($_SESSION['fullname']) && isset($_SESSION['role'])) {
+                    echo htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")";
+                }
+                ?>
+            </span>
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
@@ -1117,7 +1115,7 @@ document.addEventListener("click", function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "../calendar/calendar.php";
+        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
 
     document.querySelector(".toggle-btn").addEventListener("click", function () {

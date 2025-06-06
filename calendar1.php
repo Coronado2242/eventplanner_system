@@ -231,7 +231,7 @@ document.addEventListener("click", function(event) {
     }
 });
 document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "calendar/calendar.php";
+        document.getElementById("calendarFrame").src = "proposal/calendar.php";
     });
 </script>
 

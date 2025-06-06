@@ -35,7 +35,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f0f0;
+      background: transparent;
     }
     #calendar {
       max-width: 800px;
