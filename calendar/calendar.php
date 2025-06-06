@@ -1,5 +1,63 @@
 <?php
 session_start();
+
+// Database connection
+$host = 'localhost';
+$db   = 'eventplanner';
+$user = 'root';
+$pass = ''; // Replace with your DB password
+$charset = 'utf8mb4';
+
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+  PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+  PDO::ATTR_EMULATE_PREPARES   => false,
+];
+
+try {
+  $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (PDOException $e) {
+  http_response_code(500);
+  echo "Database connection failed: " . $e->getMessage();
+  exit;
+}
+
+// Handle AJAX calls
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'fetch') {
+  $stmt = $pdo->query("SELECT id, status, start_date, end_date FROM proposals");
+  $events = [];
+
+  while ($row = $stmt->fetch()) {
+    $events[] = [
+      'id'    => $row['id'],
+      'title' => ucfirst($row['status']),
+      'start' => $row['start_date'],
+      'end'   => $row['end_date'],
+      'className' => 'fc-event-' . strtolower(str_replace(' ', '-', $row['status']))
+    ];
+  }
+
+  header('Content-Type: application/json');
+  echo json_encode($events);
+  exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $title = $_POST['title'] ?? '';
+  $start = $_POST['start'] ?? '';
+  $end   = $_POST['end'] ?? '';
+  $status = 'pending';
+
+  if ($title && $start && $end) {
+    $stmt = $pdo->prepare("INSERT INTO proposals (status, start_date, end_date) VALUES (?, ?, ?)");
+    $stmt->execute([$status, $start, $end]);
+    echo json_encode(['status' => 'success']);
+  } else {
+    echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+  }
+  exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -9,10 +67,10 @@ session_start();
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css' rel='stylesheet' />
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js'></script>
   <style>
-body {
-  font-family: Arial, sans-serif;
-  background: transparent;
-}
+    body {
+      font-family: Arial, sans-serif;
+      background: transparent;
+    }
     #calendar {
       max-width: 700px;
       margin: 40px auto;
@@ -29,29 +87,16 @@ body {
       margin: 0 15px;
       font-weight: bold;
     }
-
-    /* Customizing event circle appearance */
     .fc-event {
-      border-radius: 50px !important; /* Make event round */
-      padding: 10px !important; /* Make it larger to create a circular shape */
-      color: white !important; /* Ensure the text stands out */
+      border-radius: 50px !important;
+      padding: 10px !important;
+      color: white !important;
       font-weight: bold;
     }
+    .fc-event-approved { background-color: green !important; }
+    .fc-event-pending { background-color: orange !important; }
+    .fc-event-not-available { background-color: red !important; }
 
-    /* Custom colors for events */
-    .fc-event-approved {
-      background-color: green !important; /* Approved event color */
-    }
-
-    .fc-event-pending {
-      background-color: orange !important; /* Pending event color */
-    }
-
-    .fc-event-not-available {
-      background-color: red !important; /* Not Available event color */
-    }
-
-    /* Modal Styling */
     .modal {
       display: none; 
       position: fixed; 
@@ -64,7 +109,6 @@ body {
       background-color: rgba(0, 0, 0, 0.4); 
       padding-top: 60px;
     }
-
     .modal-content {
       background-color: #fff;
       margin: 5% auto;
@@ -73,15 +117,12 @@ body {
       width: 40%;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-
     .modal-header {
       font-size: 24px;
       text-align: center;
       margin-bottom: 20px;
     }
-
-    .modal-body input,
-    .modal-body textarea {
+    .modal-body input {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -89,39 +130,21 @@ body {
       border-radius: 5px;
       border: 1px solid #ddd;
     }
-
     .modal-footer {
       display: flex;
       justify-content: space-between;
       margin-top: 20px;
     }
-
-    .close,
-    .save-btn {
+    .close, .save-btn {
       padding: 12px 20px;
       font-size: 16px;
       border-radius: 5px;
       cursor: pointer;
     }
-
-    .close {
-      background-color: #bbb;
-      color: white;
-    }
-
-    .close:hover {
-      background-color: #777;
-    }
-
-    .save-btn {
-      background-color: #4CAF50;
-      color: white;
-    }
-
-    .save-btn:hover {
-      background-color: #45a049;
-    }
-
+    .close { background-color: #bbb; color: white; }
+    .close:hover { background-color: #777; }
+    .save-btn { background-color: #4CAF50; color: white; }
+    .save-btn:hover { background-color: #45a049; }
   </style>
 </head>
 <body>
@@ -133,30 +156,8 @@ body {
 <div class="legend">
   <span style="color:green;">● Approved</span>
   <span style="color:orange;">● Pending</span>
-  <span style="color:red;">● Not Available</span>
 </div>
 
-<!-- The Modal -->
-<div id="eventModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <span class="close" id="closeModal">&times;</span>
-      <h2>Add Event</h2>
-    </div>
-    <div class="modal-body">
-      <label for="eventTitle">Event Title:</label>
-      <input type="text" id="eventTitle" placeholder="Enter Event Title">
-      <label for="eventStart">Start Date:</label>
-      <input type="datetime-local" id="eventStart">
-      <label for="eventEnd">End Date:</label>
-      <input type="datetime-local" id="eventEnd">
-    </div>
-    <div class="modal-footer">
-      <button class="close" id="closeModalBtn">Cancel</button>
-      <button class="save-btn" id="saveEventBtn">Save Event</button>
-    </div>
-  </div>
-</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -165,41 +166,24 @@ body {
       selectable: true,
       editable: false,
       height: 550,
-      events: 'event.php',
+      events: 'calendar.php?action=fetch',
       select: function(info) {
-        // Open modal when a date is selected
-        var modal = document.getElementById("eventModal");
-        var eventTitle = document.getElementById('eventTitle');
-        var eventStart = document.getElementById('eventStart');
-        var eventEnd = document.getElementById('eventEnd');
-        
-        // Set start and end date for the input fields
-        eventStart.value = info.startStr;
-        eventEnd.value = info.endStr;
-
-        // Show modal
-        modal.style.display = "block";
+        document.getElementById('eventStart').value = info.startStr;
+        document.getElementById('eventEnd').value = info.endStr;
+        document.getElementById('eventModal').style.display = 'block';
       }
     });
     calendar.render();
 
-    // Modal related variables
     var modal = document.getElementById("eventModal");
     var closeModal = document.getElementById("closeModal");
     var closeModalBtn = document.getElementById("closeModalBtn");
     var saveEventBtn = document.getElementById("saveEventBtn");
 
-    // Close modal
-    closeModal.onclick = function() {
+    closeModal.onclick = closeModalBtn.onclick = function() {
       modal.style.display = "none";
-    }
+    };
 
-    // Close modal (cancel button)
-    closeModalBtn.onclick = function() {
-      modal.style.display = "none";
-    }
-
-    // Save event
     saveEventBtn.onclick = function() {
       var title = document.getElementById('eventTitle').value;
       var start = document.getElementById('eventStart').value;
@@ -211,7 +195,7 @@ body {
         formData.append("start", start);
         formData.append("end", end);
 
-        fetch('add_event.php', {
+        fetch('calendar.php', {
           method: 'POST',
           body: formData
         })
@@ -227,19 +211,18 @@ body {
         })
         .catch(error => {
           console.error("Fetch error:", error);
-          alert("An error occurred while adding the event.");
+          alert("An error occurred.");
         });
       } else {
         alert("Please fill out all fields.");
       }
-    }
+    };
 
-    // Close modal if clicked outside
     window.onclick = function(event) {
       if (event.target === modal) {
         modal.style.display = "none";
       }
-    }
+    };
   });
 </script>
 
