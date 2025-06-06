@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
         echo "Update successful!";
-        header("Location: treasurer_dashboard.php"); // Redirect para mai-refresh ang list
+        header("Location: tresurer_dashboard.php"); // Redirect para mai-refresh ang list
         exit;
     } else {
         die("Execute failed: " . $stmt->error);
@@ -44,10 +44,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
 // Fetch proposals currently for Treasurer approval
 $current_level = 'CCS Treasurer';
+$search_department = '%CCS%';
 
-$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending'";
+$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted' AND department LIKE ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $current_level);
+
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
+$stmt->bind_param("ss", $current_level, $search_department);
 
 $stmt->execute();
 $result = $stmt->get_result();
