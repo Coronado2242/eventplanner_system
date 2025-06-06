@@ -570,7 +570,7 @@ if ($result === false) {
     die("SQL Error: " . $conn->error);
 }
 ?>
-<!-- User Management Content -->
+<!-- Approval Management Content -->
 <div id="approvalContent" style="display:none;">
     <main class="content" >
         <h1 style="margin-bottom: 0;">Request Approval</h1>
@@ -593,31 +593,32 @@ if ($result === false) {
                 <td><?= htmlspecialchars($row['department']) ?></td>
                 <td><button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">View</button></td>
 
-   <td>
-<?php 
-if (!empty($row['budget_file'])): 
-    // Show just the filename as clickable link
-    $fileName = htmlspecialchars($row['budget_file']);
-    echo "<a href='../proposal/uploads/$fileName' target='_blank'>$fileName</a>";
-else: 
-    echo "No file";
-endif;
-?>
-</td>
-                <td><?= htmlspecialchars($row['event_type']) ?></td>
                 <td>
-                    <input type="number" name="budget" class="budget-input" placeholder="Enter amount">
-                </td>
-                <td>
-                    <button class="approve-btn" onclick="approveBudget(<?= $row['id'] ?>, this)">Approve</button>
-                </td>
-            </tr>
-        <?php endwhile; ?>
-    </tbody>
-</table>
+                        <?php 
+                        $fileName = htmlspecialchars($row['budget_file']);
+                        if (!empty($row['budget_file'])): 
+                            echo "<a href='../proposal/uploads/$fileName' target='_blank'>$fileName</a>";
+                            $isDisabled = '';
+                        else: 
+                            echo "No file";
+                            $isDisabled = 'disabled';
+                        endif;
+                        ?>
+                    </td>
+                    <td><?= htmlspecialchars($row['event_type']) ?></td>
+                    <td>
+                        <input type="number" name="budget" class="budget-input" placeholder="Enter amount">
+                    </td>
+                    <td>
+                        <button class="approve-btn" onclick="approveBudget(<?= $row['id'] ?>, this)" <?= $isDisabled ?>>Approve</button>
+                    </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
 
-    </main>
-</div>
+                    </main>
+                </div>
 
 <!-- Requirements Content -->
 <div id="requirementContent" style="display:none;">

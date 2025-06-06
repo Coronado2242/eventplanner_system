@@ -20,14 +20,17 @@ if (!isset($_SESSION['proposal_id']) && isset($_SESSION['form_data'])) {
 // === Check if there's an approved budget ===
 $budgetApproved = false;
 $budgetAmount = null;
+$budgetFile = null;
+
 if (isset($_SESSION['proposal_id'])) {
-    $stmt = $conn->prepare("SELECT budget_approved, budget_amount, department FROM proposals WHERE id = ?");
+    $stmt = $conn->prepare("SELECT budget_approved, budget_amount, department, budget_file FROM proposals WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['proposal_id']);
     $stmt->execute();
-    $stmt->bind_result($approved, $amount, $proposal_dept);
+    $stmt->bind_result($approved, $amount, $proposal_dept, $file);
     if ($stmt->fetch()) {
         $budgetApproved = $approved;
         $budgetAmount = $amount;
+        $budgetFile = $file;
     }
     $stmt->close();
 }
@@ -157,6 +160,12 @@ function e($str) {
                     <!-- Buttons -->
                     <div class="text-center">
                         <?php if ($budgetApproved && $budgetAmount): ?>
+                            <?php if (!empty($budgetFile)): ?>
+                                <p class="alert alert-info">
+                                    Budget File: 
+                                    <a href="../proposal/uploads/<?= e($budgetFile) ?>" target="_blank"><?= e($budgetFile) ?></a>
+                                </p>
+                            <?php endif; ?>
                             <p class="alert alert-success">Approved Budget: ₱<?= e($budgetAmount) ?></p>
                             <button type="submit" class="btn btn-primary">Submit Proposal</button>
                         <?php else: ?>

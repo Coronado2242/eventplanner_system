@@ -25,7 +25,10 @@ if (!$stmt) {
 $stmt->bind_param("i", $proposal_id);
 
 if ($stmt->execute()) {
-    session_unset();
+    unset($_SESSION['proposal_id']);
+    unset($_SESSION['form_data']);
+    unset($_SESSION['uploaded']);
+
     echo "<script>
         alert('Proposal submitted successfully.');
         window.location.href = 'proposal.php';
