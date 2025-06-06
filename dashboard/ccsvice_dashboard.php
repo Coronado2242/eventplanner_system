@@ -462,41 +462,39 @@ tr:nth-child(even) {
 }
 
 .modal {
-    display: none; /* hidden by default */
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.5);
-  }
-  /* Modal content box */
-  .modal-content {
-    background-color: #fff;
-    margin: 10% auto;
-    padding: 20px;
-    border-radius: 5px;
-    width: 400px;
-    position: relative;
-  }
-  /* Close button */
-  .close-btn {
-    position: absolute;
-    right: 10px; top: 10px;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  .modal {
   display: none;
-  /* other styles for overlay */
-}
-.modal.active {
-  display: flex; /* or block, whatever you want */
-  /* styles for visible modal */
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background-color: rgba(0,0,0,0.6);
 }
 
+.modal.active {
+  display: block;
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 5% auto;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 95%;
+  width: 90%;
+}
+
+.close-btn {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  cursor: pointer;
+}
+.close-btn:hover {
+  color: black;
+}
 
 </style>
 <body>
@@ -539,7 +537,6 @@ tr:nth-child(even) {
         <li id="dashboardTab" class="active"><i class="fa fa-home"></i> <span class="menu-text">Dashboard</span></li>
         <li id="approvalTab"><i class="fa fa-check-circle"></i> <span class="menu-text">Approval</span></li>
         <li id="requirementTab"><i class="fa fa-building"></i> <span class="menu-text">Requirements</span></li>
-        <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
         <li id="budget_planTab"><i class="fa fa-file-alt"></i> Budget Plan</li>
     </ul>
 </aside>
@@ -563,7 +560,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch proposals that are pending approval (example: add WHERE clause if needed)
-$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE status = 'pending'";
+$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE budget_amount IS NULL";
 $result = $conn->query($sql);
 
 if ($result === false) {
@@ -685,70 +682,13 @@ if ($result === false) {
     </main>
 </div>
 
-<!-- Proposals Content -->
-<div id="proposalContent" class="content" style="display:none;">
-    <h1>Pending Proposals for Approval</h1>
-
-    <?php
-    $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND level = 'VP'";
-    $result = mysqli_query($conn, $sql);
-
-    if (mysqli_num_rows($result) == 0) {
-    echo "<p>No pending proposals at this time.</p>";
-} else {
-    echo '<table>';
-    echo '<thead><tr>
-            <th>Event Type</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Venue</th>
-            <th>Department</th>
-            <th>Actions</th>
-          </tr></thead><tbody>';
-
-    while ($row = mysqli_fetch_assoc($result)) {
-        echo '<tr>';
-        echo '<td>' . htmlspecialchars($row['event_type']) . '</td>';
-        echo '<td>' . date("M d, Y", strtotime($row['start_date'])) . ' - ' . date("M d, Y", strtotime($row['end_date'])) . '</td>';
-        echo '<td>' . htmlspecialchars($row['time']) . '</td>';
-        echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
-        echo '<td>' . htmlspecialchars($row['department']) . '</td>';
-        echo '<td>';
-        
-        // Output the Approve form
-        echo '<form method="POST" action="../proposal/flow.php" style="display:inline;">';
-        echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-        echo '<input type="hidden" name="level" value="CCSVice">';
-        echo '<button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>';
-        echo '</form>';
-
-        // Output the Disapprove form
-        echo '<form method="POST" action="../proposal/flow.php" style="display:inline; margin-left:5px;">';
-        echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-        echo '<input type="hidden" name="level" value="CCSVice">';
-echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-proposal-id='" . htmlspecialchars($row['id']) . "'>Disapprove</button>";
-
-
-
-        echo '</form>';
-
-        echo '</td>';
-        echo '</tr>';
-    }
-
-    echo '</tbody></table>';
-}
-    ?>
-</div>
-
-
 
 <!-- Budget Plan -->
 <div id="budgetForm" class="content" style="display:none;">
     <h1>Budget Plan</h1>
 
     <?php
-    $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND level = 'VP'";
+    $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND level = 'VP'";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) == 0) {
@@ -776,26 +716,9 @@ echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-pr
         echo '<form method="POST" action=" " style="display:inline;">';
         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
         echo '<input type="hidden" name="level" value="CCSVice">';
-       echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn" data-proposal-id="' . $row['id'] . '">Set Budget Plan</button>';
+        echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn" onclick="openBudgetPlanModal(' . $row['id'] . ')" data-proposal-id="' . $row['id'] . '">Set Budget Plan</button>';
 
         echo '</form>';
-        
-        // Output the Approve form
-//         echo '<form method="POST" action="../proposal/flow.php" style="display:inline;">';
-//         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-//         echo '<input type="hidden" name="level" value="CCSVice">';
-//         echo '<button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>';
-//         echo '</form>';
-
-//         // Output the Disapprove form
-//         echo '<form method="POST" action="../proposal/flow.php" style="display:inline; margin-left:5px;">';
-//         echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-//         echo '<input type="hidden" name="level" value="CCSVice">';
-// echo "<button type='button' class='btn btn-danger btn-sm open-modal-btn' data-proposal-id='" . htmlspecialchars($row['id']) . "'>Disapprove</button>";
-
-
-
-        // echo '</form>';
 
         echo '</td>';
         echo '</tr>';
@@ -814,17 +737,17 @@ if (isset($_GET['budget']) && $_GET['budget'] == 1 && isset($_GET['proposal_id']
     $proposal_id = intval($_GET['proposal_id']);
 }
     ?>
-     
+ 
+ <!-- Budget Plan Modal -->
+<div id="budgetPlanModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeBudgetPlanModal()">&times;</span>
 <!-- Budget Plan Form (initially hidden) -->
 <div class="container mt-5 content" id="budgetPlanForm" style="display:none;">
   <h2 class="mb-4">Submit Budget Plan</h2>
 
   <form action="" id="myForm" method="POST">
 <input type="hidden" name="proposal_id" id="budgetProposalId" value="">
-
-
-
-
 
     <div class="table-responsive">
       <table class="table table-bordered table-striped align-middle text-center">
@@ -860,6 +783,8 @@ if (isset($_GET['budget']) && $_GET['budget'] == 1 && isset($_GET['proposal_id']
     </div>
   </form>
 </div>
+</div>
+</div>
 <?php
 // Enable error reporting for debugging
 require('fpdf/fpdf.php'); // Make sure path to fpdf.php is correct
@@ -875,9 +800,7 @@ if (!$conn) {
 }
 
 
-
 // Assuming $proposal_id is passed or set here; if not, set a dummy id for testing
-
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
@@ -969,14 +892,6 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
 
 ?>
 
-
-
-
-
-
-
-    
-
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -1003,7 +918,6 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
     </form>
   </div>
 </div>
-
 
 
 
@@ -1060,13 +974,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 }
 computeGrandTotal();
-
 });
 
-
 // -------------------------------------------------
-
-
 
 document.querySelectorAll('.upload-btn').forEach(button => {
   button.addEventListener('click', function() {
@@ -1085,8 +995,6 @@ document.querySelectorAll('.upload-btn').forEach(button => {
     }
   });
 });
-
-
 
 // =========================================================================================
     const modal = document.getElementById('disapproveModal');
@@ -1112,38 +1020,48 @@ document.querySelectorAll('.upload-btn').forEach(button => {
     }
   });
 
- const proposalContent = document.getElementById('proposalContent');
-     const proposalTab = document.getElementById('proposalTab');
-
-     const budgetForm = document.getElementById('budgetForm');
-     const budget_planTab = document.getElementById('proposalTab');
-
-
 document.getElementById("dashboardTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "block";
     document.getElementById("approvalContent").style.display = "none";
     document.getElementById("requirementContent").style.display = "none";
+    document.getElementById("budgetForm").style.display = "none";
     this.classList.add("active");
     document.getElementById("requirementTab").classList.remove("active");
     document.getElementById("approvalTab").classList.remove("active");
+    document.getElementById("budget_planTab").classList.remove("active");
 });
 
 document.getElementById("approvalTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "none";
     document.getElementById("requirementContent").style.display = "none";
     document.getElementById("approvalContent").style.display = "block";
+    document.getElementById("budgetForm").style.display = "none";
     this.classList.add("active");
     document.getElementById("requirementTab").classList.remove("active");
     document.getElementById("dashboardTab").classList.remove("active");
+    document.getElementById("budget_planTab").classList.remove("active");
 });
 
 document.getElementById("requirementTab").addEventListener("click", function () {
     document.getElementById("dashboardContent").style.display = "none";
     document.getElementById("approvalContent").style.display = "none";
     document.getElementById("requirementContent").style.display = "block";
+    document.getElementById("budgetForm").style.display = "none";
     this.classList.add("active");
     document.getElementById("dashboardTab").classList.remove("active");
     document.getElementById("approvalTab").classList.remove("active");
+    document.getElementById("budget_planTab").classList.remove("active");
+});
+
+document.getElementById("budget_planTab").addEventListener("click", function () {
+    document.getElementById("dashboardContent").style.display = "none";
+    document.getElementById("approvalContent").style.display = "none";
+    document.getElementById("requirementContent").style.display = "none";
+    document.getElementById("budgetForm").style.display = "block";
+    this.classList.add("active");
+    document.getElementById("dashboardTab").classList.remove("active");
+    document.getElementById("approvalTab").classList.remove("active");
+    document.getElementById("requirementTab").classList.remove("active");
 });
 //==============================Upload budget js================================================
  document.querySelectorAll('.upload-btn').forEach(btn => {
@@ -1162,7 +1080,6 @@ document.getElementById("requirementTab").addEventListener("click", function () 
     document.getElementById("budget_planTab").classList.add("active");
   });
 });
-
 
 //====================================submit budget js=================================================
 document.getElementById("submitBudgetBtn").addEventListener("click", function (e) {
@@ -1183,9 +1100,6 @@ document.getElementById("submitBudgetBtn").addEventListener("click", function (e
         console.error("❌ Error:", error);
     });
 });
-
-
-  
 </script>
 <!-- Dropdown Script -->
 <script>
@@ -1292,7 +1206,6 @@ function toggleMobileNav() {
         document.getElementById("dashboardContent").style.display = "none";
         document.getElementById("approvalContent").style.display = "none";
         document.getElementById("requirementContent").style.display = "none";
-        document.getElementById("proposalContent").style.display = "none";
         document.getElementById("budgetForm").style.display = "none";
 
         // Alisin ang 'active' class sa lahat ng sidebar items
@@ -1300,41 +1213,6 @@ function toggleMobileNav() {
             item.classList.remove("active");
         });
     }
-
-    // Event listeners para sa bawat sidebar tab
-    document.getElementById("dashboardTab").addEventListener("click", function() {
-        hideAllSections();
-        document.getElementById("dashboardContent").style.display = "block";
-        this.classList.add("active");
-    });
-
-    document.getElementById("approvalTab").addEventListener("click", function() {
-        hideAllSections();
-        document.getElementById("approvalContent").style.display = "block";
-        this.classList.add("active");
-    });
-
-    document.getElementById("requirementTab").addEventListener("click", function() {
-        hideAllSections();
-        document.getElementById("requirementContent").style.display = "block";
-        this.classList.add("active");
-    });
-
-    document.getElementById("proposalTab").addEventListener("click", function() {
-        hideAllSections();
-        document.getElementById("proposalContent").style.display = "block";
-        this.classList.add("active");
-    });
-
-
-     document.getElementById("budget_planTab").addEventListener("click", function() {
-        hideAllSections();
-        document.getElementById("budgetForm").style.display = "block";
-        this.classList.add("active");
-    });
-
-    
-
   // Close modal kapag pinindot yung X
   closeBtn.addEventListener('click', function() {
     modal.style.display = 'none';
@@ -1346,23 +1224,17 @@ function toggleMobileNav() {
       modal.style.display = 'none';
     }
   });
-
-
-
-// const budgetTab = document.getElementById("budget_planTab");
-//     const budgetForm = document.getElementById("budgetForm");
-
-//     function toggleBudgetForm() {
-//       budgetForm.classList.toggle("active");
-//     }
-
-//     budgetTab.addEventListener("click", () => {
-//       toggleBudgetForm();
-//     });
-    
-    
 </script>
+<script>
+function openBudgetPlanModal(proposalId) {
+  document.getElementById("budgetProposalId").value = proposalId;
+  document.getElementById("budgetPlanModal").classList.add("active");
+}
 
+function closeBudgetPlanModal() {
+  document.getElementById("budgetPlanModal").classList.remove("active");
+}
+</script>
 
 </body>
 </html>
