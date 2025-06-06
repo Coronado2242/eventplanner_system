@@ -137,97 +137,77 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  let dateProposals = {}; // Store events by date
-
-  const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+  const calendarEl = document.getElementById('calendar');
+  const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
-    editable: false,
-    selectable: false,
-    height: 550,
-    headerToolbar: {
-      left: '',
-      center: 'title',
-      right: ''
-    },
-
-    dayHeaderDidMount: function (info) {
-      const day = info.date.getDay();
-      info.el.style.backgroundColor = day === 0 || day === 6 ? 'red' : 'blue';
-      info.el.style.color = 'white';
-    },
-
-    dayCellDidMount: function (info) {
-      const day = info.date.getDay();
-      const el = info.el;
-      const number = el.querySelector('.fc-daygrid-day-number');
-      if ((day === 0 || day === 6) && number) {
-        number.style.color = "red";
-      }
-    },
-
+    height: "auto",
     datesSet: function () {
-      // Clear old underline classes
-      document.querySelectorAll('.fc-day-pending-underline, .fc-day-approved-underline').forEach(el => {
-        el.classList.remove('fc-day-pending-underline', 'fc-day-approved-underline');
-      });
-
-      dateProposals = {}; // Reset date storage
-
-      // Fetch proposals from PHP backend
-   fetch('calendar.php?action=fetch&_=' + new Date().getTime())
-  .then(res => res.json())
-  .then(events => {
-    events.forEach(event => {
-      let start = new Date(event.start);
-      let end = new Date(event.end);
-      end.setDate(end.getDate() + 1); // 👈 make it inclusive
-
-      for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().slice(0, 10);
-
-        if (!dateProposals[dateStr]) {
-          dateProposals[dateStr] = [];
-        }
-        dateProposals[dateStr].push(event);
-
-        const cell = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
-        if (cell) {
-          const status = event.status.toLowerCase();
-          if (status === 'pending') {
-            cell.classList.add('fc-day-pending-underline');
-          } else if (status === 'approved') {
-            cell.classList.add('fc-day-approved-underline');
-          }
-          cell.style.cursor = 'pointer';
-        }
-      }
-    });
-
-          // Click event on each day
-          document.querySelectorAll('.fc-daygrid-day').forEach(cell => {
-            const date = cell.getAttribute('data-date');
-            if (dateProposals[date]) {
-              cell.onclick = () => {
-                const proposals = dateProposals[date];
-                let msg = `📅 Proposals on ${date}:\n\n`;
-                proposals.forEach(p => {
-                  msg += `🔸 ${p.title || p.event_type}\nStatus: ${p.status}\nRange: ${p.start} to ${p.end}\n\n`;
-                });
-                alert(msg);
-              };
-            } else {
-              cell.onclick = null;
-            }
-          });
-        })
-        .catch(err => console.error('Fetch error:', err));
+      loadProposals();
     }
   });
 
   calendar.render();
+
+  function loadProposals() {
+    const dateProposals = {}; // reset each time
+    fetch('calendar.php?action=fetch&_=' + new Date().getTime())
+      .then(res => res.json())
+      .then(events => {
+       events.forEach(event => {
+  console.log(`Event: ${event.title}, Start: ${event.start}, End: ${event.end}`);
+
+  const start = new Date(event.start);
+  const endRaw = new Date(event.end);
+
+  const isFullDay = endRaw.getHours() === 0 && endRaw.getMinutes() === 0 && endRaw.getSeconds() === 0;
+
+  let end = new Date(endRaw);
+  if (!isFullDay) {
+    end.setDate(end.getDate() - 1); // exclude extra day if not full-day event
+  }
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().slice(0, 10);
+
+    if (!dateProposals[dateStr]) {
+      dateProposals[dateStr] = [];
+    }
+    dateProposals[dateStr].push(event);
+
+    const cell = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
+    if (cell) {
+      const status = event.status.toLowerCase();
+      if (status === 'pending') {
+        cell.classList.add('fc-day-pending-underline');
+      } else if (status === 'approved') {
+        cell.classList.add('fc-day-approved-underline');
+      }
+      cell.style.cursor = 'pointer';
+    }
+  }
+});
+
+        // Attach click event to each day
+        document.querySelectorAll('.fc-daygrid-day').forEach(cell => {
+          const date = cell.getAttribute('data-date');
+          if (dateProposals[date]) {
+            cell.onclick = () => {
+              const proposals = dateProposals[date];
+              let msg = `📅 Proposals on ${date}:\n\n`;
+              proposals.forEach(p => {
+                msg += `🔸 ${p.title || p.event_type}\nStatus: ${p.status}\nRange: ${p.start} to ${p.end}\n\n`;
+              });
+              alert(msg);
+            };
+          } else {
+            cell.onclick = null;
+          }
+        });
+      })
+      .catch(err => console.error('Fetch error:', err));
+  }
 });
 </script>
-
 
 </body>
 </html>
