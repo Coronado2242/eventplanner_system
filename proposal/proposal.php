@@ -76,21 +76,12 @@ function e($str) {
 
                     <!-- Department -->
                     <div class="mb-3">
-                        <?php if ($form_locked): ?>
-                            <input type="text" class="form-control" value="<?= e($_SESSION['form_data']['department']) ?>" readonly>
-                            <input type="hidden" name="department" value="<?= e($_SESSION['form_data']['department']) ?>">
-                        <?php else: ?>
-                            <select name="department" class="form-control" required>
-                                <option value="">Select Department</option>
-                                <?php
-                                foreach (["CHMT", "CCS", "CTE", "COE", "CCJE", "CA", "CBBA", "CFMD"] as $dept) {
-                                    if ($_SESSION['role'] === 'dean' && $_SESSION['department'] !== $dept) continue;
-                                    $selected = (($_SESSION['form_data']['department'] ?? '') === $dept) ? 'selected' : '';
-                                    echo "<option value='" . e($dept) . "' $selected>" . e($dept) . "</option>";
-                                }
-                                ?>
-                            </select>
-                        <?php endif; ?>
+                        <?php 
+                            $username = $_SESSION['username'] ?? '';
+                            $department = explode('_', $username)[0];
+                            ?>
+                            <input type="text" class="form-control" value="<?= htmlspecialchars($department) ?>" readonly>
+                            <input type="hidden" name="department" value="<?= htmlspecialchars($department) ?>">
                     </div>
 
                     <!-- Event Type -->
