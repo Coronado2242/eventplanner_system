@@ -57,7 +57,6 @@ $stmt->execute();
 $result = $stmt->get_result();  // <- ito ang hinahanap mo para hindi undefined ang $result
 ?>
 
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

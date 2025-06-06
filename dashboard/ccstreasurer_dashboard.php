@@ -63,16 +63,8 @@ $result = $stmt->get_result();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Treasurer Dashboard</title>
-<style>
-    table { width:100%; border-collapse: collapse; }
-    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
-    th { background:#eee; }
-    button { padding:6px 10px; margin-right:4px; cursor:pointer; }
-    .approve-btn { background:green; color:#fff; border:none; }
-    .disapprove-btn { background:red; color:#fff; border:none; }
-
+    <meta charset="UTF-8" />
+    <title>Treasurer Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <style>
@@ -139,8 +131,8 @@ $result = $stmt->get_result();
         .approve-btn { background-color: green; }
         .disapprove-btn { background-color: red; }
     </style>
-</style>
 </head>
+
 <body>
     <header class="topbar">
     <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS TREASURER PORTAL</div>
