@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
         // Redirect para ma-refresh ang list
-        header("Location: ccsdean_dashboard.php");
+        header("Location: ccsfaculty_dashboard.php");
         exit;
     } else {
         die("Execute failed: " . $stmt->error);

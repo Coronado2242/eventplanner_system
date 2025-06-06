@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
         echo "Update successful!";
-        header("Location: ccsauditor_dashboard.php"); // Redirect para mai-refresh ang list
+        header("Location: ccstreasurer_dashboard.php"); // Redirect para mai-refresh ang list
         exit;
     } else {
         die("Execute failed: " . $stmt->error);
