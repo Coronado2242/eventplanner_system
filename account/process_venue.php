@@ -5,7 +5,7 @@ session_start();
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "eventplanner";
+$dbname = "venue_db";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
