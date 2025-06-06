@@ -560,7 +560,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch proposals that are pending approval (example: add WHERE clause if needed)
-$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE budget_amount IS NULL";
+$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE budget_amount IS NULL AND department = 'CCS'";
 $result = $conn->query($sql);
 
 if ($result === false) {
@@ -634,7 +634,7 @@ if ($result === false) {
             die("Connection failed: " . mysqli_connect_error());
         }
 
-        $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL";
+        $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS'";
         $result = mysqli_query($conn, $sql);
 
         while ($row = mysqli_fetch_assoc($result)) {
@@ -688,7 +688,7 @@ if ($result === false) {
     <h1>Budget Plan</h1>
 
     <?php
-    $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND level = 'VP'";
+    $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND level = 'VP'";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) == 0) {
