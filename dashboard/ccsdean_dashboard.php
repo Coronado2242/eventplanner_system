@@ -11,6 +11,54 @@ $conn = mysqli_connect($host, $user, $pass, $db);
 if (!$conn) {
     die("Connection failed: " . mysqli_connect_error());
 }
+
+// Handle form submission (Approve / Disapprove)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve') {
+        $status = 'Pending';
+        $new_level = 'CCS OSAS';  // next level after Treasurer (or Auditor)
+    } elseif ($action === 'disapprove') {
+        $status = 'Disapproved by Treasurer';
+        $new_level = 'CCS Treasurer'; // stays in Treasurer since disapproved
+    } else {
+        die("Invalid action");
+    }
+
+    $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
+    if (!$stmt) {
+        die("Prepare failed: " . $conn->error);
+    }
+    $stmt->bind_param("ssi", $status, $new_level, $id);
+    if ($stmt->execute()) {
+        // Redirect para ma-refresh ang list
+        header("Location: osas.php");
+        exit;
+    } else {
+        die("Execute failed: " . $stmt->error);
+    }
+}
+
+// Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
+$current_level = 'CCS Dean';
+$search_department = '%CCS%';
+
+$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted' AND department LIKE ?";
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
+$stmt->bind_param("ss", $current_level, $search_department);
+
+$stmt->execute();
+$result = $stmt->get_result();
+
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -367,6 +415,31 @@ body::before {
         padding: 10px;
         border-top: 1px solid #ddd;
     }
+    table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+th, td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #004080;
+  color: white;
+}
+
+tr:hover {
+  background-color: #f1f1f1;
+}
+
 }
 
 </style>
@@ -382,7 +455,7 @@ body::before {
         <div class="admin-info">
             <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
-            <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
+            <!-- <span><?php echo htmlspecialchars($_SESSION['role']); ?></span> -->
 
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
@@ -422,42 +495,41 @@ body::before {
 
 <!-- User Approval Content -->
 <div id="approvalContent" style="display:none;">
-    <main class="content">
-        <h1 style="margin-bottom: 0;">Request Approval</h1>
-        <?php
-        $sql = "SELECT * FROM proposals WHERE status = 'Pending'";
-        $result = mysqli_query($conn, $sql);
+    <table>
+    <thead>
+        <tr>
+            <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php if ($result && $result->num_rows > 0): ?>
+        <?php while ($row = $result->fetch_assoc()): ?>
+        <tr>
+            <td><?= htmlspecialchars($row['id']) ?></td>
+            <td><?= htmlspecialchars($row['department']) ?></td>
+            <td><?= htmlspecialchars($row['event_type']) ?></td>
+            <td><?= htmlspecialchars($row['start_date']) ?></td>
+            <td><?= htmlspecialchars($row['end_date']) ?></td>
+            <td><?= htmlspecialchars($row['venue']) ?></td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+            <td>
+                <form method="post" action="" style="margin:0;">
+                    <!-- Important: assign proposal_id value here -->
+                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
+                    <input type="hidden" name="level" value="CCS Dean">
 
-        while ($row = mysqli_fetch_assoc($result)) {
-            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 800px; position: relative; margin-bottom: 20px;">';
-            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
-            echo '<span style="position: absolute; top: 20px; right: 20px; color: #FFA07A; font-weight: bold;">' . htmlspecialchars($row['status']) . '</span>';
-            
-            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
-            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
-            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
-            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
-            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-            echo '<div><strong>Requirements</strong><br>';
-            echo '<button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">View</button>';
-            echo '</div>';
-            echo '</div>';
 
-            echo '<div style="margin-top: 20px;">';
-            echo '<form method="POST" action="approve_request.php" style="display:inline;">';
-            echo '<input type="hidden" name="id" value="' . $row['id'] . '">';
-            echo '<button type="submit" name="approve" style="background-color: green; color: white; border: none; padding: 8px 16px; border-radius: 20px; margin-right: 10px;">Approve</button>';
-            echo '</form>';
-
-            echo '<form method="POST" action="approve_request.php" style="display:inline;">';
-            echo '<input type="hidden" name="id" value="' . $row['id'] . '">';
-            echo '<button type="submit" name="disapprove" style="background-color: red; color: white; border: none; padding: 8px 16px; border-radius: 20px;">Disapprove</button>';
-            echo '</form>';
-            echo '</div>';
-            echo '</div>';
-        }
-        ?>
-    </main>
+                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
+                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
+                </form>
+            </td>
+        </tr>
+        <?php endwhile; ?>
+    <?php else: ?>
+        <tr><td colspan="8" style="text-align:center;">No proposals found for Dean.</td></tr>
+    <?php endif; ?>
+    </tbody>
+</table>
 </div>
 
 

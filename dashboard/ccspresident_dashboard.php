@@ -21,10 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
     if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'President';  // next level after Treasurer (or Auditor)
+        $new_level = 'CCS Faculty';  // next level after Treasurer (or Auditor)
     } elseif ($action === 'disapprove') {
         $status = 'Disapproved by Treasurer';
-        $new_level = 'CCS Treasurer'; // stays in Treasurer since disapproved
+        $new_level = 'CCS President'; // stays in Treasurer since disapproved
     } else {
         die("Invalid action");
     }
@@ -36,21 +36,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
         // Redirect para ma-refresh ang list
-        header("Location: ccsauditor_dashboard.php");
+        header("Location: ccsfaculty_dashboard.php");
         exit;
     } else {
         die("Execute failed: " . $stmt->error);
     }
 }
 
-// Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
-$current_level = 'President';
-
-$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending'";
+// Fetch proposals for CCS President
+$current_level = 'CCS President';
+$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted'";
 $stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    die("Query error: " . $conn->error);
+}
+
 $stmt->bind_param("s", $current_level);
 $stmt->execute();
-$result = $stmt->get_result();
+$result = $stmt->get_result();  // <- ito ang hinahanap mo para hindi undefined ang $result
+?>
 
 ?>
 <!DOCTYPE html>
@@ -155,7 +160,7 @@ $result = $stmt->get_result();
 
 <!-- Dashboard Content -->
 <div id="dashboardContent" class="content">
-    <h1>Welcome to the CCS Auditor Dashboard</h1>
+    <h1>Welcome to the CCS President Dashboard</h1>
     <p>This is your overview page.</p>
 </div>
 
@@ -163,45 +168,41 @@ $result = $stmt->get_result();
 <div id="proposalContent" class="content" style="display:none;">
     <h1>Pending Proposals for Approval</h1>
 
-    <?php
-    if ($result->num_rows === 0) {
-        echo "<p>No pending proposals at this time.</p>";
-    } else {
-        echo '<table>';
-        echo '<thead><tr>
-                <th>Event Type</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Venue</th>
-                <th>Department</th>
-                <th>Actions</th>
-              </tr></thead><tbody>';
-        while ($row = $result->fetch_assoc()) {
-            echo '<tr>';
-            echo '<td>' . htmlspecialchars($row['event_type']) . '</td>';
-            echo '<td>' . date("M d, Y", strtotime($row['start_date'])) . ' - ' . date("M d, Y", strtotime($row['end_date'])) . '</td>';
-            echo '<td>' . htmlspecialchars($row['time']) . '</td>';
-            echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
-            echo '<td>' . htmlspecialchars($row['department']) . '</td>';
-            echo '<td>
-                <form method="POST" action="../proposal/flow.php" style="display:inline;">
-                    <input type="hidden" name="proposal_id" value="' . $row['id'] . '">
-                    <input type="hidden" name="action" value="approve">
-                    <input type="hidden" name="level" value="President">
-                    <button type="submit" class="action-btn approve-btn">Approve</button>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php if ($result && $result->num_rows > 0): ?>
+        <?php while ($row = $result->fetch_assoc()): ?>
+        <tr>
+            <td><?= htmlspecialchars($row['id']) ?></td>
+            <td><?= htmlspecialchars($row['department']) ?></td>
+            <td><?= htmlspecialchars($row['event_type']) ?></td>
+            <td><?= htmlspecialchars($row['start_date']) ?></td>
+            <td><?= htmlspecialchars($row['end_date']) ?></td>
+            <td><?= htmlspecialchars($row['venue']) ?></td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+            <td>
+                <form method="post" action="" style="margin:0;">
+                    <!-- Important: assign proposal_id value here -->
+                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
+                    <input type="hidden" name="level" value="CCS President">
+
+
+                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
+                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
                 </form>
-                <form method="POST" action="../proposal/flow.php" style="display:inline;">
-                    <input type="hidden" name="proposal_id" value="' . $row['id'] . '">
-                    <input type="hidden" name="action" value="disapprove">
-                    <input type="hidden" name="level" value="President">
-                    <button type="submit" class="action-btn disapprove-btn">Disapprove</button>
-                </form>
-            </td>';
-            echo '</tr>';
-        }
-        echo '</tbody></table>';
-    }
-    ?>
+            </td>
+        </tr>
+        <?php endwhile; ?>
+    <?php else: ?>
+        <tr><td colspan="8" style="text-align:center;">No proposals found for Treasurer.</td></tr>
+    <?php endif; ?>
+    </tbody>
+</table>
 </div>
 
 <!-- Requirements Content -->

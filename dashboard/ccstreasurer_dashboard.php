@@ -1,27 +1,26 @@
 <?php
-ini_set('display_errors', 1);
 error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 session_start();
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "eventplanner";
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "eventplanner";
 
-$conn = mysqli_connect($host, $user, $pass, $db);
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle form submission (Approve / Disapprove)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
     if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'CCS Dean';  // next level after Treasurer (or Auditor)
+        $new_level = 'CCS Auditor';  // next level after Treasurer
     } elseif ($action === 'disapprove') {
         $status = 'Disapproved by Treasurer';
         $new_level = 'CCS Treasurer'; // stays in Treasurer since disapproved
@@ -35,16 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     }
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
-        // Redirect para ma-refresh ang list
-        header("Location: ccsdean_dashboard.php");
+        echo "Update successful!";
+        header("Location: ccsauditor_dashboard.php"); // Redirect para mai-refresh ang list
         exit;
     } else {
         die("Execute failed: " . $stmt->error);
     }
 }
 
-// Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
-$current_level = 'CCS Faculty';
+// Fetch proposals currently for Treasurer approval
+$current_level = 'CCS Treasurer';
 $search_department = '%CCS%';
 
 $sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted' AND department LIKE ?";
@@ -60,11 +59,20 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>CCS Auditor Portal</title>
+<meta charset="UTF-8" />
+<title>Treasurer Dashboard</title>
+<style>
+    table { width:100%; border-collapse: collapse; }
+    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+    th { background:#eee; }
+    button { padding:6px 10px; margin-right:4px; cursor:pointer; }
+    .approve-btn { background:green; color:#fff; border:none; }
+    .disapprove-btn { background:red; color:#fff; border:none; }
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <style>
@@ -131,17 +139,17 @@ $result = $stmt->get_result();
         .approve-btn { background-color: green; }
         .disapprove-btn { background-color: red; }
     </style>
+</style>
 </head>
 <body>
-
-<header class="topbar">
-    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS AUDITOR PORTAL</div>
+    <header class="topbar">
+    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS TREASURER PORTAL</div>
     <nav>
         <a href="../index.php">Home</a>
         <a href="../aboutus.php">About Us</a>
         <a href="../calendar1.php">Calendar</a>
         <div class="admin-info">
-            <span><?php echo htmlspecialchars($_SESSION['role'] ?? 'President'); ?></span>
+            <span><?php echo htmlspecialchars($_SESSION['role'] ?? 'Auditor'); ?></span>
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
@@ -170,48 +178,52 @@ $result = $stmt->get_result();
 <div id="proposalContent" class="content" style="display:none;">
     <h1>Pending Proposals for Approval</h1>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if ($result && $result->num_rows > 0): ?>
-                <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?= htmlspecialchars($row['id']) ?></td>
-                    <td><?= htmlspecialchars($row['department']) ?></td>
-                    <td><?= htmlspecialchars($row['event_type']) ?></td>
-                    <td><?= htmlspecialchars($row['start_date']) ?></td>
-                    <td><?= htmlspecialchars($row['end_date']) ?></td>
-                    <td><?= htmlspecialchars($row['venue']) ?></td>
-                    <td><?= htmlspecialchars($row['status']) ?></td>
-                    <td>
-                        <form method="post" action="" style="margin:0;">
-                            <!-- Important: assign proposal_id value here -->
-                            <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
-                            <input type="hidden" name="level" value="CCS Treasurer">
+<h2>Proposals for Treasurer Approval</h2>
 
 
-                            <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
-                            <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
-                        </form>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr><td colspan="8" style="text-align:center;">No proposals found for Treasurer.</td></tr>
-            <?php endif; ?>
-            </tbody>
-        </table>
 
-<!-- Requirements Content -->
-<div id="requirementContent" class="content" style="display:none;">
-    <h1>Requirements Section</h1>
-    <p>Requirements details will go here.</p>
-</div>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php if ($result && $result->num_rows > 0): ?>
+        <?php while ($row = $result->fetch_assoc()): ?>
+        <tr>
+            <td><?= htmlspecialchars($row['id']) ?></td>
+            <td><?= htmlspecialchars($row['department']) ?></td>
+            <td><?= htmlspecialchars($row['event_type']) ?></td>
+            <td><?= htmlspecialchars($row['start_date']) ?></td>
+            <td><?= htmlspecialchars($row['end_date']) ?></td>
+            <td><?= htmlspecialchars($row['venue']) ?></td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+            <td>
+                <form method="post" action="" style="margin:0;">
+                    <!-- Important: assign proposal_id value here -->
+                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
+                    <input type="hidden" name="level" value="CCS Treasurer">
 
+
+                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
+                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
+                </form>
+            </td>
+        </tr>
+        <?php endwhile; ?>
+    <?php else: ?>
+        <tr><td colspan="8" style="text-align:center;">No proposals found for Treasurer.</td></tr>
+    <?php endif; ?>
+    </tbody>
+</table>
+
+</body>
+</html>
+
+<?php
+$conn->close();
+?>
 <script>
     function toggleDropdown() {
         const menu = document.getElementById('dropdownMenu');
@@ -256,6 +268,3 @@ $result = $stmt->get_result();
         requirementContent.style.display = 'block';
     });
 </script>
-
-</body>
-</html>
