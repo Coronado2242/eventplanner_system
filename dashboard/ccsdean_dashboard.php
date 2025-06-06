@@ -65,8 +65,9 @@ $result = $stmt->get_result();
 <head>
     <meta charset="UTF-8">
     <title>CCS Dean Portal</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 </head>
 <style>
@@ -415,32 +416,140 @@ body::before {
         padding: 10px;
         border-top: 1px solid #ddd;
     }
-    table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.approval-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+    margin-top: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.approval-table thead {
+    background-color: #004080;
+    color: white;
+}
+
+.approval-table th, .approval-table td {
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.approval-table tbody tr {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.approval-table tbody tr:hover {
+    transform: scale(1.01);
+    background-color: #f0f8ff;
+}
+
+.budget-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.approve-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.approve-btn:hover {
+    background-color: #218838;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-family: Arial, sans-serif;
+}
+
+thead tr {
+    background-color: #007BFF; /* example: blue header */
+    color: white;
 }
 
 th, td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
 }
 
-th {
-  background-color: #004080;
-  color: white;
+tr:nth-child(even) {
+    background-color: #f2f2f2;
 }
 
-tr:hover {
-  background-color: #f1f1f1;
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
+.approve-btn {
+    background-color: #28a745;
+    color: white;
 }
+
+.disapprove-btn {
+    background-color: #dc3545;
+    color: white;
+    margin-left: 5px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background-color: rgba(0,0,0,0.6);
+}
+
+.modal.active {
+  display: block;
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 5% auto;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 95%;
+  width: 90%;
+}
+
+.close-btn {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  cursor: pointer;
+}
+.close-btn:hover {
+  color: black;
+}
+
+</style>
 
 </style>
 <body>
@@ -455,7 +564,8 @@ tr:hover {
         <div class="admin-info">
             <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
-            <!-- <span><?php echo htmlspecialchars($_SESSION['role']); ?></span> -->
+           <span><?php echo isset($_SESSION['role']) ? htmlspecialchars($_SESSION['role']) : 'CCS Dean'; ?></span>
+
 
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
@@ -476,9 +586,9 @@ tr:hover {
 
 <aside class="sidebar">
     <ul>
-        <li id="dashboardTab" class="active"><i class="fa fa-home"></i> <span class="menu-text">Dashboard</span></li>
-        <li id="approvalTab"><i class="fa fa-check-circle"></i> <span class="menu-text">Approval</span></li>
-        <li id="requirementTab"><i class="fa fa-building"></i> <span class="menu-text">Requirements</span></li>
+        <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
+        <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
+        <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
     </ul>
 </aside>
 
@@ -494,7 +604,7 @@ tr:hover {
 </div>
 
 <!-- User Approval Content -->
-<div id="approvalContent" style="display:none;">
+<div id="proposalContent" class="content" style="display:none;">
     <table>
     <thead>
         <tr>
@@ -599,85 +709,49 @@ tr:hover {
 </div>
 
 
-<!-- Tab Switching & User Fetching Script -->
 <script>
-document.getElementById("dashboardTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "block";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "none";
-    this.classList.add("active");
-    document.getElementById("requirementTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-});
-
-document.getElementById("approvalTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "block";
-    this.classList.add("active");
-    document.getElementById("requirementTab").classList.remove("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-});
-
-document.getElementById("requirementTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "block";
-    this.classList.add("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-});
-
-
-function showRequirementsTab() {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "block";
-
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-    document.getElementById("requirementTab").classList.add("active");
-}
-
-function toggleMobileNav() {
-    const nav = document.getElementById("mainNav");
-    nav.classList.toggle("show");
-}
-
-</script>
-<!-- Dropdown Script -->
-<script>
-function toggleDropdown() {
-    const menu = document.getElementById("dropdownMenu");
-    menu.style.display = (menu.style.display === "block") ? "none" : "block";
-}
-
-document.addEventListener("click", function(event) {
-    const dropdown = document.getElementById("userDropdown");
-    const menu = document.getElementById("dropdownMenu");
-    if (!dropdown.contains(event.target)) {
-        menu.style.display = "none";
+    function toggleDropdown() {
+        const menu = document.getElementById('dropdownMenu');
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
     }
-});
 
-document.addEventListener("DOMContentLoaded", function () {
-    // Load iframe contents
-    document.getElementById("calendarFrame").src = "../calendar/calendar.php";
+    const dashboardTab = document.getElementById('dashboardTab');
+    const proposalTab = document.getElementById('proposalTab');
+    const requirementTab = document.getElementById('requirementTab');
 
-    // Check for 'tab' in URL
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
+    const dashboardContent = document.getElementById('dashboardContent');
+    const proposalContent = document.getElementById('proposalContent');
+    const requirementContent = document.getElementById('requirementContent');
 
-    if (tab === "requirements") {
-        document.getElementById("requirementTab").click();
-    } else if (tab === "approval") {
-        document.getElementById("approvalTab").click();
-    } else {
-        document.getElementById("dashboardTab").click(); // default
+    function clearActive() {
+        dashboardTab.classList.remove('active');
+        proposalTab.classList.remove('active');
+        requirementTab.classList.remove('active');
     }
-});
 
+    dashboardTab.addEventListener('click', () => {
+        clearActive();
+        dashboardTab.classList.add('active');
+        dashboardContent.style.display = 'block';
+        proposalContent.style.display = 'none';
+        requirementContent.style.display = 'none';
+    });
 
+    proposalTab.addEventListener('click', () => {
+        clearActive();
+        proposalTab.classList.add('active');
+        dashboardContent.style.display = 'none';
+        proposalContent.style.display = 'block';
+        requirementContent.style.display = 'none';
+    });
+
+    requirementTab.addEventListener('click', () => {
+        clearActive();
+        requirementTab.classList.add('active');
+        dashboardContent.style.display = 'none';
+        proposalContent.style.display = 'none';
+        requirementContent.style.display = 'block';
+    });
 </script>
 
 
