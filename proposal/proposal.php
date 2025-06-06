@@ -35,6 +35,26 @@ if (isset($_SESSION['proposal_id'])) {
     $stmt->close();
 }
 
+$sql = "SELECT start_date, end_date FROM proposals";
+$result = $conn->query($sql);
+
+$disabledDateRanges = [];
+
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        if (!empty($row['start_date']) && !empty($row['end_date'])) {
+            $disabledDateRanges[] = [
+                'from' => $row['start_date'],
+                'to' => $row['end_date']
+            ];
+        }
+    }
+}
+
+
+
+
+
 function e($str) {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
@@ -214,7 +234,7 @@ document.querySelector("form").addEventListener("submit", function () {
 <?php endif; ?>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("calendarFrame").src = "../calendar/calendar.php";
+    document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 });
 </script>
 <?php if ($budgetApproved): ?>
@@ -225,6 +245,63 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 <?php endif; ?>
+
+
+<script>
+ const disabledRanges = <?= json_encode($disabledDateRanges); ?>;
+   console.log(disabledRanges); // dapat dito lumabas lahat ng ranges mo
+
+function normalizeDate(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isDateInDisabledRanges(date) {
+    const normalizedDate = normalizeDate(date);
+    return disabledRanges.some(range => {
+        const from = normalizeDate(new Date(range.from));
+        const to = normalizeDate(new Date(range.to));
+        return normalizedDate >= from && normalizedDate <= to;
+    });
+}
+
+function highlightProposalDates(date, element) {
+    if (isDateInDisabledRanges(date)) {
+        element.style.borderBottom = "3px solid orange";
+        element.style.fontWeight = "600";
+        element.title = "Date already has proposal";
+    }
+}
+
+flatpickr("input[name='date_range']", {
+    mode: "range",
+    dateFormat: "m/d/Y",
+    onDayCreate: function(dObj, dStr, fp, dayElem) {
+        highlightProposalDates(dayElem.dateObj, dayElem);
+    },
+    onChange: function(selectedDates, dateStr, instance) {
+        if (selectedDates.length === 2) {
+            const [start, end] = selectedDates;
+            let conflict = false;
+
+            for (let d = new Date(start); d <= end; ) {
+                if (isDateInDisabledRanges(new Date(d))) {
+                    conflict = true;
+                    break;
+                }
+                d = new Date(d.getTime() + 86400000); // add 1 day
+            }
+
+            if (conflict) {
+                alert("Already have proposal on selected date range. Please choose another date.");
+                instance.clear();
+            }
+        }
+    }
+});
+
+
+</script>
+
 
 </body>
 
