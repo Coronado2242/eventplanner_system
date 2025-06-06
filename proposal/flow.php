@@ -32,6 +32,10 @@ $current_level  = isset($_POST['level']) ? $_POST['level'] : '';
 $budget         = isset($_POST['budget']) ? $_POST['budget'] : null;
 $remarks        = isset($_POST['remarks']) ? trim($_POST['remarks']) : null;
 
+var_dump($remarks);
+// var_dump($_POST);
+// exit;
+
 // Basic validation
 if ($proposal_id <= 0 || !in_array($action, ['approve', 'disapprove']) || empty($current_level)) {
     echo "invalid_input";
@@ -74,11 +78,12 @@ $sql = "UPDATE proposals SET status = ?, budget = ?, level = ?, approved_by = ?,
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("ssssssi", $status, $budget, $new_level, $approved_by, $approved_at, $remarks, $proposal_id);
 
+
 if ($stmt->execute()) {
     // Redirect user based on next level
     switch ($new_level) {
-        case 'VP':
-            header("Location: ../dashboard/vp.php");
+        case 'CCSVice':
+            header("Location: ../dashboard/ccsvice_dashboard.php");
             break;
         case 'CCS Treasurer':
             header("Location: ../dashboard/ccstreasurer_dashboard.php");
