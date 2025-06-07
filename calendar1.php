@@ -190,8 +190,23 @@ body, html {
                         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
                             <a href="account/admin_dashboard.php">Admin Dashboard</a>
                         <?php endif; ?>
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'Osas'): ?>
+                            <a href="dashboard/osas.php">Osas Dashboard</a>
+                        <?php endif; ?>
                         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
                             <a href="dashboard/ccsdean_dashboard.php">CCS Dean Dashboard</a>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOVice'): ?>
+                            <a href="dashboard/ccssbovice_dashboard.php">CCS SBO Vice Dashboard</a>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOPresident'): ?>
+                            <a href="dashboard/ccssbopresident_dashboard.php">CCS SBO President Dashboard</a>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOTreasurer'): ?>
+                            <a href="dashboard/ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOAuditor'): ?>
+                            <a href="dashboard/ccssboauditor_dashboard.php">CCS SBO Auditor Dashboard</a>
                         <?php endif; ?>
                         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSFaculty'): ?>
                             <a href="dashboard/ccsfaculty_dashboard.php">CCS Faculty Dashboard</a>
