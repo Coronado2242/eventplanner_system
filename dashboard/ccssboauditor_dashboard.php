@@ -21,10 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
     if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'CCS Faculty';  // next level after Treasurer (or Auditor)
+        $new_level = 'CCS President';  // next level after Treasurer (or Auditor)
     } elseif ($action === 'disapprove') {
         $status = 'Disapproved by Treasurer';
-        $new_level = 'CCS President'; // stays in Treasurer since disapproved
+        $new_level = 'CCS Auditor'; // stays in Treasurer since disapproved
     } else {
         die("Invalid action");
     }
@@ -36,32 +36,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
         // Redirect para ma-refresh ang list
-        header("Location: ccspresident_dashboard.php");
+        header("Location: ccsauditor_dashboard.php");
         exit;
     } else {
         die("Execute failed: " . $stmt->error);
     }
 }
 
-// Fetch proposals for CCS President
-$current_level = 'CCS President';
-$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted'";
+// Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
+$current_level = 'CCS Auditor';
+$search_department = '%CCS%';
+
+$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted' AND department LIKE ?";
 $stmt = $conn->prepare($sql);
 
 if (!$stmt) {
-    die("Query error: " . $conn->error);
+    die("Prepare failed: " . $conn->error);
 }
 
-$stmt->bind_param("s", $current_level);
-$stmt->execute();
-$result = $stmt->get_result();  // <- ito ang hinahanap mo para hindi undefined ang $result
-?>
+$stmt->bind_param("ss", $current_level, $search_department);
 
+$stmt->execute();
+$result = $stmt->get_result();
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>CCS SBO President Portal</title>
+    <title>CCS SBO Auditor Portal</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -550,7 +553,7 @@ tr:nth-child(even) {
 <body>
 
 <header class="topbar">
-    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS SBO PRESIDENT PORTAL</div>
+    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS SBO AUDITOR PORTAL</div>
     <div class="hamburger" onclick="toggleMobileNav()">☰</div>
     <nav id="mainNav">
         <a href="../index.php">Home</a>
@@ -567,8 +570,8 @@ tr:nth-child(even) {
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSPresident'): ?>
-                        <a href="ccspresident_dashboard.php">CCS SBO President Dashboard</a>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOAuditor'): ?>
+                        <a href="ccssboauditor_dashboard.php">CCS SBO Auditor Dashboard</a>
                     <?php endif; ?>
                     <a href="../account/logout.php">Logout</a>
                 </div>
@@ -587,50 +590,54 @@ tr:nth-child(even) {
 
 <!-- Dashboard Content -->
 <div id="dashboardContent" class="content">
-    <h1>Welcome to the CCS President Dashboard</h1>
+    <h1>Welcome to the CCS Auditor Dashboard</h1>
     <p>This is your overview page.</p>
+
+    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+    
 </div>
 
 <!-- Proposals Content -->
+
 <div id="proposalContent" class="content" style="display:none;">
     <h1>Pending Proposals for Approval</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if ($result && $result->num_rows > 0): ?>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                <tr>
+                    <td><?= htmlspecialchars($row['id']) ?></td>
+                    <td><?= htmlspecialchars($row['department']) ?></td>
+                    <td><?= htmlspecialchars($row['event_type']) ?></td>
+                    <td><?= htmlspecialchars($row['start_date']) ?></td>
+                    <td><?= htmlspecialchars($row['end_date']) ?></td>
+                    <td><?= htmlspecialchars($row['venue']) ?></td>
+                    <td><?= htmlspecialchars($row['status']) ?></td>
+                    <td>
+                        <form method="post" action="" style="margin:0;">
+                            <!-- Important: assign proposal_id value here -->
+                            <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
+                            <input type="hidden" name="level" value="CCS Auditor">
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    <?php if ($result && $result->num_rows > 0): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
-        <tr>
-            <td><?= htmlspecialchars($row['id']) ?></td>
-            <td><?= htmlspecialchars($row['department']) ?></td>
-            <td><?= htmlspecialchars($row['event_type']) ?></td>
-            <td><?= htmlspecialchars($row['start_date']) ?></td>
-            <td><?= htmlspecialchars($row['end_date']) ?></td>
-            <td><?= htmlspecialchars($row['venue']) ?></td>
-            <td><?= htmlspecialchars($row['status']) ?></td>
-            <td>
-                <form method="post" action="" style="margin:0;">
-                    <!-- Important: assign proposal_id value here -->
-                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
-                    <input type="hidden" name="level" value="CCS President">
 
-
-                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
-                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
-                </form>
-            </td>
-        </tr>
-        <?php endwhile; ?>
-    <?php else: ?>
-        <tr><td colspan="8" style="text-align:center;">No proposals found for Treasurer.</td></tr>
-    <?php endif; ?>
-    </tbody>
-</table>
+                            <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
+                            <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <tr><td colspan="8" style="text-align:center;">No proposals found for Treasurer.</td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
 </div>
+
 
 <!-- Requirements Content -->
 <div id="requirementContent" class="content" style="display:none;">
@@ -639,6 +646,7 @@ tr:nth-child(even) {
 </div>
 
 <script>
+    
     function toggleDropdown() {
         const menu = document.getElementById('dropdownMenu');
         menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
@@ -683,6 +691,9 @@ tr:nth-child(even) {
         dashboardContent.style.display = 'none';
         proposalContent.style.display = 'none';
         requirementContent.style.display = 'block';
+    });
+        document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
 </script>
 

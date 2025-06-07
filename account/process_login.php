@@ -42,7 +42,7 @@ if ($row = $result->fetch_assoc()) {
                 header("Location: ../account/admin_dashboard.php");
                 break;
             case 'osas':
-                header("Location: ../account/osas_dashboard.php");
+                header("Location: ../dashboard/osas.php");
                 break;
             default:
                 // fallback dashboard

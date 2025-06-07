@@ -520,8 +520,8 @@ tr:nth-child(even) {
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSVice'): ?>
-                        <a href="ccsvice_dashboard.php">CCS SBO Vice Dashboard</a>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOVice'): ?>
+                        <a href="ccssbovice_dashboard.php">CCS SBO Vice Dashboard</a>
                     <?php endif; ?>
                     <a href="../account/logout.php">Logout</a>
                 </div>

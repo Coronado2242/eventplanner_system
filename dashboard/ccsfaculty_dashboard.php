@@ -592,6 +592,7 @@ tr:nth-child(even) {
 <div id="dashboardContent" class="content">
     <h1>Welcome to the CCS Faculty Dashboard</h1>
     <p>This is your overview page.</p>
+    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
 </div>
 
 <!-- Proposals Content -->
@@ -685,6 +686,10 @@ tr:nth-child(even) {
         dashboardContent.style.display = 'none';
         proposalContent.style.display = 'none';
         requirementContent.style.display = 'block';
+    });
+    
+        document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
 </script>
 

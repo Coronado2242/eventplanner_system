@@ -570,8 +570,8 @@ tr:nth-child(even) {
             <div class="user-dropdown" id="userDropdown">
                 <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSTreasurer'): ?>
-                        <a href="ccstreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOTreasurer'): ?>
+                        <a href="ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
                     <?php endif; ?>
                     <a href="../account/logout.php">Logout</a>
                 </div>
@@ -592,6 +592,7 @@ tr:nth-child(even) {
 <div id="dashboardContent" class="content">
     <h1>Welcome to the CCS Auditor Dashboard</h1>
     <p>This is your overview page.</p>
+    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
 </div>
 
 <!-- Proposals Content -->
@@ -689,5 +690,8 @@ $conn->close();
         dashboardContent.style.display = 'none';
         proposalContent.style.display = 'none';
         requirementContent.style.display = 'block';
+    });
+        document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
 </script>

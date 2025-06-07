@@ -714,7 +714,10 @@ tr:nth-child(even) {
         const menu = document.getElementById('dropdownMenu');
         menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
     }
-
+    function toggleMobileNav() {
+    const nav = document.getElementById("mainNav");
+    nav.classList.toggle("show");
+}
     const dashboardTab = document.getElementById('dashboardTab');
     const proposalTab = document.getElementById('proposalTab');
     const requirementTab = document.getElementById('requirementTab');
@@ -750,7 +753,12 @@ tr:nth-child(even) {
         requirementTab.classList.add('active');
         dashboardContent.style.display = 'none';
         proposalContent.style.display = 'none';
-        requirementContent.style.display = 'block';
+        requirementCon
+        tent.style.display = 'block';
+    });
+    
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
 </script>
 

@@ -562,7 +562,8 @@ tr:nth-child(even) {
 
 <header class="topbar">
     <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">OSAS PORTAL</div>
-    <nav>
+    <div class="hamburger" onclick="toggleMobileNav()">☰</div>
+    <nav id="mainNav">
         <a href="../index.php">Home</a>
         <a href="../aboutus.php">About Us</a>
         <a href="../proposal/calendar.php">Calendar</a>
@@ -590,6 +591,7 @@ tr:nth-child(even) {
 <div id="dashboardContent" class="content">
     <h1>Welcome to the OSAS Dashboard</h1>
     <p>This is your overview page.</p>
+    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
 </div>
 
 <!-- Proposals Content -->
@@ -674,7 +676,10 @@ tr:nth-child(even) {
         const menu = document.getElementById('dropdownMenu');
         menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
     }
-
+    function toggleMobileNav() {
+    const nav = document.getElementById("mainNav");
+    nav.classList.toggle("show");
+}
     const dashboardTab = document.getElementById('dashboardTab');
     const proposalTab = document.getElementById('proposalTab');
     const requirementTab = document.getElementById('requirementTab');
@@ -713,7 +718,9 @@ tr:nth-child(even) {
         requirementContent.style.display = 'block';
     });
 
-
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
+    });
  
 </script>
 
