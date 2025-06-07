@@ -621,15 +621,15 @@ tr:nth-child(even) {
             <td><?= htmlspecialchars($row['venue']) ?></td>
             <td><?= htmlspecialchars($row['status']) ?></td>
             <td>
-                <form method="post" action="" style="margin:0;">
-                    <!-- Important: assign proposal_id value here -->
-                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
-                    <input type="hidden" name="level" value="CCS Treasurer">
+                <form method="POST" style="display: inline;">
+    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
+</form>
+<form method="POST" style="display: inline;">
+    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+    <button type="submit" name="action" value="disapprove" class="action-btn disapprove-btn">Disapprove</button>
+</form>
 
-
-                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
-                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
-                </form>
             </td>
         </tr>
         <?php endwhile; ?>
@@ -645,6 +645,80 @@ tr:nth-child(even) {
 <?php
 $conn->close();
 ?>
+
+
+<!-- Disapprove Remarks Modal -->
+<div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+   <form method="POST" action="ccssbovice_dashboard.php">
+
+      <div class="modal-content">
+        <!-- Header -->
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="disapproveModalLabel">Disapproved</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body">
+          <input type="hidden" name="proposal_id" id="modal_proposal_id">
+          <input type="hidden" name="level" value="CCSVice">
+          <input type="hidden" name="action" value="disapprove">
+
+          <p><strong>📝 Remarks / Comments:</strong></p>
+          <p>
+            Dear [Name],<br>
+            Thank you for submitting your event proposal. After reviewing the details, we regret to inform you that your proposal has been disapproved due to the following reasons:
+          </p>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Schedule Conflict" id="reason1">
+            <label class="form-check-label" for="reason1">Schedule Conflict – Requested date is already booked.</label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Incomplete Documents" id="reason2">
+            <label class="form-check-label" for="reason2">Incomplete Documents – Missing:</label>
+            <input type="text" class="form-control mt-1" name="details_missing" placeholder="Specify missing documents">
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Incorrect Information" id="reason3">
+            <label class="form-check-label" for="reason3">Incorrect Information – Issue(s) found in:</label>
+            <input type="text" class="form-control mt-1" name="details_incorrect" placeholder="Specify incorrect information">
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Does not meet guidelines" id="reason4">
+            <label class="form-check-label" for="reason4">Proposal does not meet event guidelines.</label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Unclear Budget" id="reason5">
+            <label class="form-check-label" for="reason5">Budget proposal is not clear or realistic.</label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Other" id="reason6">
+            <label class="form-check-label" for="reason6">Other:</label>
+            <input type="text" class="form-control mt-1" name="details_other" placeholder="Specify other reason">
+          </div>
+
+          <p class="mt-3">
+            Please address the noted issues and resubmit your proposal for reconsideration.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger w-100">Submit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
 <script>
     function toggleDropdown() {
         const menu = document.getElementById('dropdownMenu');
@@ -694,4 +768,12 @@ $conn->close();
         document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
+
+ document.querySelectorAll('form button').forEach(button => {
+    button.addEventListener('click', function(e) {
+        if (!confirm(`Are you sure you want to ${this.value} this proposal?`)) {
+            e.preventDefault();
+        }
+    });
+});
 </script>

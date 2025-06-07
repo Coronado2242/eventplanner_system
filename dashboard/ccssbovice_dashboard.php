@@ -4,6 +4,44 @@ session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 $result = $conn->query("SELECT id, department, event_type, budget_approved, budget_amount FROM proposals WHERE budget_approved = 0");
 
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['action'] === "disapprove") {
+    $proposal_id = $_POST['proposal_id'];
+    $level = $_POST['level'];
+    $reasons = $_POST['reasons'] ?? [];
+    $remarks = [];
+
+    if (in_array("Incomplete Documents", $reasons)) {
+        $remarks[] = "Incomplete Documents – " . ($_POST['details_missing'] ?? '');
+    }
+    if (in_array("Incorrect Information", $reasons)) {
+        $remarks[] = "Incorrect Information – " . ($_POST['details_incorrect'] ?? '');
+    }
+    if (in_array("Other", $reasons)) {
+        $remarks[] = "Other – " . ($_POST['details_other'] ?? '');
+    }
+
+    foreach ($reasons as $reason) {
+        if (!in_array($reason, ["Incomplete Documents", "Incorrect Information", "Other"])) {
+            $remarks[] = $reason;
+        }
+    }
+
+    $final_remarks = implode("; ", $remarks);
+
+    $stmt = $conn->prepare("UPDATE proposals SET status = 'Disapproved', remarks = ?, level = '' WHERE id = ?");
+    $stmt->bind_param("si", $final_remarks, $proposal_id);
+
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "Proposal disapproved successfully.";
+    } else {
+        $_SESSION['error'] = "Failed to disapprove the proposal: " . $stmt->error;
+    }
+
+    header("Location: ccssbovice_dashboard.php");
+    exit();
+}
+
+
 
 ?>
 
@@ -11,492 +49,19 @@ $result = $conn->query("SELECT id, department, event_type, budget_approved, budg
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CCS SBO Vice President Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <link rel="stylesheet" href="../style/ccssbovice.css">
+    <!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap JS Bundle (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 </head>
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  font-family: Arial, sans-serif;
-}
 
-body {
-  background: url('../img/homebg2.jpg') no-repeat center center fixed;
-  background-size: cover;
-  position: relative;
-}
-
-body::before {
-  content: "";
-  position: fixed; 
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.4); 
-  z-index: -1;
-  pointer-events: none; 
-}
-
-.topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.50); 
-    padding: 15px 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.topbar .logo {
-    font-weight: bold;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.topbar nav a {
-    text-decoration: none;
-    color: #000;
-    font-weight: 500;
-    font-size: 16px;
-    padding: 8px 12px;
-    border-radius: 5px;
-    transition: background 0.3s, color 0.3s;
-}
-.logo {
-    display: flex;
-    align-items: center; 
-}
-.logo img {
-    margin-right: 10px; 
-    height: 49px; 
-    border-radius: 50%; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-.admin-info {
-    display: inline-block;
-    margin-left: 20px;
-}
-
-.sidebar {
-    width: 220px;
-    background: #004080;
-    position: fixed;
-    top: 80px;
-    bottom: 0; 
-    color: white;
-}
-
-.sidebar ul {
-    list-style: none;
-    padding: 0;
-}
-
-.sidebar ul li {
-    padding: 15px 20px;
-    cursor: pointer;
-}
-
-.sidebar ul li.active, .sidebar ul li:hover {
-    background: #0066cc;
-}
-
-.content {
-    margin-left: 240px;
-    padding: 20px;
-    margin-top: 60px;
-}
-
-.cards {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.card {
-    background: #f4f4f4;
-    padding: 20px;
-    flex: 1;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.positive {
-    color: green;
-}
-
-.negative {
-    color: red;
-}
-
-.charts {
-    display: flex;
-    margin-top: 30px;
-    gap: 40px;
-    flex-wrap: wrap;
-}
-
-.calendar {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.legend span {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin-right: 5px;
-    border-radius: 50%;
-}
-
-.green { background: green; }
-.red { background: red; }
-.orange { background: orange; }
-
-.logout-btn {
-    margin-left: 15px;
-    padding: 5px 10px;
-    background: maroon;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.logout-btn:hover {
-    background: darkred;
-}
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    background-color: white;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    right: 0;
-    margin-top: 10px;
-    border-radius: 5px;
-    z-index: 100;
-}
-.dropdown-menu a {
-    display: block;
-    padding: 10px;
-    text-decoration: none;
-    color: #333;
-}
-.dropdown-menu a:hover {
-    background-color: #f0f0f0;
-}
-.user-dropdown {
-    position: relative;
-    display: inline-block;
-    margin-left: 20px;
-    cursor: pointer;
-}
-.fa-user {
-    font-size: 18px;
-}
-/* sidebar */
-
-.sidebar.collapsed {
-    width: 60px;
-}
-
-.sidebar ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-.sidebar ul li {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    color: white;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.sidebar ul li i {
-    min-width: 20px;
-    margin-right: 10px;
-    font-size: 18px;
-}
-
-.sidebar ul li:hover {
-    background-color: #0055a5;
-}
-
-.sidebar.collapsed .menu-text {
-    display: none;
-}
-
-.toggle-btn {
-    cursor: pointer;
-    padding: 10px;
-    font-size: 20px;
-    background-color: #003366;
-    color: white;
-    text-align: center;
-}
-@media (max-width: 768px) {
-    .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 10px;
-    }
-
-    .topbar nav {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .topbar nav a, .admin-info {
-        margin: 5px 0;
-    }
-
-        .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        top: 0;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-        z-index: 10;
-    }
-
-    .sidebar ul {
-        flex-direction: row;
-        display: flex;
-        width: 100%;
-        padding: 0;
-        margin: 0;
-    }
-
-    .sidebar ul li {
-        flex: 1;
-        justify-content: center;
-        padding: 10px;
-    }
-
-    .sidebar .toggle-btn {
-        display: none;
-    }
-
-    .content {
-        margin: 0;
-        padding: 10px;
-    }
-
-    .cards {
-        flex-direction: column;
-    }
-
-    .charts {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    iframe {
-        height: 400px !important;
-    }
-
-    .user-dropdown {
-        margin-left: 0;
-    }
-
-    .dropdown-menu {
-        right: auto;
-        left: 0;
-    }
-}
-
-.hamburger {
-    display: none;
-    font-size: 26px;
-    cursor: pointer;
-    padding: 5px 10px;
-    background: none;
-    border: none;
-}
-
-@media (max-width: 768px) {
-    .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .hamburger {
-        display: block;
-        margin-left: auto;
-    }
-
-    nav#mainNav {
-        display: none;
-        width: 100%;
-        flex-direction: column;
-    }
-
-    nav#mainNav.show {
-        display: flex;
-    }
-
-    nav#mainNav a {
-        padding: 10px;
-        border-top: 1px solid #ddd;
-    }
-}
-
-.approval-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 10px;
-    margin-top: 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.approval-table thead {
-    background-color: #004080;
-    color: white;
-}
-
-.approval-table th, .approval-table td {
-    padding: 12px 15px;
-    text-align: left;
-}
-
-.approval-table tbody tr {
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease;
-}
-
-.approval-table tbody tr:hover {
-    transform: scale(1.01);
-    background-color: #f0f8ff;
-}
-
-.budget-input {
-    width: 100%;
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: #fff;
-    box-sizing: border-box;
-}
-
-.approve-btn {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.approve-btn:hover {
-    background-color: #218838;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-family: Arial, sans-serif;
-}
-
-thead tr {
-    background-color: #007BFF; /* example: blue header */
-    color: white;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
-
-.action-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.approve-btn {
-    background-color: #28a745;
-    color: white;
-}
-
-.disapprove-btn {
-    background-color: #dc3545;
-    color: white;
-    margin-left: 5px;
-}
-
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 9999;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  background-color: rgba(0,0,0,0.6);
-}
-
-.modal.active {
-  display: block;
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 5% auto;
-  padding: 30px;
-  border-radius: 8px;
-  max-width: 95%;
-  width: 90%;
-}
-
-.close-btn {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  cursor: pointer;
-}
-.close-btn:hover {
-  color: black;
-}
-
-</style>
 <body>
 
 <header class="topbar">
@@ -558,7 +123,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch proposals that are pending approval (example: add WHERE clause if needed)
-$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE budget_amount IS NULL AND department = 'CCS'";
+$sql = "SELECT id, department, event_type, budget_file FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
 $result = $conn->query($sql);
 
 if ($result === false) {
@@ -606,6 +171,10 @@ if ($result === false) {
                     </td>
                     <td>
                         <button class="approve-btn" onclick="approveBudget(<?= $row['id'] ?>, this)" <?= $isDisabled ?>>Approve</button>
+                          <button class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal" <?= $isDisabled ?>>
+  Disapprove
+</button>
+
                     </td>
                             </tr>
                         <?php endwhile; ?>
@@ -632,8 +201,8 @@ if ($result === false) {
             die("Connection failed: " . mysqli_connect_error());
         }
 
-        $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS'";
-        $result = mysqli_query($conn, $sql);
+ $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
+$result = mysqli_query($conn, $sql);
 
         while ($row = mysqli_fetch_assoc($result)) {
             echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
@@ -890,27 +459,74 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
 
 ?>
 
+
+
+
+
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form method="POST" action="../proposal/flow.php">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <form method="POST" action="ccssbovice_dashboard.php">
       <div class="modal-content">
+        <!-- Header -->
         <div class="modal-header bg-danger text-white">
-  <h5 class="modal-title" id="disapproveModalLabel">Disapprove Proposal</h5>
-  <button type="button" class="btn-close" id="closeModalBtn" aria-label="Close"></button>
-</div>
+          <h5 class="modal-title" id="disapproveModalLabel">Disapproved</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
 
+        <!-- Body -->
         <div class="modal-body">
-          <input type="hidden" name="proposal_id" id="modal_proposal_id" value="">
+          <input type="hidden" name="proposal_id" id="modal_proposal_id">
           <input type="hidden" name="level" value="CCSVice">
           <input type="hidden" name="action" value="disapprove">
-          <div class="mb-3">
-            <label for="modal_remarks" class="form-label">Please provide your reason for disapproval:</label>
-            <textarea class="form-control" name="remarks" id="modal_remarks" required></textarea>
+
+          <p><strong>📝 Remarks / Comments:</strong></p>
+          <p>
+            Dear ,<br>
+            Thank you for submitting your event proposal. After reviewing the details, we regret to inform you that your proposal has been disapproved due to the following reasons:
+          </p>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Schedule Conflict" id="reason1">
+            <label class="form-check-label" for="reason1">Schedule Conflict – Requested date is already booked.</label>
           </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Incomplete Documents" id="reason2">
+            <label class="form-check-label" for="reason2">Incomplete Documents – Missing:</label>
+            <input type="text" class="form-control mt-1" name="details_missing" placeholder="Specify missing documents">
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Incorrect Information" id="reason3">
+            <label class="form-check-label" for="reason3">Incorrect Information – Issue(s) found in:</label>
+            <input type="text" class="form-control mt-1" name="details_incorrect" placeholder="Specify incorrect information">
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Does not meet guidelines" id="reason4">
+            <label class="form-check-label" for="reason4">Proposal does not meet event guidelines.</label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Unclear Budget" id="reason5">
+            <label class="form-check-label" for="reason5">Budget proposal is not clear or realistic.</label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Other" id="reason6">
+            <label class="form-check-label" for="reason6">Other:</label>
+            <input type="text" class="form-control mt-1" name="details_other" placeholder="Specify other reason">
+          </div>
+
+          <p class="mt-3">
+            Please address the noted issues and resubmit your proposal for reconsideration.
+          </p>
         </div>
+
+        <!-- Footer -->
         <div class="modal-footer">
-          <button type="submit" class="btn btn-danger">Submit Disapproval</button>
+          <button type="submit" class="btn btn-danger w-100">Submit</button>
         </div>
       </div>
     </form>
@@ -919,148 +535,134 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
 
 
 
+
 <!-- Tab Switching & User Fetching Script -->
 <script>
-
-document.addEventListener('DOMContentLoaded', function () {
-  const form = document.getElementById('myForm');
+document.addEventListener("DOMContentLoaded", function () {
+  // Auto-compute totals
   const qtyInputs = document.querySelectorAll('.qty-input');
   const amountInputs = document.querySelectorAll('.amount-input');
   const totalInputs = document.querySelectorAll('.total-input');
   const grandTotalInput = document.getElementById('grandTotal');
 
   function sanitize(input) {
-    // Allow only digits and dot, remove others
     input.value = input.value.replace(/[^0-9.]/g, '');
   }
 
-  function computeRowTotal(rowIndex) {
-    const qty = parseFloat(qtyInputs[rowIndex].value) || 0;
-    const amount = parseFloat(amountInputs[rowIndex].value) || 0;
-    const total = qty * amount;
-    totalInputs[rowIndex].value = total.toFixed(2);
+  function computeRowTotal(index) {
+    const qty = parseFloat(qtyInputs[index].value) || 0;
+    const amount = parseFloat(amountInputs[index].value) || 0;
+    totalInputs[index].value = (qty * amount).toFixed(2);
   }
 
   function computeGrandTotal() {
-    let grandTotal = 0;
+    let total = 0;
     totalInputs.forEach(input => {
-      grandTotal += parseFloat(input.value) || 0;
+      total += parseFloat(input.value) || 0;
     });
-    grandTotalInput.value = grandTotal.toFixed(2);
+    grandTotalInput.value = total.toFixed(2);
   }
 
-  qtyInputs.forEach((qtyInput, index) => {
-    qtyInput.addEventListener('input', () => {
-      sanitize(qtyInput);
-      computeRowTotal(index);
+  qtyInputs.forEach((input, i) => {
+    input.addEventListener('input', () => {
+      sanitize(input);
+      computeRowTotal(i);
       computeGrandTotal();
     });
   });
 
-  amountInputs.forEach((amountInput, index) => {
-    amountInput.addEventListener('input', () => {
-      sanitize(amountInput);
-      computeRowTotal(index);
+  amountInputs.forEach((input, i) => {
+    input.addEventListener('input', () => {
+      sanitize(input);
+      computeRowTotal(i);
       computeGrandTotal();
     });
   });
 
-  // Optional: on page load, compute totals for any pre-filled values
-  for (let i = 0; i < qtyInputs.length; i++) {
-  if (qtyInputs[i].value && amountInputs[i].value) {
-    computeRowTotal(i);
+  // On load, compute totals if prefilled
+  qtyInputs.forEach((_, i) => computeRowTotal(i));
+  computeGrandTotal();
+
+  // Inject calendar iframe
+  const calendarFrame = document.getElementById("calendarFrame");
+  if (calendarFrame) {
+    calendarFrame.src = "../proposal/calendar.php";
   }
+
+  // Sidebar toggle
+  const toggleBtn = document.querySelector(".toggle-btn");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      document.querySelector(".sidebar").classList.toggle("collapsed");
+    });
+  }
+
+  // Disapprove modal - set proposal_id
+  document.querySelectorAll(".disapprove-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const id = this.getAttribute("data-id");
+      const modalInput = document.getElementById("modal_proposal_id");
+      if (modalInput) modalInput.value = id;
+    });
+  });
+
+  // Close modal on click outside
+  const modal = document.getElementById('budgetPlanModal');
+  const closeBtn = document.querySelector('.btn-close');
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      if (modal) modal.classList.remove("active");
+    });
+  }
+
+  window.addEventListener("click", function (e) {
+    if (e.target === modal) {
+      modal.classList.remove("active");
+    }
+  });
+});
+</script>
+
+<script>
+// Tab switching
+function hideAllSections() {
+  document.getElementById("dashboardContent").style.display = "none";
+  document.getElementById("approvalContent").style.display = "none";
+  document.getElementById("requirementContent").style.display = "none";
+  document.getElementById("budgetForm").style.display = "none";
+  document.getElementById("budgetPlanForm").style.display = "none";
+
+  document.querySelectorAll(".sidebar ul li").forEach(li => {
+    li.classList.remove("active");
+  });
 }
-computeGrandTotal();
-});
-
-// -------------------------------------------------
-
-document.querySelectorAll('.upload-btn').forEach(button => {
-  button.addEventListener('click', function() {
-    // Kunin ang proposal_id mula sa hidden input ng form na pinanggalingan ng button
-    const form = this.closest('form');
-    const proposalId = form.querySelector('input[name="proposal_id"]').value;
-
-    // Ipakita ang budget form
-    const budgetForm = document.getElementById('budgetForm');
-    budgetForm.style.display = 'block';
-
-    // Ilagay ang proposal_id sa budget form hidden input
-    const budgetFormInput = budgetForm.querySelector('input[name="proposal_id"]');
-    if (budgetFormInput) {
-      budgetFormInput.value = proposalId;
-    }
-  });
-});
-
-// =========================================================================================
-    const modal = document.getElementById('disapproveModal');
-  const proposalIdInput = document.getElementById('modal_proposal_id');
-  const openButtons = document.querySelectorAll('.open-modal-btn');
-  const closeModalBtn = document.getElementById('closeModalBtn');
-
-  openButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const proposalId = button.getAttribute('data-proposal-id');
-      proposalIdInput.value = proposalId;
-      modal.classList.add('active');
-    });
-  });
-
-  closeModalBtn.addEventListener('click', () => {
-    modal.classList.remove('active');
-  });
-
-  modal.addEventListener('click', (event) => {
-    if (event.target === modal) {
-      modal.classList.remove('active');
-    }
-  });
 
 document.getElementById("dashboardTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "block";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "none";
-    document.getElementById("budgetForm").style.display = "none";
-    this.classList.add("active");
-    document.getElementById("requirementTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-    document.getElementById("budget_planTab").classList.remove("active");
+  hideAllSections();
+  document.getElementById("dashboardContent").style.display = "block";
+  this.classList.add("active");
 });
 
 document.getElementById("approvalTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "block";
-    document.getElementById("budgetForm").style.display = "none";
-    this.classList.add("active");
-    document.getElementById("requirementTab").classList.remove("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("budget_planTab").classList.remove("active");
+  hideAllSections();
+  document.getElementById("approvalContent").style.display = "block";
+  this.classList.add("active");
 });
 
 document.getElementById("requirementTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "block";
-    document.getElementById("budgetForm").style.display = "none";
-    this.classList.add("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-    document.getElementById("budget_planTab").classList.remove("active");
+  hideAllSections();
+  document.getElementById("requirementContent").style.display = "block";
+  this.classList.add("active");
 });
 
 document.getElementById("budget_planTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "none";
-    document.getElementById("budgetForm").style.display = "block";
-    this.classList.add("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-    document.getElementById("requirementTab").classList.remove("active");
+  hideAllSections();
+  document.getElementById("budgetForm").style.display = "block";
+  this.classList.add("active");
 });
+</script>
+
+<script>
 //==============================Upload budget js================================================
  document.querySelectorAll('.upload-btn').forEach(btn => {
   btn.addEventListener('click', function () {
@@ -1098,141 +700,88 @@ document.getElementById("submitBudgetBtn").addEventListener("click", function (e
         console.error("❌ Error:", error);
     });
 });
+
 </script>
-<!-- Dropdown Script -->
+
 <script>
-function toggleDropdown() {
-    const menu = document.getElementById("dropdownMenu");
-    menu.style.display = (menu.style.display === "block") ? "none" : "block";
-}
-
-document.addEventListener("click", function(event) {
-    const dropdown = document.getElementById("userDropdown");
-    const menu = document.getElementById("dropdownMenu");
-    if (!dropdown.contains(event.target)) {
-        menu.style.display = "none";
-    }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
-    });
-
-    document.querySelector(".toggle-btn").addEventListener("click", function () {
-    const sidebar = document.querySelector(".sidebar");
-    sidebar.classList.toggle("collapsed");
-});
-</script>
-<script>
-
+// Approve budget with validation
 function approveBudget(proposalId, button) {
-    const row = button.closest("tr");
-    const budget = row.querySelector("input[name='budget']").value;
+  const row = button.closest("tr");
+  const budget = row.querySelector("input[name='budget']").value;
 
-    if (!budget || isNaN(budget) || budget <= 0) {
-        alert("Please enter a valid budget.");
-        return;
-    }
+  if (!budget || isNaN(budget) || budget <= 0) {
+    alert("Please enter a valid budget.");
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("proposal_id", proposalId);
-    formData.append("budget", budget);
+  const formData = new FormData();
+  formData.append("proposal_id", proposalId);
+  formData.append("budget", budget);
 
-    fetch("../request/update_budget.php", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.text())
-    .then(data => {
-        alert("✅ " + data);
-        row.remove(); 
-    })
-    .catch(err => {
-        alert("❌ Error updating budget.");
-        console.error(err);
-    });
-}
-
-    // ===========================================================
-
-    function approveBudget(proposalId, button) {
-    const row = button.closest("tr");
-    const budget = row.querySelector("input[name='budget']").value;
-
-    if (!budget || isNaN(budget) || budget <= 0) {
-        alert("Please enter a valid budget.");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("proposal_id", proposalId);
-    formData.append("budget", budget);
-
-    fetch("../request/update_budget.php", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.text())
-    .then(data => {
-        alert("✅ " + data);
-        row.remove(); 
-    })
-    .catch(err => {
-        alert("❌ Error updating budget.");
-        console.error(err);
-    });
-
-}
-
-function showRequirementsTab() {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("approvalContent").style.display = "none";
-    document.getElementById("requirementContent").style.display = "block";
-
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("approvalTab").classList.remove("active");
-    document.getElementById("requirementTab").classList.add("active");
-}
-
-function toggleMobileNav() {
-    const nav = document.getElementById("mainNav");
-    nav.classList.toggle("show");
-}
-
-
- function hideAllSections() {
-        document.getElementById("dashboardContent").style.display = "none";
-        document.getElementById("approvalContent").style.display = "none";
-        document.getElementById("requirementContent").style.display = "none";
-        document.getElementById("budgetForm").style.display = "none";
-
-        // Alisin ang 'active' class sa lahat ng sidebar items
-        document.querySelectorAll(".sidebar ul li").forEach(function(item) {
-            item.classList.remove("active");
-        });
-    }
-  // Close modal kapag pinindot yung X
-  closeBtn.addEventListener('click', function() {
-    modal.style.display = 'none';
+  fetch("../request/update_budget.php", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.text())
+  .then(data => {
+    alert("✅ " + data);
+    row.remove();
+  })
+  .catch(err => {
+    alert("❌ Error updating budget.");
+    console.error(err);
   });
-
-  // Close modal kapag nag-click sa labas ng modal-content
-  window.addEventListener('click', function(event) {
-    if (event.target == modal) {
-      modal.style.display = 'none';
-    }
-  });
+}
 </script>
+
 <script>
-function openBudgetPlanModal(proposalId) {
-  document.getElementById("budgetProposalId").value = proposalId;
-  document.getElementById("budgetPlanModal").classList.add("active");
+// Dropdown toggle for user menu
+function toggleDropdown() {
+  const menu = document.getElementById("dropdownMenu");
+  menu.style.display = (menu.style.display === "block") ? "none" : "block";
 }
 
-function closeBudgetPlanModal() {
-  document.getElementById("budgetPlanModal").classList.remove("active");
+// Open modal and show form, set proposal_id value
+function openBudgetPlanModal(proposalId) {
+  const modal = document.getElementById('budgetPlanModal');
+  const form = document.getElementById('budgetPlanForm');
+  const inputProposalId = document.getElementById('budgetProposalId');
+
+  inputProposalId.value = proposalId; // set hidden input proposal_id
+  modal.style.display = 'block';
+  form.style.display = 'block'; // show form inside modal
 }
+
+// Close modal and hide form
+function closeBudgetPlanModal() {
+  const modal = document.getElementById('budgetPlanModal');
+  const form = document.getElementById('budgetPlanForm');
+
+  modal.style.display = 'none';
+  form.style.display = 'none';
+}
+
+// Optional: close modal if user clicks outside modal-content
+window.onclick = function(event) {
+  const modal = document.getElementById('budgetPlanModal');
+  if (event.target == modal) {
+    closeBudgetPlanModal();
+  }
+}
+
+
+document.addEventListener("click", function (event) {
+  const dropdown = document.getElementById("userDropdown");
+  const menu = document.getElementById("dropdownMenu");
+  if (!dropdown.contains(event.target)) {
+    menu.style.display = "none";
+  }
+});
+
+
+
 </script>
+
 
 </body>
 </html>
