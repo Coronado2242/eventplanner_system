@@ -190,7 +190,7 @@ if ($result) {
             <?php foreach ($disapprovedProposals as $proposal): ?>
                 <li class="list-group-item">
                    <span style="font-weight: bold;"><?= urlencode($proposal['id']) ?></span>
-                        <?= e($proposal['event_type']) ?>
+                        <span style="font-weight: bold;"><?= e($proposal['event_type']) ?></span>
                     </a>
                     <br>
                     <small>Remarks: <?= e($proposal['remarks']) ?></small><br>
