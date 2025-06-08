@@ -64,4 +64,50 @@ if (isset($_POST['department'], $_POST['event_type'], $_POST['date_range'], $_PO
     $stmt->close();
     $conn->close();
 }
+
+if (isset($_POST['proposal_id'])) {
+    $proposal_id = $_POST['proposal_id'];
+
+    // Upload and store files (optional: for updated attachments)
+    $uploads = [];
+    foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'] as $field) {
+        if (!empty($_FILES[$field]['name'])) {
+            $filename = time() . '_' . basename($_FILES[$field]['name']);
+            $target = "uploads/" . $filename;
+            move_uploaded_file($_FILES[$field]['tmp_name'], $target);
+            $uploads[$field] = $target;
+        } else {
+            $uploads[$field] = null;
+        }
+    }
+
+    // Update proposal: reset status and budget_approved, keep existing attachments if no new upload
+    $stmt = $conn->prepare("UPDATE proposals SET 
+        adviser_form = COALESCE(?, adviser_form),
+        certification = COALESCE(?, certification),
+        financial = COALESCE(?, financial),
+        constitution = COALESCE(?, constitution),
+        reports = COALESCE(?, reports),
+        letter_attachment = COALESCE(?, letter_attachment),
+        status = 'pending',
+        budget_approved = 0,
+        level = 'Vice President'
+        WHERE id = ?");
+
+    $stmt->bind_param("sssssssi",
+        $uploads['adviser_form'], $uploads['certification'], $uploads['financial'],
+        $uploads['constitution'], $uploads['reports'], $uploads['letter_attachment'],
+        $proposal_id);
+
+    if ($stmt->execute()) {
+        echo "<script>alert('Budget request resubmitted successfully.'); window.location.href = 'proposal.php';</script>";
+    } else {
+        echo "<script>alert('Database error: " . $stmt->error . "');</script>";
+    }
+
+    $stmt->close();
+    $conn->close();
+} else {
+    echo "<script>alert('Proposal ID not specified.'); window.location.href = 'proposal.php';</script>";
+}
 ?>
