@@ -13,6 +13,28 @@ function e($str) {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
+if (isset($_POST['notif_id'])) {
+    $id = intval($_POST['notif_id']);
+
+    // (Optional) Update to mark as viewed
+    $update = $conn->prepare("UPDATE proposals SET notified = 1 WHERE id = ?");
+    $update->bind_param("i", $id);
+    $update->execute();
+    $update->close();
+
+    // Fetch data
+    $stmt = $conn->prepare("SELECT event_type, remarks, disapproved_by FROM proposals WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $proposal = $result->fetch_assoc();
+    $stmt->close();
+
+    header('Content-Type: application/json');
+    echo json_encode($proposal);
+    exit;
+}
+
 // === Check if user's previous proposal was disapproved ===
 $disapproved = false;
 $disapprovedMessage = "";
@@ -182,19 +204,16 @@ if ($result) {
 </div>
 
 <!-- Notification Dropdown -->
-<div id="notificationContainer" class="card shadow p-3">
-     <div id="message"></div>
+<div id="notificationContainer" class="card shadow p-3" style="display:none; position:absolute; z-index:999; right:10px; top:60px; width:350px;">
+    <div id="message"></div>
     <h5>Notifications</h5>
-    <ul class="list-group list-group-flush">
+    <ul class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
         <?php if (!empty($disapprovedProposals)): ?>
             <?php foreach ($disapprovedProposals as $proposal): ?>
-                <li class="list-group-item">
-                   <span style="font-weight: bold;"><?= urlencode($proposal['id']) ?></span>
-                        <span style="font-weight: bold;"><?= e($proposal['event_type']) ?></span>
-                    </a>
-                    <br>
-                    <small>Remarks: <?= e($proposal['remarks']) ?></small><br>
-                    <small>Disapproved by: <?= e($proposal['disapproved_by']) ?></small>
+                <li class="list-group-item notification-item" data-id="<?= $proposal['id'] ?>" style="cursor:pointer;">
+                    <span style="font-weight: bold;"><?= htmlspecialchars($proposal['event_type']) ?></span><br>
+                    <small>Remarks: <?= htmlspecialchars($proposal['remarks']) ?></small><br>
+                    <small>Disapproved by: <?= htmlspecialchars($proposal['disapproved_by']) ?></small>
                 </li>
             <?php endforeach; ?>
         <?php else: ?>
@@ -202,6 +221,21 @@ if ($result) {
         <?php endif; ?>
     </ul>
     <button id="closeNotifBtn" class="btn btn-sm btn-secondary mt-2 w-100">Close</button>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Proposal Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="notifDetailsBody">
+        
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -541,8 +575,29 @@ flatpickr("#dateRange", {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('message').innerHTML = '';
 });
+    
+document.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('click', function () {
+        const id = this.dataset.id;
 
-
+        fetch('', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'fetch_notif_id=' + encodeURIComponent(id)
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('notifDetailsBody').innerHTML = `
+                <p><strong>Event Type:</strong> ${data.event_type}</p>
+                <p><strong>Venue:</strong> ${data.venue}</p>
+                <p><strong>Start Date:</strong> ${data.start_date}</p>
+                <p><strong>End Date:</strong> ${data.end_date}</p>
+                <p><strong>Remarks:</strong> ${data.remarks}</p>
+                <p><strong>Disapproved by:</strong> ${data.disapproved_by}</p> `;
+            new modal.Modal(document.getElementById('notificationModal')).show();
+        });
+    });
+}
 
 </script>
 
