@@ -18,16 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
-    if ($action === 'approve') {
+        if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'CCS OSAS';
+        $new_level = 'OSAS';
         $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
         if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $status, $new_level, $id);
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-        header("Location: ccsdean_dashboard.php");
+    
+        // Redirect with success flag
+        header("Location: ccsdean_dashboard.php?approved=1");
         exit;
-    } elseif ($action === 'disapprove') {
+        } elseif ($action === 'disapprove') {
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
 
@@ -144,10 +146,11 @@ $result = $stmt->get_result();
           <td><?= htmlspecialchars($row['venue']) ?></td>
           <td><?= htmlspecialchars($row['status']) ?></td>
           <td>
-            <form method="POST" style="display:inline;">
-              <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
-            </form>
+            <button type="button" class="btn btn-success btn-sm approve-btn" 
+            data-id="<?= $row['id'] ?>" 
+            data-bs-toggle="modal" 
+            data-bs-target="#approveModal">Approve
+            </button>
             <button type="button" class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
           </td>
         </tr>
@@ -224,6 +227,29 @@ foreach ($requirements as $label => $field) {
   ?>
 </div>
 
+<!-- Approve Confirmation Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="POST" action="ccsdean_dashboard.php">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="approveModalLabel">Confirm Approval</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" name="proposal_id" id="approve_proposal_id">
+          <input type="hidden" name="action" value="approve">
+          Are you sure you want to approve this proposal?
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success w-100">Yes, Approve</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
@@ -334,6 +360,25 @@ function switchTab(tab) {
     document.getElementById(key + 'Tab').classList.toggle('active', key === tab);
   }
 }
+
+// Set proposal ID into modal for approval
+document.querySelectorAll('.approve-btn').forEach(button => {
+  button.addEventListener('click', function () {
+    const proposalId = this.getAttribute('data-id');
+    document.getElementById('approve_proposal_id').value = proposalId;
+  });
+});
+
+
+  // Check for ?approved=1 in URL
+  document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('approved') === '1') {
+      alert("✅ Proposal approved successfully!");
+      // Remove the query string from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  });
 </script>
 </body>
 </html>
