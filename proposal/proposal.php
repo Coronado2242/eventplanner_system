@@ -278,23 +278,24 @@ if ($result) {
                     </div>
                     <input type="hidden" name="time" id="combinedTime">
 
-                    <!-- File Uploads -->
-                    <?php
-                    foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'] as $file) {
-                        echo "<div class='mb-3'><label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>";
-                        if ($form_locked && isset($_SESSION['uploaded'][$file])) {
-                            echo "<p class='form-control-plaintext'>" . e(basename($_SESSION['uploaded'][$file])) . "</p>";
-                        } else {
-                            echo "<input type='file' name='$file' class='form-control' accept='.pdf,.doc,.docx' " . 
-                                (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " />";
-                            if (isset($_SESSION['uploaded'][$file])) {
-                                echo "<small>Already uploaded: " . e(basename($_SESSION['uploaded'][$file])) . "</small>";
-                            }
-                        }
-                        echo "</div>";
+            <!-- File Uploads -->
+            <?php
+            foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial', 'activity_plan'] as $file) {
+                echo "<div class='mb-3'><label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>";
+                if ($form_locked && isset($_SESSION['uploaded'][$file])) {
+                    echo "<p class='form-control-plaintext'>" . e(basename($_SESSION['uploaded'][$file])) . "</p>";
+                } else {
+                    echo "<input type='file' name='$file' class='form-control' accept='.pdf,.doc,.docx' " . 
+                        (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " />";
+                    if (isset($_SESSION['uploaded'][$file])) {
+                        echo "<small>Already uploaded: " . e(basename($_SESSION['uploaded'][$file])) . "</small>";
                     }
-                    ?>
-                    <?php if ($disapproved): ?>
+                }
+                echo "</div>";
+            }
+            ?>
+            <?php if ($disapproved): ?>
+
     <div class="alert alert-danger text-center">
         <?= $disapprovedMessage ?>
     </div>

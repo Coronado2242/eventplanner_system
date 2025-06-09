@@ -1,767 +1,339 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 session_start();
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "eventplanner";
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "eventplanner";
 
-$conn = mysqli_connect($host, $user, $pass, $db);
-
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle form submission (Approve / Disapprove)
+// Approval & Disapproval Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
     if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'CCS OSAS';  // next level after Treasurer (or Auditor)
-    } elseif ($action === 'disapprove') {
-        $status = 'Disapproved by Treasurer';
-        $new_level = 'CCS Treasurer'; // stays in Treasurer since disapproved
-    } else {
-        die("Invalid action");
-    }
-
-    $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
-    if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
-    }
-    $stmt->bind_param("ssi", $status, $new_level, $id);
-    if ($stmt->execute()) {
-        // Redirect para ma-refresh ang list
+        $new_level = 'CCS OSAS';
+        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
+        if (!$stmt) die("Prepare failed: " . $conn->error);
+        $stmt->bind_param("ssi", $status, $new_level, $id);
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
         header("Location: ccsdean_dashboard.php");
         exit;
-    } else {
-        die("Execute failed: " . $stmt->error);
+    } elseif ($action === 'disapprove') {
+        $reasons = $_POST['reasons'] ?? [];
+        $remarks = [];
+
+        if (in_array("Incomplete Documents", $reasons)) {
+            $remarks[] = "Incomplete Documents – " . ($_POST['details_missing'] ?? '');
+        }
+        if (in_array("Incorrect Information", $reasons)) {
+            $remarks[] = "Incorrect Information – " . ($_POST['details_incorrect'] ?? '');
+        }
+        if (in_array("Other", $reasons)) {
+            $remarks[] = "Other – " . ($_POST['details_other'] ?? '');
+        }
+
+        foreach ($reasons as $reason) {
+            if (!in_array($reason, ["Incomplete Documents", "Incorrect Information", "Other"])) {
+                $remarks[] = $reason;
+            }
+        }
+
+        $final_remarks = implode("; ", $remarks);
+        $disapproved_by = $_SESSION['username'] ?? 'Unknown';
+        if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
+            die("Error: Disapproved by user is not set in session.");
+        }
+
+        $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
+        if (!$stmt) die("Prepare failed: " . $conn->error);
+        $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
+        header("Location: ccsdean_dashboard.php");
+        exit;
     }
 }
 
-// Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
 $current_level = 'CCS Dean';
 $search_department = '%CCS%';
-
-$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted' AND department LIKE ?";
-$stmt = $conn->prepare($sql);
-
-if (!$stmt) {
-    die("Prepare failed: " . $conn->error);
-}
-
+$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
-
 $stmt->execute();
 $result = $stmt->get_result();
-
-
-
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>CCS Dean Portal</title>
-       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta charset="UTF-8" />
+  <title>CCS Dean Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="../style/sbotreasure.css">
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 </head>
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  font-family: Arial, sans-serif;
-}
 
-body {
-  background: url('../img/homebg2.jpg') no-repeat center center fixed;
-  background-size: cover;
-  position: relative;
-}
-
-body::before {
-  content: "";
-  position: fixed; 
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.4); 
-  z-index: -1;
-  pointer-events: none; 
-}
-
-.topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.50); 
-    padding: 15px 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.topbar .logo {
-    font-weight: bold;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.topbar nav a {
-    text-decoration: none;
-    color: #000;
-    font-weight: 500;
-    font-size: 16px;
-    padding: 8px 12px;
-    border-radius: 5px;
-    transition: background 0.3s, color 0.3s;
-}
-.logo {
-    display: flex;
-    align-items: center; 
-}
-.logo img {
-    margin-right: 10px; 
-    height: 49px; 
-    border-radius: 50%; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-.admin-info {
-    display: inline-block;
-    margin-left: 20px;
-}
-
-.sidebar {
-    width: 220px;
-    background: #004080;
-    position: fixed;
-    top: 80px;
-    bottom: 0; 
-    color: white;
-}
-
-.sidebar ul {
-    list-style: none;
-    padding: 0;
-}
-
-.sidebar ul li {
-    padding: 15px 20px;
-    cursor: pointer;
-}
-
-.sidebar ul li.active, .sidebar ul li:hover {
-    background: #0066cc;
-}
-
-.content {
-    margin-left: 240px;
-    padding: 20px;
-    margin-top: 60px;
-}
-
-.cards {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.card {
-    background: #f4f4f4;
-    padding: 20px;
-    flex: 1;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.positive {
-    color: green;
-}
-
-.negative {
-    color: red;
-}
-
-.charts {
-    display: flex;
-    margin-top: 30px;
-    gap: 40px;
-    flex-wrap: wrap;
-}
-
-.calendar {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.legend span {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin-right: 5px;
-    border-radius: 50%;
-}
-
-.green { background: green; }
-.red { background: red; }
-.orange { background: orange; }
-
-.logout-btn {
-    margin-left: 15px;
-    padding: 5px 10px;
-    background: maroon;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.logout-btn:hover {
-    background: darkred;
-}
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    background-color: white;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    right: 0;
-    margin-top: 10px;
-    border-radius: 5px;
-    z-index: 100;
-}
-.dropdown-menu a {
-    display: block;
-    padding: 10px;
-    text-decoration: none;
-    color: #333;
-}
-.dropdown-menu a:hover {
-    background-color: #f0f0f0;
-}
-.user-dropdown {
-    position: relative;
-    display: inline-block;
-    margin-left: 20px;
-    cursor: pointer;
-}
-.fa-user {
-    font-size: 18px;
-}
-/* sidebar */
-
-.sidebar.collapsed {
-    width: 60px;
-}
-
-.sidebar ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-.sidebar ul li {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    color: white;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.sidebar ul li i {
-    min-width: 20px;
-    margin-right: 10px;
-    font-size: 18px;
-}
-
-.sidebar ul li:hover {
-    background-color: #0055a5;
-}
-
-.sidebar.collapsed .menu-text {
-    display: none;
-}
-
-.toggle-btn {
-    cursor: pointer;
-    padding: 10px;
-    font-size: 20px;
-    background-color: #003366;
-    color: white;
-    text-align: center;
-}
-@media (max-width: 768px) {
-    .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 10px;
-    }
-
-    .topbar nav {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .topbar nav a, .admin-info {
-        margin: 5px 0;
-    }
-
-        .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        top: 0;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-        z-index: 10;
-    }
-
-    .sidebar ul {
-        flex-direction: row;
-        display: flex;
-        width: 100%;
-        padding: 0;
-        margin: 0;
-    }
-
-    .sidebar ul li {
-        flex: 1;
-        justify-content: center;
-        padding: 10px;
-    }
-
-    .sidebar .toggle-btn {
-        display: none;
-    }
-
-    .content {
-        margin: 0;
-        padding: 10px;
-    }
-
-    .cards {
-        flex-direction: column;
-    }
-
-    .charts {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    iframe {
-        height: 400px !important;
-    }
-
-    .user-dropdown {
-        margin-left: 0;
-    }
-
-    .dropdown-menu {
-        right: auto;
-        left: 0;
-    }
-}
-
-.hamburger {
-    display: none;
-    font-size: 26px;
-    cursor: pointer;
-    padding: 5px 10px;
-    background: none;
-    border: none;
-}
-
-@media (max-width: 768px) {
-    .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .hamburger {
-        display: block;
-        margin-left: auto;
-    }
-
-    nav#mainNav {
-        display: none;
-        width: 100%;
-        flex-direction: column;
-    }
-
-    nav#mainNav.show {
-        display: flex;
-    }
-
-    nav#mainNav a {
-        padding: 10px;
-        border-top: 1px solid #ddd;
-    }
-}
-
-.approval-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 10px;
-    margin-top: 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.approval-table thead {
-    background-color: #004080;
-    color: white;
-}
-
-.approval-table th, .approval-table td {
-    padding: 12px 15px;
-    text-align: left;
-}
-
-.approval-table tbody tr {
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease;
-}
-
-.approval-table tbody tr:hover {
-    transform: scale(1.01);
-    background-color: #f0f8ff;
-}
-
-.budget-input {
-    width: 100%;
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: #fff;
-    box-sizing: border-box;
-}
-
-.approve-btn {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.approve-btn:hover {
-    background-color: #218838;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-family: Arial, sans-serif;
-}
-
-thead tr {
-    background-color: #007BFF; /* example: blue header */
-    color: white;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
-
-.action-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.approve-btn {
-    background-color: #28a745;
-    color: white;
-}
-
-.disapprove-btn {
-    background-color: #dc3545;
-    color: white;
-    margin-left: 5px;
-}
-
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 9999;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  background-color: rgba(0,0,0,0.6);
-}
-
-.modal.active {
-  display: block;
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 5% auto;
-  padding: 30px;
-  border-radius: 8px;
-  max-width: 95%;
-  width: 90%;
-}
-
-.close-btn {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  cursor: pointer;
-}
-.close-btn:hover {
-  color: black;
-}
-
-</style>
-
-</style>
 <body>
-
-<header class="topbar" >
-    <div class="logo"><img src="../img/lspulogo.jpg">CCS DEAN PORTAL</div>
-    <div class="hamburger" onclick="toggleMobileNav()">☰</div>
-    <nav id="mainNav">
-        <a href="../index.php">Home</a>
-        <a href="../aboutus.php">About Us</a>
-        <a href="../calendar1.php">Calendar</a>
-        <div class="admin-info">
-            <i class="icon-calendar"></i>
-            <i class="icon-bell"></i>
-           <span><?php echo isset($_SESSION['role']) ? htmlspecialchars($_SESSION['role']) : 'CCS Dean'; ?></span>
-
-
-            <!-- User Dropdown -->
-            <div class="user-dropdown" id="userDropdown">
-                <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
-                        <a href="admin_dashboard.php">Admin Dashboard</a>
-                    <?php endif; ?>
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
-                        <a href="ccsdean_dashboard.php">CCS Dean Dashboard</a>
-                    <?php endif; ?>
-                    <a href="../account/logout.php">Logout</a>
-                </div>
-            </div>
+<header class="topbar">
+  <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS DEAN PORTAL</div>
+  <div class="hamburger" onclick="toggleMobileNav()">☰</div>
+  <nav id="mainNav">
+    <a href="../index.php">Home</a>
+    <a href="../aboutus.php">About Us</a>
+    <a href="../calendar1.php">Calendar</a>
+    <div class="admin-info">
+      <span>
+        <?= isset($_SESSION['fullname']) && isset($_SESSION['role']) ? htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")" : '' ?>
+      </span>
+      <div class="user-dropdown" id="userDropdown">
+        <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
+        <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
+          <?php if ($_SESSION['role'] === 'CCSDean'): ?>
+            <a href="ccsdean_dashboard.php">CCS Dean Dashboard</a>
+          <?php endif; ?>
+          <a href="../account/logout.php">Logout</a>
         </div>
-    </nav>
+      </div>
+    </div>
+  </nav>
 </header>
 
 <aside class="sidebar">
-    <ul>
-        <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
-        <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
-        <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
-    </ul>
+  <ul>
+    <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
+    <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
+    <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+  </ul>
 </aside>
 
-<!-- Dashboard Content -->
-<div id="dashboardContent">
-<main class="content">
-    <h1>CCS Dean Dashboard</h1>
-    <p>Welcome back! Here's what's happening today.</p>
-
-    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
-
-</main>
+<!-- Dashboard Section -->
+<div id="dashboardContent" class="content">
+  <h1>Welcome to the CCS Dean Dashboard</h1>
+  <p>This is your overview page.</p>
+  <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
 </div>
 
-<!-- User Approval Content -->
+<!-- Proposals Section -->
 <div id="proposalContent" class="content" style="display:none;">
-    <table>
+  <h1>Pending Proposals for Approval</h1>
+  <table>
     <thead>
-        <tr>
-            <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
-        </tr>
+      <tr>
+        <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+      </tr>
     </thead>
     <tbody>
     <?php if ($result && $result->num_rows > 0): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
+      <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
-            <td><?= htmlspecialchars($row['id']) ?></td>
-            <td><?= htmlspecialchars($row['department']) ?></td>
-            <td><?= htmlspecialchars($row['event_type']) ?></td>
-            <td><?= htmlspecialchars($row['start_date']) ?></td>
-            <td><?= htmlspecialchars($row['end_date']) ?></td>
-            <td><?= htmlspecialchars($row['venue']) ?></td>
-            <td><?= htmlspecialchars($row['status']) ?></td>
-            <td>
-                <form method="post" action="" style="margin:0;">
-                    <!-- Important: assign proposal_id value here -->
-                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
-                    <input type="hidden" name="level" value="CCS Dean">
-
-
-                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
-                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
-                </form>
-            </td>
+          <td><?= htmlspecialchars($row['id']) ?></td>
+          <td><?= htmlspecialchars($row['department']) ?></td>
+          <td><?= htmlspecialchars($row['event_type']) ?></td>
+          <td><?= htmlspecialchars($row['start_date']) ?></td>
+          <td><?= htmlspecialchars($row['end_date']) ?></td>
+          <td><?= htmlspecialchars($row['venue']) ?></td>
+          <td><?= htmlspecialchars($row['status']) ?></td>
+          <td>
+            <form method="POST" style="display:inline;">
+              <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+            </form>
+            <button type="button" class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
+          </td>
         </tr>
-        <?php endwhile; ?>
+      <?php endwhile; ?>
     <?php else: ?>
-        <tr><td colspan="8" style="text-align:center;">No proposals found for Dean.</td></tr>
+      <tr><td colspan="8" class="text-center">No proposals found for Dean.</td></tr>
     <?php endif; ?>
     </tbody>
-</table>
+  </table>
+</div>
+
+<!-- Requirements Section -->
+<div id="requirementContent" class="content" style="display:none;">
+  <h1>Requirements</h1>
+  <?php
+  $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+  $stmt->bind_param("ss", $current_level, $search_department);
+  $stmt->execute();
+  $result = $stmt->get_result();
+
+  while ($row = $result->fetch_assoc()) {
+      echo '<div class="card p-4 mb-4 shadow-sm">';
+      echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+      echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+      echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+      echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+      echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+      echo '<h5 class="mt-4">Requirements</h5>';
+      echo '<div class="row g-3">';
+
+$requirements = [
+    "Letter Attachment" => "letter_attachment",
+    "Adviser Commitment form" => "adviser_form",
+    "Constitution ang by-laws of the Org." => "constitution",
+    "Certification from Responsive Dean/Associate Dean" => "certification",
+    "Accomplishment reports" => "reports",
+    "Financial Report" => "financial",
+    "Plan of Activities" => "activity_plan",
+    "Budget Plan" => "budget_file"
+];
+
+// Map each field to its directory
+$requirementDirectories = [
+    "letter_attachment" => "../proposal/",
+    "adviser_form" => "../proposal/",
+    "constitution" => "../proposal/",
+    "certification" => "../proposal/",
+    "reports" => "../proposal/",
+    "financial" => "../proposal/",
+    "activity_plan" => "../proposal/",
+    "budget_file" => "../proposal/uploads/" // budget_file is in a different directory
+];
+
+foreach ($requirements as $label => $field) {
+    echo '<div class="col-md-4">';
+    echo '<div class="border rounded p-3 bg-light h-100">';
+    echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+    echo '<strong>' . $label . '</strong><br>';
+
+    if (!empty($row[$field])) {
+        $directory = $requirementDirectories[$field] ?? '../proposal/';
+        echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+    } else {
+        echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+    }
+
+    echo '</div></div>';
+}
+
+
+
+      echo '</div></div>';
+  }
+  ?>
 </div>
 
 
-<!-- Requirements Content -->
-<div id="requirementContent" style="display:none;">
-    <main class="content">
-        <h1 style="margin-bottom: 0;">Requirements</h1>
+<!-- Disapprove Remarks Modal -->
+<div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+   <form method="POST" action="ccsdean_dashboard.php">
 
-        <?php
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $db   = "eventplanner";
+      <div class="modal-content">
+        <!-- Header -->
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="disapproveModalLabel">Disapproved</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
 
-        $conn = mysqli_connect($host, $user, $pass, $db);
+        <!-- Body -->
+        <div class="modal-body">
+          <input type="hidden" name="proposal_id" id="modal_proposal_id">
+          <input type="hidden" name="level" value="CCSDean">
+          <input type="hidden" name="action" value="disapprove">
 
-        if (!$conn) {
-            die("Connection failed: " . mysqli_connect_error());
-        }
+          <p><strong>📝 Remarks / Comments:</strong></p>
+          <p>
+            Dear CCS SOO,<br>
+            Thank you for submitting your event proposal. After reviewing the details, we regret to inform you that your proposal has been disapproved due to the following reasons:
+          </p>
 
-        $sql = "SELECT * FROM proposals WHERE status = 'Pending' AND budget_approved = 1";
-        $result = mysqli_query($conn, $sql);
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Schedule Conflict" id="reason1">
+            <label class="form-check-label" for="reason1">Schedule Conflict – Requested date is already booked.</label>
+          </div>
 
-        while ($row = mysqli_fetch_assoc($result)) {
-            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
-            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Incomplete Documents" id="reason2">
+            <label class="form-check-label" for="reason2">Incomplete Documents – Missing:</label>
+            <input type="text" class="form-control mt-1" name="details_missing" placeholder="Specify missing documents">
+          </div>
 
-            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
-            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
-            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
-            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
-            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-            echo '</div>';
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Incorrect Information" id="reason3">
+            <label class="form-check-label" for="reason3">Incorrect Information – Issue(s) found in:</label>
+            <input type="text" class="form-control mt-1" name="details_incorrect" placeholder="Specify incorrect information">
+          </div>
 
-            // Attachments Section
-            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
-            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Does not meet guidelines" id="reason4">
+            <label class="form-check-label" for="reason4">Proposal does not meet event guidelines.</label>
+          </div>
 
-            $requirements = [
-                "Letter Attachment" => "letter_attachment",
-                "Adviser Commitment form" => "adviser_form",
-                "Constitution and by-laws of the Org." => "constitution",
-                "Certification from Responsive Dean/Associate Dean" => "certification",
-                "Accomplishment reports" => "reports",
-                "Financial Report" => "financial",
-                "Plan of Activities" => "plan",
-                "Budget Plan" => "budget"
-            ];
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Unclear Budget" id="reason5">
+            <label class="form-check-label" for="reason5">Budget proposal is not clear or realistic.</label>
+          </div>
 
-            foreach ($requirements as $label => $field) {
-                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
-                echo '<small style="color: red;">Requirement*</small><br>';
-                echo '<strong>' . $label . '</strong><br>';
-                if (!empty($row[$field])) {
-                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
-                } else {
-                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
-                }
-                echo '</div>';
-            }
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="reasons[]" value="Other" id="reason6">
+            <label class="form-check-label" for="reason6">Other:</label>
+            <input type="text" class="form-control mt-1" name="details_other" placeholder="Specify other reason">
+          </div>
 
-            echo '</div>';
-            echo '</div>';
-        }
-        ?>
-    </main>
+          <p class="mt-3">
+            Please address the noted issues and resubmit your proposal for reconsideration.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger w-100">Submit</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
-
 
 <script>
-    function toggleDropdown() {
-        const menu = document.getElementById('dropdownMenu');
-        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
-    }
-    function toggleMobileNav() {
-    const nav = document.getElementById("mainNav");
-    nav.classList.toggle("show");
+function toggleDropdown() {
+  const menu = document.getElementById('dropdownMenu');
+  menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
 }
-    const dashboardTab = document.getElementById('dashboardTab');
-    const proposalTab = document.getElementById('proposalTab');
-    const requirementTab = document.getElementById('requirementTab');
 
-    const dashboardContent = document.getElementById('dashboardContent');
-    const proposalContent = document.getElementById('proposalContent');
-    const requirementContent = document.getElementById('requirementContent');
+function toggleMobileNav() {
+  const nav = document.getElementById("mainNav");
+  nav.classList.toggle("show");
+}
 
-    function clearActive() {
-        dashboardTab.classList.remove('active');
-        proposalTab.classList.remove('active');
-        requirementTab.classList.remove('active');
-    }
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 
-    dashboardTab.addEventListener('click', () => {
-        clearActive();
-        dashboardTab.classList.add('active');
-        dashboardContent.style.display = 'block';
-        proposalContent.style.display = 'none';
-        requirementContent.style.display = 'none';
+  document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
+  document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
+  document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
+
+  document.querySelectorAll('.disapprove-btn').forEach(button => {
+    button.addEventListener('click', function () {
+      const proposalId = this.getAttribute('data-id');
+      document.getElementById('modal_proposal_id').value = proposalId;
     });
+  });
+});
 
-    proposalTab.addEventListener('click', () => {
-        clearActive();
-        proposalTab.classList.add('active');
-        dashboardContent.style.display = 'none';
-        proposalContent.style.display = 'block';
-        requirementContent.style.display = 'none';
-    });
+function switchTab(tab) {
+  const sections = {
+    dashboard: "dashboardContent",
+    proposal: "proposalContent",
+    requirement: "requirementContent"
+  };
 
-    requirementTab.addEventListener('click', () => {
-        clearActive();
-        requirementTab.classList.add('active');
-        dashboardContent.style.display = 'none';
-        proposalContent.style.display = 'none';
-        requirementCon
-        tent.style.display = 'block';
-    });
-    
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
-    });
+  for (const key in sections) {
+    document.getElementById(sections[key]).style.display = (key === tab) ? 'block' : 'none';
+    document.getElementById(key + 'Tab').classList.toggle('active', key === tab);
+  }
+}
 </script>
-
-
 </body>
 </html>

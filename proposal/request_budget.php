@@ -22,7 +22,7 @@ if (isset($_POST['department'], $_POST['event_type'], $_POST['date_range'], $_PO
 
     // Upload and store files
     $uploads = [];
-    foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'] as $field) {
+    foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial', 'activity_plan'] as $field) {
         if (!empty($_FILES[$field]['name'])) {
             $filename = time() . '_' . basename($_FILES[$field]['name']);
             $target = "uploads/" . $filename;
@@ -46,13 +46,14 @@ if (isset($_POST['department'], $_POST['event_type'], $_POST['date_range'], $_PO
     $end_date = isset($dates[1]) ? date('Y-m-d', strtotime(trim($dates[1]))) : $start_date;
 
     $stmt = $conn->prepare("INSERT INTO proposals 
-        (department, event_type, start_date, end_date, venue, time, adviser_form, certification, financial, constitution, reports, letter_attachment, status, budget_approved) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0)");
+        (department, event_type, start_date, end_date, venue, time, adviser_form, certification, financial, constitution, reports, letter_attachment, activity_plan, status, budget_approved) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0)");
 
-    $stmt->bind_param("ssssssssssss",
+    $stmt->bind_param("sssssssssssss",
         $department, $event_type, $start_date, $end_date, $venue, $time,
         $uploads['adviser_form'], $uploads['certification'], $uploads['financial'],
-        $uploads['constitution'], $uploads['reports'], $uploads['letter_attachment']);
+        $uploads['constitution'], $uploads['reports'], $uploads['letter_attachment'],
+        $uploads['activity_plan']);
 
     if ($stmt->execute()) {
         $_SESSION['proposal_id'] = $stmt->insert_id;

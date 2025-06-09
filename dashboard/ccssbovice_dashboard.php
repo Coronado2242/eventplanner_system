@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CCS SBO Treasurer Dashboard</title>
+  <title>CCS SBO Vice President Dashboard</title>
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
@@ -229,8 +229,8 @@ $result = mysqli_query($conn, $sql);
                 "Certification from Responsive Dean/Associate Dean" => "certification",
                 "Accomplishment reports" => "reports",
                 "Financial Report" => "financial",
-                "Plan of Activities" => "plan",
-                "Budget Plan" => "budget"
+                "Plan of Activities" => "activity_plan",
+                "Budget Plan" => "budget_file"
             ];
 
             foreach ($requirements as $label => $field) {
@@ -480,7 +480,7 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
         <!-- Body -->
         <div class="modal-body">
           <input type="hidden" name="proposal_id" id="modal_proposal_id">
-          <input type="hidden" name="level" value="CCSVice">
+          <input type="hidden" name="level" value="CCSSBOVice">
           <input type="hidden" name="action" value="disapprove">
 
           <p><strong>📝 Remarks / Comments:</strong></p>

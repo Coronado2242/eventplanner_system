@@ -28,6 +28,19 @@ body::before {
   z-index: -1;
   pointer-events: none; 
 }
+.card {
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.bg-light {
+  background-color: #f9f9f9 !important;
+}
+
+h5 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
 
 .topbar {
     display: flex;

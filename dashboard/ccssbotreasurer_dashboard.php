@@ -1,9 +1,7 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
 session_start();
-
 
 $servername = "localhost";
 $username = "root";
@@ -16,22 +14,17 @@ if ($conn->connect_error) {
 }
 
 // Approval & Disapproval Logic
-// Approval & Disapproval Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
     if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'CCS Auditor';  // Next level
+        $new_level = 'CCS Auditor';
         $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
-        if(!$stmt){
-            die("Prepare failed: " . $conn->error);
-        }
+        if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $status, $new_level, $id);
-        if(!$stmt->execute()){
-            die("Execute failed: " . $stmt->error);
-        }
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
         header("Location: ccssbotreasurer_dashboard.php");
         exit;
     } elseif ($action === 'disapprove') {
@@ -55,227 +48,180 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
         $final_remarks = implode("; ", $remarks);
-
-        // Debug: Check session username
         $disapproved_by = $_SESSION['username'] ?? 'Unknown';
         if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
             die("Error: Disapproved by user is not set in session.");
         }
 
         $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
-        if(!$stmt){
-            die("Prepare failed: " . $conn->error);
-        }
+        if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
-        if(!$stmt->execute()){
-            die("Execute failed: " . $stmt->error);
-        }
-
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
         header("Location: ccssbotreasurer_dashboard.php");
         exit;
     }
 }
 
-// Fetch proposals
 $current_level = 'CCS Treasurer';
 $search_department = '%CCS%';
-
 $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
 
-<!-- Flash Messages -->
-<?php if(isset($_SESSION['success'])): ?>
-<div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
-<?php endif; ?>
-
-<?php if(isset($_SESSION['error'])): ?>
-<div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
-<?php endif; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>CCS SBO Treasurer Dashboard</title>
-
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-
-  <!-- Your other CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="../style/sbotreasure.css">
-
-  <!-- Popper.js and Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
-
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 </head>
 
-
 <body>
-    <header class="topbar">
-    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS TREASURER PORTAL</div>
-    <div class="hamburger" onclick="toggleMobileNav()">☰</div>
-    <nav id="mainNav">
-        <a href="../index.php">Home</a>
-        <a href="../aboutus.php">About Us</a>
-        <a href="../proposal/calendar.php">Calendar</a>
-        <div class="admin-info">
-            <span>
-                <?php
-                if (isset($_SESSION['fullname']) && isset($_SESSION['role'])) {
-                    echo htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")";
-                }
-                ?>
-            </span>
-            <div class="user-dropdown" id="userDropdown">
-                <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
-                <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOTreasurer'): ?>
-                        <a href="ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
-                    <?php endif; ?>
-                    <a href="../account/logout.php">Logout</a>
-                </div>
-            </div>
+<header class="topbar">
+  <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS TREASURER PORTAL</div>
+  <div class="hamburger" onclick="toggleMobileNav()">☰</div>
+  <nav id="mainNav">
+    <a href="../index.php">Home</a>
+    <a href="../aboutus.php">About Us</a>
+    <a href="../calendar1.php">Calendar</a>
+    <div class="admin-info">
+      <span>
+        <?= isset($_SESSION['fullname']) && isset($_SESSION['role']) ? htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")" : '' ?>
+      </span>
+      <div class="user-dropdown" id="userDropdown">
+        <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
+        <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
+          <?php if ($_SESSION['role'] === 'CCSSBOTreasurer'): ?>
+            <a href="ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
+          <?php endif; ?>
+          <a href="../account/logout.php">Logout</a>
         </div>
-    </nav>
+      </div>
+    </div>
+  </nav>
 </header>
 
 <aside class="sidebar">
-    <ul>
-        <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
-        <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
-        <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
-    </ul>
+  <ul>
+    <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
+    <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
+    <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+  </ul>
 </aside>
 
-<!-- Dashboard Content -->
+<!-- Dashboard Section -->
 <div id="dashboardContent" class="content">
-    <h1>Welcome to the CCS Auditor Dashboard</h1>
-    <p>This is your overview page.</p>
-    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+  <h1>Welcome to the CCS Treasurer Dashboard</h1>
+  <p>This is your overview page.</p>
+  <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
 </div>
 
-<!-- Proposals Content -->
+<!-- Proposals Section -->
 <div id="proposalContent" class="content" style="display:none;">
-    <h1>Pending Proposals for Approval</h1>
-
-<!-- <h2>Proposals for Treasurer Approval</h2> -->
-
-
-
-<table>
+  <h1>Pending Proposals for Approval</h1>
+  <table>
     <thead>
-        <tr>
-            <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
-        </tr>
+      <tr>
+        <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+      </tr>
     </thead>
     <tbody>
     <?php if ($result && $result->num_rows > 0): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
+      <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
-            <td><?= htmlspecialchars($row['id']) ?></td>
-            <td><?= htmlspecialchars($row['department']) ?></td>
-            <td><?= htmlspecialchars($row['event_type']) ?></td>
-            <td><?= htmlspecialchars($row['start_date']) ?></td>
-            <td><?= htmlspecialchars($row['end_date']) ?></td>
-            <td><?= htmlspecialchars($row['venue']) ?></td>
-            <td><?= htmlspecialchars($row['status']) ?></td>
-            <td>
-                <form method="POST" action="ccssbotreasurer_dashboard.php" style="display:inline;">
-    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
-</form>
-<form method="POST" action="ccssbotreasurer_dashboard.php" style="display: inline;">
-    <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
-  Disapprove
-</button>
-
-</form>
-
-            </td>
+          <td><?= htmlspecialchars($row['id']) ?></td>
+          <td><?= htmlspecialchars($row['department']) ?></td>
+          <td><?= htmlspecialchars($row['event_type']) ?></td>
+          <td><?= htmlspecialchars($row['start_date']) ?></td>
+          <td><?= htmlspecialchars($row['end_date']) ?></td>
+          <td><?= htmlspecialchars($row['venue']) ?></td>
+          <td><?= htmlspecialchars($row['status']) ?></td>
+          <td>
+            <form method="POST" style="display:inline;">
+              <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+            </form>
+            <button type="button" class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
+          </td>
         </tr>
-        <?php endwhile; ?>
+      <?php endwhile; ?>
     <?php else: ?>
-        <tr><td colspan="8" style="text-align:center;">No proposals found for Treasurer.</td></tr>
+      <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
     <?php endif; ?>
     </tbody>
-</table>
+  </table>
+</div>
 
-</body>
-</html>
+<!-- Requirements Section -->
+<div id="requirementContent" class="content" style="display:none;">
+  <h1>Requirements</h1>
+  <?php
+  $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+  $stmt->bind_param("ss", $current_level, $search_department);
+  $stmt->execute();
+  $result = $stmt->get_result();
 
-<?php
-$conn->close();
-?>
+  while ($row = $result->fetch_assoc()) {
+      echo '<div class="card p-4 mb-4 shadow-sm">';
+      echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+      echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+      echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+      echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+      echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+      echo '<h5 class="mt-4">Requirements</h5>';
+      echo '<div class="row g-3">';
 
-<!-- Requirements Content -->
-<div id="requirementContent" style="display:none;">
-    <main class="content">
-        <h1 style="margin-bottom: 0;">Requirements</h1>
+$requirements = [
+    "Letter Attachment" => "letter_attachment",
+    "Adviser Commitment form" => "adviser_form",
+    "Constitution ang by-laws of the Org." => "constitution",
+    "Certification from Responsive Dean/Associate Dean" => "certification",
+    "Accomplishment reports" => "reports",
+    "Financial Report" => "financial",
+    "Plan of Activities" => "activity_plan",
+    "Budget Plan" => "budget_file"
+];
 
-        <?php
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $db   = "eventplanner";
+// Map each field to its directory
+$requirementDirectories = [
+    "letter_attachment" => "../proposal/",
+    "adviser_form" => "../proposal/",
+    "constitution" => "../proposal/",
+    "certification" => "../proposal/",
+    "reports" => "../proposal/",
+    "financial" => "../proposal/",
+    "activity_plan" => "../proposal/",
+    "budget_file" => "../proposal/uploads/" // budget_file is in a different directory
+];
 
-        $conn = mysqli_connect($host, $user, $pass, $db);
+foreach ($requirements as $label => $field) {
+    echo '<div class="col-md-4">';
+    echo '<div class="border rounded p-3 bg-light h-100">';
+    echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+    echo '<strong>' . $label . '</strong><br>';
 
-        if (!$conn) {
-            die("Connection failed: " . mysqli_connect_error());
-        }
+    if (!empty($row[$field])) {
+        $directory = $requirementDirectories[$field] ?? '../proposal/';
+        echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+    } else {
+        echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+    }
 
- $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
-$result = mysqli_query($conn, $sql);
+    echo '</div></div>';
+}
 
-        while ($row = mysqli_fetch_assoc($result)) {
-            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
-            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
 
-            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
-            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
-            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
-            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
-            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-            echo '</div>';
 
-            // Attachments Section
-            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
-            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
-
-            $requirements = [
-                "Letter Attachment" => "letter_attachment",
-                "Adviser Commitment form" => "adviser_form",
-                "Constitution and by-laws of the Org." => "constitution",
-                "Certification from Responsive Dean/Associate Dean" => "certification",
-                "Accomplishment reports" => "reports",
-                "Financial Report" => "financial",
-                "Plan of Activities" => "plan",
-                "Budget Plan" => "budget"
-            ];
-
-            foreach ($requirements as $label => $field) {
-                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
-                echo '<small style="color: red;">Requirement*</small><br>';
-                echo '<strong>' . $label . '</strong><br>';
-                if (!empty($row[$field])) {
-                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
-                } else {
-                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
-                }
-                echo '</div>';
-            }
-
-            echo '</div>';
-            echo '</div>';
-        }
-        ?>
-    </main>
+      echo '</div></div>';
+  }
+  ?>
 </div>
 
 
@@ -294,7 +240,7 @@ $result = mysqli_query($conn, $sql);
         <!-- Body -->
         <div class="modal-body">
           <input type="hidden" name="proposal_id" id="modal_proposal_id">
-          <input type="hidden" name="level" value="CCSVice">
+          <input type="hidden" name="level" value="CCSSBOTreasurer">
           <input type="hidden" name="action" value="disapprove">
 
           <p><strong>📝 Remarks / Comments:</strong></p>
@@ -350,73 +296,44 @@ $result = mysqli_query($conn, $sql);
   </div>
 </div>
 
-
 <script>
-    function toggleDropdown() {
-        const menu = document.getElementById('dropdownMenu');
-        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
-    }
-    function toggleMobileNav() {
-    const nav = document.getElementById("mainNav");
-    nav.classList.toggle("show");
+function toggleDropdown() {
+  const menu = document.getElementById('dropdownMenu');
+  menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
 }
-    const dashboardTab = document.getElementById('dashboardTab');
-    const proposalTab = document.getElementById('proposalTab');
-    const requirementTab = document.getElementById('requirementTab');
 
-    const dashboardContent = document.getElementById('dashboardContent');
-    const proposalContent = document.getElementById('proposalContent');
-    const requirementContent = document.getElementById('requirementContent');
+function toggleMobileNav() {
+  const nav = document.getElementById("mainNav");
+  nav.classList.toggle("show");
+}
 
-    function clearActive() {
-        dashboardTab.classList.remove('active');
-        proposalTab.classList.remove('active');
-        requirementTab.classList.remove('active');
-    }
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 
-    dashboardTab.addEventListener('click', () => {
-        clearActive();
-        dashboardTab.classList.add('active');
-        dashboardContent.style.display = 'block';
-        proposalContent.style.display = 'none';
-        requirementContent.style.display = 'none';
+  document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
+  document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
+  document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
+
+  document.querySelectorAll('.disapprove-btn').forEach(button => {
+    button.addEventListener('click', function () {
+      const proposalId = this.getAttribute('data-id');
+      document.getElementById('modal_proposal_id').value = proposalId;
     });
-
-    proposalTab.addEventListener('click', () => {
-        clearActive();
-        proposalTab.classList.add('active');
-        dashboardContent.style.display = 'none';
-        proposalContent.style.display = 'block';
-        requirementContent.style.display = 'none';
-    });
-
-    requirementTab.addEventListener('click', () => {
-        clearActive();
-        requirementTab.classList.add('active');
-        dashboardContent.style.display = 'none';
-        proposalContent.style.display = 'none';
-        requirementContent.style.display = 'block';
-    });
-        document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("calendarFrame").src = "../proposal/calendar.php";
-    });
-
-    document.querySelectorAll('.disapprove-btn').forEach(button => {
-  button.addEventListener('click', function() {
-    const proposalId = this.getAttribute('data-id');
-    document.getElementById('modal_proposal_id').value = proposalId;
   });
 });
 
-document.querySelectorAll('.disapprove-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const proposalId = btn.getAttribute('data-id');
-    document.getElementById('modalProposalId').value = proposalId;
-  });
-});
+function switchTab(tab) {
+  const sections = {
+    dashboard: "dashboardContent",
+    proposal: "proposalContent",
+    requirement: "requirementContent"
+  };
 
-
-
-
-
+  for (const key in sections) {
+    document.getElementById(sections[key]).style.display = (key === tab) ? 'block' : 'none';
+    document.getElementById(key + 'Tab').classList.toggle('active', key === tab);
+  }
+}
 </script>
+</body>
+</html>
