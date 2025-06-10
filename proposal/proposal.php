@@ -83,18 +83,25 @@ if (isset($_SESSION['proposal_id'])) {
 
 // === Get all proposal date ranges for disabling calendar dates ===
 $disabledDateRanges = [];
-$sql = "SELECT start_date, end_date FROM proposals";
+$sql = "SELECT start_date, end_date, status FROM proposals";
 $result = $conn->query($sql);
+
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         if (!empty($row['start_date']) && !empty($row['end_date'])) {
-            $disabledDateRanges[] = [
-                'from' => $row['start_date'],
-                'to' => $row['end_date']
-            ];
+            // Only disable dates if the proposal status is NOT 'disapproved'
+            // Disable dates if the status is NOT 'disapproved' OR 'rejected' OR 'cancelled' etc.
+            //  Essentially, disable if the proposal is in any state other than a terminal "disapproved" state.
+            if ($row['status'] != 'disapproved') {
+                $disabledDateRanges[] = [
+                    'from' => $row['start_date'],
+                    'to' => $row['end_date']
+                ];
+            }
         }
     }
 }
+
 
 ?>
 <!DOCTYPE html>
@@ -544,6 +551,24 @@ flatpickr("#dateRange", {
             }
         }
     });
+
+    function disableDatesInCalendar(disabledDateRanges) {
+    disabledDateRanges.forEach(range => {
+        let startDate = new Date(range.from);
+        let endDate = new Date(range.to);
+
+        let currentDate = new Date(startDate); // Start at the beginning of the range
+
+        while (currentDate <= endDate) {
+            // Disable the current date
+            AwesomeCalendar.disableDate(new Date(currentDate)); // Pass a *new* Date object
+
+            // Move to the next day
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    });
+}
+
 
 </script>
 
