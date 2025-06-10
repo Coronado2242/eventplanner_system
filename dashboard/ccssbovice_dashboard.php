@@ -140,7 +140,6 @@ if ($result === false) {
 <table class="approval-table">
     <thead>
         <tr>
-            <th>ID</th>
             <th>Department</th>
             <th>Requirements</th>
              <th>Budget File</th>
@@ -152,7 +151,6 @@ if ($result === false) {
     <tbody>
         <?php while($row = $result->fetch_assoc()): ?>
             <tr data-id="<?= $row['id'] ?>">
-                <td><?= $row['id'] ?></td>
                 <td><?= htmlspecialchars($row['department']) ?></td>
                 <td><button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">View</button></td>
 
@@ -187,69 +185,67 @@ if ($result === false) {
                     </main>
                 </div>
 
-<!-- Requirements Content -->
-<div id="requirementContent" style="display:none;">
-    <main class="content">
-        <h1 style="margin-bottom: 0;">Requirements</h1>
-
-        <?php
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $db   = "eventplanner";
-
-        $conn = mysqli_connect($host, $user, $pass, $db);
-
-        if (!$conn) {
-            die("Connection failed: " . mysqli_connect_error());
-        }
-
+<!-- Requirements Section -->
+<div id="requirementContent" class="content" style="display:none;">
+  <h1>Requirements</h1>
+  <?php
  $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
-$result = mysqli_query($conn, $sql);
+ $result = mysqli_query($conn, $sql);
 
-        while ($row = mysqli_fetch_assoc($result)) {
-            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
-            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
+  while ($row = $result->fetch_assoc()) {
+      echo '<div class="card p-4 mb-4 shadow-sm">';
+      echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+      echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+      echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+      echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+      echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+      echo '<h5 class="mt-4">Requirements</h5>';
+      echo '<div class="row g-3">';
 
-            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
-            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
-            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
-            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
-            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-            echo '</div>';
+$requirements = [
+    "Letter Attachment" => "letter_attachment",
+    "Adviser Commitment form" => "adviser_form",
+    "Constitution ang by-laws of the Org." => "constitution",
+    "Certification from Responsive Dean/Associate Dean" => "certification",
+    "Accomplishment reports" => "reports",
+    "Financial Report" => "financial",
+    "Plan of Activities" => "activity_plan",
+    "Budget Plan" => "budget_file"
+];
 
-            // Attachments Section
-            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
-            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
+// Map each field to its directory
+$requirementDirectories = [
+    "letter_attachment" => "../proposal/",
+    "adviser_form" => "../proposal/",
+    "constitution" => "../proposal/",
+    "certification" => "../proposal/",
+    "reports" => "../proposal/",
+    "financial" => "../proposal/",
+    "activity_plan" => "../proposal/",
+    "budget_file" => "../proposal/uploads/" // budget_file is in a different directory
+];
 
-            $requirements = [
-                "Letter Attachment" => "letter_attachment",
-                "Adviser Commitment form" => "adviser_form",
-                "Constitution and by-laws of the Org." => "constitution",
-                "Certification from Responsive Dean/Associate Dean" => "certification",
-                "Accomplishment reports" => "reports",
-                "Financial Report" => "financial",
-                "Plan of Activities" => "activity_plan",
-                "Budget Plan" => "budget_file"
-            ];
+foreach ($requirements as $label => $field) {
+    echo '<div class="col-md-4">';
+    echo '<div class="border rounded p-3 bg-light h-100">';
+    echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+    echo '<strong>' . $label . '</strong><br>';
 
-            foreach ($requirements as $label => $field) {
-                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
-                echo '<small style="color: red;">Requirement*</small><br>';
-                echo '<strong>' . $label . '</strong><br>';
-                if (!empty($row[$field])) {
-                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
-                } else {
-                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
-                }
-                echo '</div>';
-            }
+    if (!empty($row[$field])) {
+        $directory = $requirementDirectories[$field] ?? '../proposal/';
+        echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+    } else {
+        echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+    }
 
-            echo '</div>';
-            echo '</div>';
-        }
-        ?>
-    </main>
+    echo '</div></div>';
+}
+
+
+
+      echo '</div></div>';
+  }
+  ?>
 </div>
 
 
@@ -627,6 +623,15 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <script>
+function showRequirementsTab() {
+    document.getElementById("dashboardContent").style.display = "none";
+    document.getElementById("approvalContent").style.display = "none";
+    document.getElementById("requirementContent").style.display = "block";
+
+    document.getElementById("dashboardTab").classList.remove("active");
+    document.getElementById("approvalTab").classList.remove("active");
+    document.getElementById("requirementTab").classList.add("active");
+}
 // Tab switching
 function hideAllSections() {
   document.getElementById("dashboardContent").style.display = "none";
