@@ -4,26 +4,28 @@ session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 
 if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
-    $sql = "SELECT id, department, event_type, start_date, end_date, status FROM proposals";
-    $result = $conn->query($sql);
+  // Exclude Disapproved proposals
+  $sql = "SELECT id, department, event_type, start_date, end_date, status FROM proposals WHERE status != 'Disapproved'";
+  $result = $conn->query($sql);
 
-    $events = [];
+  $events = [];
 
-    while ($row = $result->fetch_assoc()) {
-        $events[] = [
-            'id' => $row['id'],
-            'title' => $row['event_type'],
-            'start' => $row['start_date'],
-            'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')), // Include full end date
-            'status' => strtolower($row['status']),
-            'department' => $row['department'],
-            'event_type' => $row['event_type']
-        ];
-    }
+  while ($row = $result->fetch_assoc()) {
+      $events[] = [
+          'id' => $row['id'],
+          'title' => $row['event_type'],
+          'start' => $row['start_date'],
+          'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')), // Include full end date
+          'status' => strtolower($row['status']),
+          'department' => $row['department'],
+          'event_type' => $row['event_type']
+      ];
+  }
 
-    echo json_encode($events);
-    exit;
+  echo json_encode($events);
+  exit;
 }
+
 ?>
 
 <!DOCTYPE html>
