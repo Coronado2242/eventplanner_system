@@ -13,27 +13,6 @@ function e($str) {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
-if (isset($_POST['notif_id'])) {
-    $id = intval($_POST['notif_id']);
-
-    // (Optional) Update to mark as viewed
-    $update = $conn->prepare("UPDATE proposals SET notified = 1 WHERE id = ?");
-    $update->bind_param("i", $id);
-    $update->execute();
-    $update->close();
-
-    // Fetch data
-    $stmt = $conn->prepare("SELECT event_type, remarks, disapproved_by FROM proposals WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $proposal = $result->fetch_assoc();
-    $stmt->close();
-
-    header('Content-Type: application/json');
-    echo json_encode($proposal);
-    exit;
-}
 
 // === Check if user's previous proposal was disapproved ===
 $disapproved = false;
@@ -565,41 +544,6 @@ flatpickr("#dateRange", {
             }
         }
     });
-
-   // Toggle notification container visibility
-    document.getElementById('notificationIcon').addEventListener('click', () => {
-        const container = document.getElementById('notificationContainer');
-        container.style.display = container.style.display === 'block' ? 'none' : 'block';
-    });
- 
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('message').innerHTML = '';
-});
-    
-document.querySelectorAll('.notification-item').forEach(item => {
-    item.addEventListener('click', function () {
-        const id = this.dataset.id;
-
-        fetch('', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'fetch_notif_id=' + encodeURIComponent(id)
-        })
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('notifDetailsBody').innerHTML = `
-                <p><strong>Event Type:</strong> ${data.event_type}</p>
-                <p><strong>Venue:</strong> ${data.venue}</p>
-                <p><strong>Start Date:</strong> ${data.start_date}</p>
-                <p><strong>End Date:</strong> ${data.end_date}</p>
-                <p><strong>Remarks:</strong> ${data.remarks}</p>
-                <p><strong>Disapproved by:</strong> ${data.disapproved_by}</p> `;
-           const notifModal = new bootstrap.Modal(document.getElementById('notificationModal'));
-notifModal.show();
-
-        });
-    });
-}
 
 </script>
 
