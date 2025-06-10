@@ -594,7 +594,9 @@ document.querySelectorAll('.notification-item').forEach(item => {
                 <p><strong>End Date:</strong> ${data.end_date}</p>
                 <p><strong>Remarks:</strong> ${data.remarks}</p>
                 <p><strong>Disapproved by:</strong> ${data.disapproved_by}</p> `;
-            new modal.Modal(document.getElementById('notificationModal')).show();
+           const notifModal = new bootstrap.Modal(document.getElementById('notificationModal'));
+notifModal.show();
+
         });
     });
 }
