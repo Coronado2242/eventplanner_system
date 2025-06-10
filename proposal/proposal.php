@@ -13,7 +13,6 @@ function e($str) {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
-
 // === Check if user's previous proposal was disapproved ===
 $disapproved = false;
 $disapprovedMessage = "";
@@ -83,21 +82,15 @@ if (isset($_SESSION['proposal_id'])) {
 
 // === Get all proposal date ranges for disabling calendar dates ===
 $disabledDateRanges = [];
-$sql = "SELECT start_date, end_date, status FROM proposals";
+$sql = "SELECT start_date, end_date FROM proposals WHERE status != 'Disapproved'";
 $result = $conn->query($sql);
-
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         if (!empty($row['start_date']) && !empty($row['end_date'])) {
-            // Only disable dates if the proposal status is NOT 'disapproved'
-            // Disable dates if the status is NOT 'disapproved' OR 'rejected' OR 'cancelled' etc.
-            //  Essentially, disable if the proposal is in any state other than a terminal "disapproved" state.
-            if ($row['status'] != 'disapproved') {
-                $disabledDateRanges[] = [
-                    'from' => $row['start_date'],
-                    'to' => $row['end_date']
-                ];
-            }
+            $disabledDateRanges[] = [
+                'from' => $row['start_date'],
+                'to' => $row['end_date']
+            ];
         }
     }
 }
@@ -190,16 +183,19 @@ if ($result) {
 </div>
 
 <!-- Notification Dropdown -->
-<div id="notificationContainer" class="card shadow p-3" style="display:none; position:absolute; z-index:999; right:10px; top:60px; width:350px;">
-    <div id="message"></div>
+<div id="notificationContainer" class="card shadow p-3">
+     <div id="message"></div>
     <h5>Notifications</h5>
-    <ul class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+    <ul class="list-group list-group-flush">
         <?php if (!empty($disapprovedProposals)): ?>
             <?php foreach ($disapprovedProposals as $proposal): ?>
-                <li class="list-group-item notification-item" data-id="<?= $proposal['id'] ?>" style="cursor:pointer;">
-                    <span style="font-weight: bold;"><?= htmlspecialchars($proposal['event_type']) ?></span><br>
-                    <small>Remarks: <?= htmlspecialchars($proposal['remarks']) ?></small><br>
-                    <small>Disapproved by: <?= htmlspecialchars($proposal['disapproved_by']) ?></small>
+                <li class="list-group-item">
+                   <span style="font-weight: bold;"><?= urlencode($proposal['id']) ?></span>
+                        <span style="font-weight: bold;"><?= e($proposal['event_type']) ?></span>
+                    </a>
+                    <br>
+                    <small>Remarks: <?= e($proposal['remarks']) ?></small><br>
+                    <small>Disapproved by: <?= e($proposal['disapproved_by']) ?></small>
                 </li>
             <?php endforeach; ?>
         <?php else: ?>
@@ -207,21 +203,6 @@ if ($result) {
         <?php endif; ?>
     </ul>
     <button id="closeNotifBtn" class="btn btn-sm btn-secondary mt-2 w-100">Close</button>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="notificationModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Proposal Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="notifDetailsBody">
-        
-      </div>
-    </div>
-  </div>
 </div>
 
 
@@ -552,22 +533,16 @@ flatpickr("#dateRange", {
         }
     });
 
-    function disableDatesInCalendar(disabledDateRanges) {
-    disabledDateRanges.forEach(range => {
-        let startDate = new Date(range.from);
-        let endDate = new Date(range.to);
-
-        let currentDate = new Date(startDate); // Start at the beginning of the range
-
-        while (currentDate <= endDate) {
-            // Disable the current date
-            AwesomeCalendar.disableDate(new Date(currentDate)); // Pass a *new* Date object
-
-            // Move to the next day
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
+   // Toggle notification container visibility
+    document.getElementById('notificationIcon').addEventListener('click', () => {
+        const container = document.getElementById('notificationContainer');
+        container.style.display = container.style.display === 'block' ? 'none' : 'block';
     });
-}
+ 
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('message').innerHTML = '';
+});
+
 
 
 </script>
