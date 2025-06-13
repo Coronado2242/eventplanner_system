@@ -363,19 +363,27 @@ button:hover {
 </div>
 <!-- Example table row in your JS -->
 
+<!-- Modal Overlay -->
+<div id="modalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+    background:rgba(0, 0, 0, 0.5); z-index:999;" onclick="closeEditModal()"></div>
+
 <!-- Edit Modal -->
-<div id="editModal" style="display:none; position:fixed; top:20%; left:30%; background:#fff; padding:20px; border:1px solid #ccc;">
-  <h3>Edit Venue</h3>
+<div id="editModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+    background:#fff; padding:20px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1000; min-width: 300px;">
+  <h3 style="margin-top: 0;">Edit Venue</h3>
   <input type="hidden" id="editVenueId">
   <label>Organizer:</label>
-  <input type="text" id="editOrganizer"><br><br>
+  <input type="text" id="editOrganizer" style="width:100%;"><br><br>
   <label>Email:</label>
-  <input type="email" id="editEmail"><br><br>
+  <input type="email" id="editEmail" style="width:100%;"><br><br>
   <label>Venue:</label>
-  <input type="text" id="editVenue"><br><br>
-  <button onclick="saveVenueEdit()">Save</button>
-  <button onclick="closeEditModal()">Cancel</button>
+  <input type="text" id="editVenue" style="width:100%;"><br><br>
+  <div style="text-align: right;">
+    <button onclick="saveVenueEdit()">Save</button>
+    <button onclick="closeEditModal()">Cancel</button>
+  </div>
 </div>
+
 
 <script>
 // Function to show the modal
@@ -387,8 +395,18 @@ function editVenue(id, organizer, email, venue) {
     document.getElementById("editModal").style.display = "block";
 }
 
-// Function to hide the modal
+function openEditModal(venue) {
+    document.getElementById("editVenueId").value = venue.id;
+    document.getElementById("editOrganizer").value = venue.organizer;
+    document.getElementById("editEmail").value = venue.email;
+    document.getElementById("editVenue").value = venue.venue;
+    
+    document.getElementById("modalOverlay").style.display = "block";
+    document.getElementById("editModal").style.display = "block";
+}
+
 function closeEditModal() {
+    document.getElementById("modalOverlay").style.display = "none";
     document.getElementById("editModal").style.display = "none";
 }
 
