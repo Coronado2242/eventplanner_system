@@ -4,19 +4,21 @@ session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 
 if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
-  // Exclude Disapproved proposals
-  $sql = "SELECT id, department, event_type, start_date, end_date, status FROM proposals WHERE status != 'Disapproved'";
+  $sql = "SELECT id, department, event_type, start_date, end_date, status FROM proposals";
   $result = $conn->query($sql);
 
   $events = [];
 
   while ($row = $result->fetch_assoc()) {
+      $status = strtolower(trim($row['status']));
+      if (strpos($status, 'disapproved') === 0) continue; // skip all types of disapproved
+
       $events[] = [
           'id' => $row['id'],
           'title' => $row['event_type'],
           'start' => $row['start_date'],
-          'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')), // Include full end date
-          'status' => strtolower($row['status']),
+          'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')),
+          'status' => $status,
           'department' => $row['department'],
           'event_type' => $row['event_type']
       ];
@@ -25,8 +27,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
   echo json_encode($events);
   exit;
 }
-
 ?>
+
+
 
 <!DOCTYPE html>
 <html>
@@ -63,11 +66,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 
     .fc-day-approved-underline .fc-daygrid-day-number {
       border-bottom: 3px solid green;
-      padding-bottom: 2px;
-    }
-    
-    .fc-day-done-underline .fc-daygrid-day-number {
-      border-bottom: 3px solid red;
       padding-bottom: 2px;
     }
 
@@ -122,7 +120,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 <div class="legend">
   <span style="color:green;">● Approved</span>
   <span style="color:orange;">● Pending</span>
-  <span style="color:red;">● Done (Past)</span>
 </div>
 
 <!-- Modal -->
@@ -170,15 +167,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const cell = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
             if (cell) {
-              const today = new Date().toISOString().slice(0, 10);
-              const isPast = dateStr < today;
-
               if (event.status === 'pending') {
                 cell.classList.add('fc-day-pending-underline');
               } else if (event.status === 'approved') {
                 cell.classList.add('fc-day-approved-underline');
-              } else if (event.status === 'done' || (event.status !== 'approved' && isPast)) {
-                cell.classList.add('fc-day-done-underline');
               }
               cell.style.cursor = 'pointer';
             }
@@ -196,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
               let html = '';
 
               proposals.forEach(p => {
-                let color = p.status === 'approved' ? 'green' : (p.status === 'pending' ? 'orange' : 'red');
+                let color = p.status === 'approved' ? 'green' : 'orange';
                 html += `
                   <div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                     <strong>Department:</strong> ${p.department}<br>
@@ -221,8 +213,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function clearUnderlines() {
-    document.querySelectorAll('.fc-day-pending-underline, .fc-day-approved-underline, .fc-day-done-underline').forEach(el => {
-      el.classList.remove('fc-day-pending-underline', 'fc-day-approved-underline', 'fc-day-done-underline');
+    document.querySelectorAll('.fc-day-pending-underline, .fc-day-approved-underline').forEach(el => {
+      el.classList.remove('fc-day-pending-underline', 'fc-day-approved-underline');
       el.style.cursor = '';
     });
   }

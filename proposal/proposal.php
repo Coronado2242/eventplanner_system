@@ -82,7 +82,7 @@ if (isset($_SESSION['proposal_id'])) {
 
 // === Get all proposal date ranges for disabling calendar dates ===
 $disabledDateRanges = [];
-$sql = "SELECT start_date, end_date FROM proposals WHERE status != 'Disapproved'";
+$sql = "SELECT start_date, end_date FROM proposals WHERE status NOT LIKE 'Disapproved%'";
 $result = $conn->query($sql);
 if ($result) {
     while ($row = $result->fetch_assoc()) {
