@@ -1,35 +1,82 @@
 <?php
 session_start();
+$conn = new mysqli("localhost", "root", "", "eventplanner");
 
-// === Database connection ===
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db = "eventplanner";
-$conn = new mysqli($host, $user, $pass, $db);
-
-// === Helper function for HTML escaping ===
-function e($str) {
-    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+if (!isset($_SESSION['username'])) {
+    exit;
 }
 
-// === Check if user's previous proposal was disapproved ===
+$username = $_SESSION['username'];
 $disapproved = false;
-$disapprovedMessage = "";
-if (isset($_SESSION['proposal_id'])) {
-    $stmt = $conn->prepare("SELECT status FROM proposals WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['proposal_id']);
-    $stmt->execute();
-    $stmt->bind_result($status);
-    if ($stmt->fetch()) {
-        if ($status === 'Disapproved') {
-            $disapproved = true;
-            $disapprovedMessage = "Your previous proposal was disapproved. You may submit a new request.";
-            // Clear session to allow new proposal submission
-            unset($_SESSION['proposal_id'], $_SESSION['form_data'], $_SESSION['uploaded']);
-        }
+$disapprovedMessage = '';
+$form_locked = false;
+$budgetApproved = false;
+$budgetAmount = '';
+$budgetFile = '';
+$files = [];
+
+// === Fetch latest proposal for the user ===
+$stmt = $conn->prepare("SELECT * FROM proposals WHERE username = ? ORDER BY id DESC LIMIT 1");
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$proposal = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+// Initialize default values
+$department = explode('_', $username)[0];
+$event_type = '';
+$venue = '';
+$date_range = '';
+$start_time = '';
+$end_time = '';
+$files = array_fill_keys([
+    'letter_attachment', 'constitution', 'reports',
+    'adviser_form', 'certification', 'financial', 'activity_plan'
+], '');
+
+// === If a proposal exists and is not yet submitted ===
+if ($proposal && $proposal['submit'] !== 'submitted') {
+    $_SESSION['proposal_id'] = $proposal['id'];
+
+    $department   = $proposal['department'];
+    $event_type   = $proposal['event_type'];
+    $venue        = $proposal['venue'];
+    $date_range   = $proposal['start_date'] . ' to ' . $proposal['end_date'];
+    $time_parts   = explode(' - ', $proposal['time']);
+    $start_time   = $time_parts[0] ?? '';
+    $end_time     = $time_parts[1] ?? '';
+
+    $files = [
+        'letter_attachment' => $proposal['letter_attachment'],
+        'constitution'      => $proposal['constitution'],
+        'reports'           => $proposal['reports'],
+        'adviser_form'      => $proposal['adviser_form'],
+        'certification'     => $proposal['certification'],
+        'financial'         => $proposal['financial'],
+        'activity_plan'     => $proposal['activity_plan'],
+    ];
+
+    // Lock if budget not approved
+    if ($proposal['budget_approved'] == 0) {
+        $form_locked = true;
+    } elseif ($proposal['budget_approved'] == 1) {
+        $budgetApproved = true;
+        $budgetAmount = $proposal['budget_amount'] ?? '';
+        $budgetFile = $proposal['budget_file'] ?? '';
     }
-    $stmt->close();
+
+    // Check if disapproved
+    if ($proposal['status'] === 'Disapproved') {
+        $disapproved = true;
+        $disapprovedMessage = "Your previous proposal was disapproved. You may submit a new request.";
+        $form_locked = false;
+
+        // Clear session to allow new submission
+        unset($_SESSION['proposal_id'], $_SESSION['form_data'], $_SESSION['uploaded']);
+    }
+} else {
+    // No active proposal or it's already submitted — clear session and fields
+    unset($_SESSION['proposal_id'], $_SESSION['form_data'], $_SESSION['uploaded']);
 }
 
 // === Notification count for disapproved proposals not yet notified ===
@@ -58,41 +105,21 @@ if (isset($_SESSION['username'])) {
     $stmt->close();
 }
 
-// === Clear form data if no current proposal id ===
-if (!isset($_SESSION['proposal_id']) && isset($_SESSION['form_data'])) {
-    unset($_SESSION['form_data']);
-}
-
-// === Check if budget is approved for current proposal ===
-$budgetApproved = false;
-$budgetAmount = null;
-$budgetFile = null;
-if (isset($_SESSION['proposal_id'])) {
-    $stmt = $conn->prepare("SELECT budget_approved, budget_amount, budget_file FROM proposals WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['proposal_id']);
-    $stmt->execute();
-    $stmt->bind_result($approved, $amount, $file);
-    if ($stmt->fetch()) {
-        $budgetApproved = (bool)$approved;
-        $budgetAmount = $amount;
-        $budgetFile = $file;
-    }
-    $stmt->close();
-}
-
-// === Get all proposal date ranges for disabling calendar dates ===
+// === Get disabled date ranges for calendar ===
 $disabledDateRanges = [];
-$sql = "SELECT start_date, end_date FROM proposals WHERE status NOT LIKE 'Disapproved%'";
-$result = $conn->query($sql);
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        if (!empty($row['start_date']) && !empty($row['end_date'])) {
-            $disabledDateRanges[] = [
-                'from' => $row['start_date'],
-                'to' => $row['end_date']
-            ];
-        }
+$result = $conn->query("SELECT start_date, end_date FROM proposals WHERE status NOT LIKE 'Disapproved%'");
+while ($row = $result->fetch_assoc()) {
+    if (!empty($row['start_date']) && !empty($row['end_date'])) {
+        $disabledDateRanges[] = [
+            'from' => $row['start_date'],
+            'to' => $row['end_date']
+        ];
     }
+}
+
+// === Escaping helper ===
+function e($str) {
+    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
 
@@ -211,114 +238,100 @@ if ($result) {
     <div class="row">
         <!-- Left Side: Form -->
         <div class="col-md-6">
-            <?php
-                $form_locked = isset($_SESSION['proposal_id']) && !$budgetApproved;
-                ?>
-                <form action="<?= $budgetApproved ? 'submit_proposal.php' : 'request_budget.php' ?>" method="POST" enctype="multipart/form-data">
+            <form action="<?= $budgetApproved ? 'submit_proposal.php' : 'request_budget.php' ?>" method="POST" enctype="multipart/form-data">
 
-                    <!-- Department -->
-                    <div class="mb-3">
-                        <?php 
-                            $username = $_SESSION['username'] ?? '';
-                            $department = explode('_', $username)[0];
+                <!-- Department -->
+                <div class="mb-3">
+                    <input type="text" class="form-control" value="<?= htmlspecialchars($department) ?>" readonly>
+                    <input type="hidden" name="department" value="<?= htmlspecialchars($department) ?>">
+                </div>
+
+                <!-- Event Type -->
+                <div class="mb-3">
+                    <input type="text" name="event_type" class="form-control" placeholder="Type of Event"
+                        value="<?= htmlspecialchars($event_type) ?>" <?= $form_locked ? 'readonly' : 'required' ?>>
+                </div>
+
+                <!-- Date Range -->
+                <div class="mb-3">
+                    <input type="text" name="date_range" class="form-control" placeholder="Date Range"
+                        value="<?= htmlspecialchars($date_range) ?>" <?= $form_locked ? 'readonly' : 'required' ?>>
+                </div>
+
+                <!-- Venue -->
+                <div class="mb-3">
+                    <?php if ($form_locked): ?>
+                        <input type="text" class="form-control" value="<?= htmlspecialchars($venue) ?>" readonly>
+                        <input type="hidden" name="venue" value="<?= htmlspecialchars($venue) ?>">
+                    <?php else: ?>
+                        <select name="venue" class="form-control" required>
+                            <option value="">Select Venue</option>
+                            <?php
+                            $venue_query = $conn->query("SELECT DISTINCT venue FROM venue_db ORDER BY venue ASC");
+                            while ($row = $venue_query->fetch_assoc()) {
+                                $v = $row['venue'];
+                                $selected = ($v === $venue) ? 'selected' : '';
+                                echo "<option value='" . htmlspecialchars($v) . "' $selected>" . htmlspecialchars($v) . "</option>";
+                            }
                             ?>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($department) ?>" readonly>
-                            <input type="hidden" name="department" value="<?= htmlspecialchars($department) ?>">
-                    </div>
+                        </select>
+                    <?php endif; ?>
+                </div>
 
-                    <!-- Event Type -->
-                    <div class="mb-3">
-                        <input type="text" name="event_type" class="form-control" placeholder="Type of Event"
-                            value="<?= e($_SESSION['form_data']['event_type'] ?? '') ?>"
-                            <?= $form_locked ? 'readonly' : 'required' ?>>
-                    </div>
-
-                    <!-- Date Range -->
-                    <div class="mb-3">
-                        <input type="text" name="date_range" class="form-control" placeholder="Date Range"
-                            value="<?= e($_SESSION['form_data']['date_range'] ?? '') ?>"
-                            <?= $form_locked ? 'readonly' : 'required' ?>>
-                    </div>
-
-                    <!-- Venue -->
-                    <div class="mb-3">
-                        <?php if ($form_locked): ?>
-                            <input type="text" class="form-control" value="<?= e($_SESSION['form_data']['venue']) ?>" readonly>
-                            <input type="hidden" name="venue" value="<?= e($_SESSION['form_data']['venue']) ?>">
-                        <?php else: ?>
-                            <select name="venue" class="form-control" required>
-                                <option value="">Select Venue</option>
-                                <?php
-                                $venue_query = $conn->query("SELECT DISTINCT venue FROM venue_db ORDER BY venue ASC");
-                                $selectedVenue = $_SESSION['form_data']['venue'] ?? '';
-                                while ($row = $venue_query->fetch_assoc()) {
-                                    $venue = $row['venue'];
-                                    $selected = ($selectedVenue === $venue) ? 'selected' : '';
-                                    echo "<option value='" . e($venue) . "' $selected>" . e($venue) . "</option>";
-                                }
-                                ?>
-                            </select>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Time Range -->
-                    <div class="mb-3">
-                        <label>Event Time</label>
-                        <div class="row g-2">
-                            <div class="col">
-                                <input type="text" id="startTime" name="start_time" class="form-control"
-                                    placeholder="Start Time" value="<?= e($_SESSION['form_data']['start_time'] ?? '') ?>"
-                                    <?= $form_locked ? 'readonly' : 'required' ?>>
-                            </div>
-                            <div class="col">
-                                <input type="text" id="endTime" name="end_time" class="form-control"
-                                    placeholder="End Time" value="<?= e($_SESSION['form_data']['end_time'] ?? '') ?>"
-                                    <?= $form_locked ? 'readonly' : 'required' ?>>
-                            </div>
+                <!-- Time -->
+                <div class="mb-3">
+                    <label>Event Time</label>
+                    <div class="row g-2">
+                        <div class="col">
+                            <input type="text" id="startTime" name="start_time" class="form-control"
+                                placeholder="Start Time" value="<?= htmlspecialchars($start_time) ?>" <?= $form_locked ? 'readonly' : 'required' ?>>
+                        </div>
+                        <div class="col">
+                            <input type="text" id="endTime" name="end_time" class="form-control"
+                                placeholder="End Time" value="<?= htmlspecialchars($end_time) ?>" <?= $form_locked ? 'readonly' : 'required' ?>>
                         </div>
                     </div>
-                    <input type="hidden" name="time" id="combinedTime">
+                </div>
+                <input type="hidden" name="time" id="combinedTime">
 
-            <!-- File Uploads -->
-            <?php
-            foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial', 'activity_plan'] as $file) {
-                echo "<div class='mb-3'><label>" . ucfirst(str_replace('_', ' ', $file)) . "</label>";
-                if ($form_locked && isset($_SESSION['uploaded'][$file])) {
-                    echo "<p class='form-control-plaintext'>" . e(basename($_SESSION['uploaded'][$file])) . "</p>";
-                } else {
-                    echo "<input type='file' name='$file' class='form-control' accept='.pdf,.doc,.docx' " . 
-                        (isset($_SESSION['uploaded'][$file]) ? '' : 'required') . " />";
-                    if (isset($_SESSION['uploaded'][$file])) {
-                        echo "<small>Already uploaded: " . e(basename($_SESSION['uploaded'][$file])) . "</small>";
-                    }
-                }
-                echo "</div>";
-            }
-            ?>
-            <?php if ($disapproved): ?>
-
-    <div class="alert alert-danger text-center">
-        <?= $disapprovedMessage ?>
-    </div>
-<?php endif; ?>
-
-
-                    <!-- Buttons -->
-                    <div class="text-center">
-                        <?php if ($budgetApproved && $budgetAmount): ?>
-                            <?php if (!empty($budgetFile)): ?>
-                                <p class="alert alert-info">
-                                    Budget File: 
-                                    <a href="../proposal/uploads/<?= e($budgetFile) ?>" target="_blank"><?= e($budgetFile) ?></a>
-                                </p>
-                            <?php endif; ?>
-                            <p class="alert alert-success">Approved Budget: ₱<?= e($budgetAmount) ?></p>
-                            <button type="submit" class="btn btn-primary">Submit Proposal</button>
+                <!-- File Uploads -->
+                <?php foreach ($files as $field => $filepath): ?>
+                    <div class="mb-3">
+                        <label><?= ucfirst(str_replace('_', ' ', $field)) ?></label>
+                        <?php if ($form_locked && $filepath): ?>
+                            <p class="form-control-plaintext"><?= htmlspecialchars(basename($filepath)) ?></p>
                         <?php else: ?>
-                            <button type="submit" class="btn btn-warning" <?= $form_locked ? 'disabled' : '' ?>>Request Budget</button>
+                            <input type="file" name="<?= $field ?>" class="form-control" accept=".pdf,.doc,.docx" <?= $filepath ? '' : 'required' ?>>
+                            <?php if ($filepath): ?>
+                                <small>Already uploaded: <?= htmlspecialchars(basename($filepath)) ?></small>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
-                </form>
+                <?php endforeach; ?>
+
+                <!-- Disapproved Message -->
+                <?php if ($disapproved): ?>
+                    <div class="alert alert-danger text-center">
+                        <?= $disapprovedMessage ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Buttons -->
+                <div class="text-center">
+                    <?php if ($budgetApproved && $budgetAmount): ?>
+                        <?php if (!empty($budgetFile)): ?>
+                            <p class="alert alert-info">
+                                Budget File: 
+                                <a href="../proposal/uploads/<?= htmlspecialchars($budgetFile) ?>" target="_blank"><?= htmlspecialchars($budgetFile) ?></a>
+                            </p>
+                        <?php endif; ?>
+                        <p class="alert alert-success">Approved Budget: ₱<?= htmlspecialchars($budgetAmount) ?></p>
+                        <button type="submit" class="btn btn-primary">Submit Proposal</button>
+                    <?php else: ?>
+                        <button type="submit" class="btn btn-warning" <?= $form_locked ? 'disabled' : '' ?>>Request Budget</button>
+                    <?php endif; ?>
+                </div>
+            </form>
         </div>
 
         <!-- Right Side: Calendar -->

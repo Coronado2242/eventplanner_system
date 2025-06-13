@@ -131,14 +131,13 @@ $result = $stmt->get_result();
   <table>
     <thead>
       <tr>
-        <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+        <th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
       </tr>
     </thead>
     <tbody>
     <?php if ($result && $result->num_rows > 0): ?>
       <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
-          <td><?= htmlspecialchars($row['id']) ?></td>
           <td><?= htmlspecialchars($row['department']) ?></td>
           <td><?= htmlspecialchars($row['event_type']) ?></td>
           <td><?= htmlspecialchars($row['start_date']) ?></td>

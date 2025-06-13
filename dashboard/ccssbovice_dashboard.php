@@ -50,15 +50,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['
 <head>
   <meta charset="UTF-8" />
   <title>CCS SBO Vice President Dashboard</title>
-
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-
-  <!-- Your other CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="../style/ccssbovice.css">
-
-  <!-- Popper.js and Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
 
@@ -365,7 +359,6 @@ if (!$conn) {
     die("Connection failed: " . mysqli_connect_error());
 }
 
-
 // Assuming $proposal_id is passed or set here; if not, set a dummy id for testing
 
 // Process form submission
@@ -458,10 +451,6 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
 
 ?>
 
-
-
-
-
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -531,9 +520,6 @@ $filename = $folder . '/budget_plan_' . time() . '.pdf';
     </form>
   </div>
 </div>
-
-
-
 
 <!-- Tab Switching & User Fetching Script -->
 <script>
@@ -777,7 +763,6 @@ window.onclick = function(event) {
   }
 }
 
-
 document.addEventListener("click", function (event) {
   const dropdown = document.getElementById("userDropdown");
   const menu = document.getElementById("dropdownMenu");
@@ -785,11 +770,7 @@ document.addEventListener("click", function (event) {
     menu.style.display = "none";
   }
 });
-
-
-
 </script>
-
 
 </body>
 </html>

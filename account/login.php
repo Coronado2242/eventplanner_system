@@ -38,7 +38,7 @@ if (isset($_SESSION['admin_logged_in'])) {
         <p class="error"><?php echo htmlspecialchars($_GET['error']); ?></p>
       <?php endif; ?>
       <form method="POST" action="process_login.php">
-        <input type="text" name="username" placeholder="Email" required>
+        <input type="text" name="username" placeholder="Username" required>
 
         <div class="password-wrapper">
           <input type="password" name="password" id="password" placeholder="Password" required>

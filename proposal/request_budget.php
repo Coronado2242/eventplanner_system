@@ -6,21 +6,25 @@ $pass = "";
 $db = "eventplanner";
 $conn = new mysqli($host, $user, $pass, $db);
 
-// Only process if form fields are set
+// === Check login ===
+if (!isset($_SESSION['username'])) {
+    exit;
+}
+
+$username = $_SESSION['username'];
+
+// === CASE 1: New Proposal Request ===
 if (isset($_POST['department'], $_POST['event_type'], $_POST['date_range'], $_POST['venue'], $_POST['time'])) {
-
-    // Optional: Save to session only for sticky values
     $_SESSION['form_data'] = [
-    'department'  => $_POST['department'],
-    'event_type'  => $_POST['event_type'],
-    'date_range'  => $_POST['date_range'],
-    'venue'       => $_POST['venue'],
-    'start_time'  => $_POST['start_time'],
-    'end_time'    => $_POST['end_time']
-];
+        'department'  => $_POST['department'],
+        'event_type'  => $_POST['event_type'],
+        'date_range'  => $_POST['date_range'],
+        'venue'       => $_POST['venue'],
+        'start_time'  => $_POST['start_time'],
+        'end_time'    => $_POST['end_time']
+    ];
 
-
-    // Upload and store files
+    // Upload files
     $uploads = [];
     foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial', 'activity_plan'] as $field) {
         if (!empty($_FILES[$field]['name'])) {
@@ -29,47 +33,47 @@ if (isset($_POST['department'], $_POST['event_type'], $_POST['date_range'], $_PO
             move_uploaded_file($_FILES[$field]['tmp_name'], $target);
             $uploads[$field] = $target;
         } else {
-            $uploads[$field] = null; // Ensure it's defined
+            $uploads[$field] = null;
         }
     }
-
     $_SESSION['uploaded'] = $uploads;
 
-    $department = $_POST['department'];
-    $event_type = $_POST['event_type'];
-    $venue = $_POST['venue'];
-    $time = $_POST['time'];
-
-    // Fix: parse date range safely
+    // Parse dates
     $dates = preg_split("/ to | - /", $_POST['date_range']);
     $start_date = isset($dates[0]) ? date('Y-m-d', strtotime(trim($dates[0]))) : null;
     $end_date = isset($dates[1]) ? date('Y-m-d', strtotime(trim($dates[1]))) : $start_date;
 
+    // Insert into proposals
     $stmt = $conn->prepare("INSERT INTO proposals 
-        (department, event_type, start_date, end_date, venue, time, adviser_form, certification, financial, constitution, reports, letter_attachment, activity_plan, status, budget_approved) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0)");
+        (username, department, event_type, start_date, end_date, venue, time, 
+        adviser_form, certification, financial, constitution, reports, letter_attachment, activity_plan, 
+        status, budget_approved) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0)");
 
-    $stmt->bind_param("sssssssssssss",
-        $department, $event_type, $start_date, $end_date, $venue, $time,
+    $stmt->bind_param("ssssssssssssss",
+        $username, $_POST['department'], $_POST['event_type'], $start_date, $end_date, $_POST['venue'], $_POST['time'],
         $uploads['adviser_form'], $uploads['certification'], $uploads['financial'],
-        $uploads['constitution'], $uploads['reports'], $uploads['letter_attachment'],
-        $uploads['activity_plan']);
+        $uploads['constitution'], $uploads['reports'], $uploads['letter_attachment'], $uploads['activity_plan']
+    );
 
     if ($stmt->execute()) {
         $_SESSION['proposal_id'] = $stmt->insert_id;
-        echo "<script>alert('Successful requesting budget, waiting for the budget.'); window.location.href = 'proposal.php';</script>";
+        $stmt->close();
+        $conn->close();
+        echo "<script>alert('Successfully requested budget.'); window.location.href = 'proposal.php';</script>";
+        exit; // ✅ Important
     } else {
         echo "<script>alert('Database error: " . $stmt->error . "');</script>";
+        $stmt->close();
+        $conn->close();
+        exit; // ✅ Stop further processing
     }
-
-    $stmt->close();
-    $conn->close();
 }
 
+// === CASE 2: Update Existing Proposal ===
 if (isset($_POST['proposal_id'])) {
     $proposal_id = $_POST['proposal_id'];
 
-    // Upload and store files (optional: for updated attachments)
     $uploads = [];
     foreach (['letter_attachment', 'constitution', 'reports', 'adviser_form', 'certification', 'financial'] as $field) {
         if (!empty($_FILES[$field]['name'])) {
@@ -82,7 +86,6 @@ if (isset($_POST['proposal_id'])) {
         }
     }
 
-    // Update proposal: reset status and budget_approved, keep existing attachments if no new upload
     $stmt = $conn->prepare("UPDATE proposals SET 
         adviser_form = COALESCE(?, adviser_form),
         certification = COALESCE(?, certification),
@@ -95,7 +98,7 @@ if (isset($_POST['proposal_id'])) {
         level = 'Vice President'
         WHERE id = ?");
 
-    $stmt->bind_param("sssssssi",
+    $stmt->bind_param("ssssssi",
         $uploads['adviser_form'], $uploads['certification'], $uploads['financial'],
         $uploads['constitution'], $uploads['reports'], $uploads['letter_attachment'],
         $proposal_id);
@@ -108,7 +111,9 @@ if (isset($_POST['proposal_id'])) {
 
     $stmt->close();
     $conn->close();
-} else {
-    echo "<script>alert('Proposal ID not specified.'); window.location.href = 'proposal.php';</script>";
+    exit;
 }
-?>
+
+// === Fallback: No data ===
+echo "<script>alert('Proposal ID not specified.'); window.location.href = 'proposal.php';</script>";
+exit;
