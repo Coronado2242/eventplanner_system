@@ -217,7 +217,6 @@ function e($str) {
         <?php if (!empty($disapprovedProposals)): ?>
             <?php foreach ($disapprovedProposals as $proposal): ?>
                 <li class="list-group-item">
-                   <span style="font-weight: bold;"><?= urlencode($proposal['id']) ?></span>
                         <span style="font-weight: bold;"><?= e($proposal['event_type']) ?></span>
                     </a>
                     <br>
