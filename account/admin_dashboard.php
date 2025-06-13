@@ -208,6 +208,55 @@ body::before {
 .fa-user {
     font-size: 18px;
 }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin-top: 20px;
+}
+
+thead tr {
+    background-color: #003366;
+    color: white;
+    text-align: left;
+    font-weight: bold;
+}
+
+th, td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+    background-color: #fff;
+    color: #333;
+}
+
+tbody tr:hover {
+    background-color: #f2f6fa;
+    transition: background-color 0.3s ease;
+}
+
+/* Department headers (grouped users by department) */
+.department-header {
+    background-color: #004080;
+    color: white;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 10px 15px;
+    border-bottom: 1px solid #ccc;
+}
+button {
+    background-color: #dc3545;
+    color: white; 
+    padding: 5px 10px; 
+    border: none; 
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #b02a37;
+}
 </style>
 <body>
 
@@ -312,6 +361,101 @@ body::before {
         </table>
     </main>
 </div>
+<!-- Example table row in your JS -->
+
+<!-- Edit Modal -->
+<div id="editModal" style="display:none; position:fixed; top:20%; left:30%; background:#fff; padding:20px; border:1px solid #ccc;">
+  <h3>Edit Venue</h3>
+  <input type="hidden" id="editVenueId">
+  <label>Organizer:</label>
+  <input type="text" id="editOrganizer"><br><br>
+  <label>Email:</label>
+  <input type="email" id="editEmail"><br><br>
+  <label>Venue:</label>
+  <input type="text" id="editVenue"><br><br>
+  <button onclick="saveVenueEdit()">Save</button>
+  <button onclick="closeEditModal()">Cancel</button>
+</div>
+
+<script>
+// Function to show the modal
+function editVenue(id, organizer, email, venue) {
+    document.getElementById("editVenueId").value = id;
+    document.getElementById("editOrganizer").value = organizer;
+    document.getElementById("editEmail").value = email;
+    document.getElementById("editVenue").value = venue;
+    document.getElementById("editModal").style.display = "block";
+}
+
+// Function to hide the modal
+function closeEditModal() {
+    document.getElementById("editModal").style.display = "none";
+}
+
+// Save changes
+function saveVenueEdit() {
+    const id = document.getElementById("editVenueId").value;
+    const organizer = document.getElementById("editOrganizer").value;
+    const email = document.getElementById("editEmail").value;
+    const venue = document.getElementById("editVenue").value;
+
+    fetch('edit_venue.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id, organizer, email, venue })
+    })
+    .then(res => res.text())
+    .then(data => {
+        alert(data); // or use better UI message
+        closeEditModal();
+        fetchVenueData(); // Refresh the table
+    })
+    .catch(err => {
+        console.error("Error updating venue:", err);
+    });
+}
+
+// Populate table (example fetchVenueData function)
+function fetchVenueData() {
+    fetch("view_venue.php")
+        .then((res) => res.json())
+        .then((data) => {
+            const tableBody = document.getElementById("venueTableBody");
+            tableBody.innerHTML = "";
+            data.forEach((venue) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${venue.organizer}</td>
+                    <td>${venue.email}</td>
+                    <td>${venue.venue}</td>
+                    <td>
+                        <button 
+                            class="editBtn"
+                            data-id="${venue.id}"
+                            data-organizer="${venue.organizer}"
+                            data-email="${venue.email}"
+                            data-venue="${venue.venue}">
+                            Edit
+                        </button>
+                    </td>`;
+                tableBody.appendChild(row);
+            });
+
+            document.querySelectorAll(".editBtn").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    editVenue(
+                        btn.dataset.id,
+                        btn.dataset.organizer,
+                        btn.dataset.email,
+                        btn.dataset.venue
+                    );
+                });
+            });
+        });
+}
+
+fetchVenueData(); // Call on page load
+</script>
 
 <!-- Tab Switching & User Fetching Script -->
 <script>
@@ -408,7 +552,10 @@ document.getElementById("venueTab").addEventListener("click", function () {
                     <td>${user.organizer}</td>
                     <td>${user.email}</td>
                     <td>${user.venue}</td>
-                    <td><button onclick="deleteUser('${user.id}')">Delete</button></td>
+                    <td>
+                        <button style="background-color: green; color: white; padding: 5px 10px; border: none; border-radius: 4px;" onclick="editVenue('${user.id}', '${user.organizer}', '${user.email}', '${user.venue}')">Edit</button>
+                        <button onclick="deleteUser('${user.id}')">Delete</button>
+                    </td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
