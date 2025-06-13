@@ -16,13 +16,18 @@ $result = $conn->query($query);
 while ($row = $result->fetch_array()) {
     $table = $row[0];
     $deptName = ucfirst(str_replace('_department', '', $table));
-    $res = $conn->query("SELECT id, username, password, role FROM `$table`"); 
+
+    // Include fullname, username, email, password, role, created_at
+    $res = $conn->query("SELECT fullname, username, email, password, role, created_at FROM `$table`"); 
     while ($user = $res->fetch_assoc()) {
         $departments[] = [
-            'email' => $user['username'],
-            'password' => $user['password'],  // include password here
-            'department' => $deptName,
+            'fullname' => $user['fullname'],
+            'username' => $user['username'],
+            'email' => $user['email'],
+            'password' => $user['password'],
             'role' => $user['role'],
+            'created_at' => $user['created_at'],
+            'department' => $deptName,
             'status' => 'Active'
         ];
     }

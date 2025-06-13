@@ -5,609 +5,376 @@ if (!isset($_SESSION['admin_logged_in'])) {
     exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; font-family: Arial, sans-serif; }
+    body {
+      background: url('../img/homebg2.jpg') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(255,255,255,0.4);
+      z-index: -1;
+      pointer-events: none;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 50px;
+      background-color: rgba(255,255,255,0.5);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+      position: sticky; top: 0; z-index: 1000;
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .logo { display: flex; align-items: center; font-weight: bold; font-size: 24px; }
+    .logo img { margin-right: 10px; height: 49px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    nav a { margin-left: 15px; text-decoration: none; color: #000; font-weight: 500; font-size: 16px; padding: 8px 12px; border-radius: 5px; transition: background .3s; }
+    nav a:hover { background: rgba(0,0,0,0.1); }
+    .admin-info { display: inline-block; margin-left: 20px; position: relative; }
+    .fa-user { font-size: 18px; cursor: pointer; }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0; margin-top: 10px;
+      background: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 5px;
+      z-index: 100;
+    }
+    .dropdown-menu a { padding: 10px; display: block; color: #333; text-decoration: none; }
+    .dropdown-menu a:hover { background: #f0f0f0; }
+
+    .sidebar {
+      width: 220px;
+      background: #004080;
+      position: fixed;
+      top: 67px;
+      bottom: 0;
+      color: white;
+      padding-top: 10px;
+    }
+    .sidebar ul { list-style: none; padding: 0; margin: 0; }
+    .sidebar ul li {
+      padding: 15px 20px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .sidebar ul li.active, .sidebar ul li:hover {
+      background: #0066cc;
+    }
+    .content {
+      margin-left: 240px;
+      padding: 20px;
+      margin-top: 60px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+      margin-top: 20px;
+    }
+    thead th {
+      background: #003366;
+      color: white;
+      padding: 12px 15px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      text-align: center;
+      vertical-align: middle;
+      background: #fff;
+      color: #333;
+    }
+    tbody tr:hover {
+      background: #f2f6fa;
+    }
+
+    .add-user-btn {
+      background-color: #28a745;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      text-decoration: none;
+      float: right;
+    }
+    .modal-overlay, #editModal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+    }
+    .modal-overlay {
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+    }
+    #editModal {
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      min-width: 300px;
+    }
+    #editModal input { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+    #editModal button {
+      margin-left: 5px;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #editModal button:nth-child(1) { background: #28a745; color: white; }
+    #editModal button:nth-child(2) { background: #dc3545; color: white; }
+
+    .editBtn { background: green; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
+    .editBtn:hover { background: #006600; }
+    .deleteBtn { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
+    .deleteBtn:hover { background: #b02a37; }
+  </style>
 </head>
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  font-family: Arial, sans-serif;
-}
-
-body {
-  background: url('../img/homebg2.jpg') no-repeat center center fixed;
-  background-size: cover;
-  position: relative;
-}
-
-body::before {
-  content: "";
-  position: fixed; 
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.4); 
-  z-index: -1;
-  pointer-events: none; 
-}
-
-.topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.50); 
-    padding: 15px 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); 
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.topbar .logo {
-    font-weight: bold;
-    font-size: 24px;
-}
-
-.topbar nav a {
-    text-decoration: none;
-    color: #000;
-    font-weight: 500;
-    font-size: 16px;
-    padding: 8px 12px;
-    border-radius: 5px;
-    transition: background 0.3s, color 0.3s;
-}
-.logo {
-    display: flex;
-    align-items: center; 
-}
-.logo img {
-    margin-right: 10px; 
-    height: 49px; 
-    border-radius: 50%; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-.admin-info {
-    display: inline-block;
-    margin-left: 20px;
-}
-
-.sidebar {
-    width: 220px;
-    background: #004080;
-    position: fixed;
-    top: 47px;
-    bottom: 0;
-    padding-top: 10px;
-    color: white;
-}
-
-.sidebar ul {
-    list-style: none;
-    padding: 0;
-}
-
-.sidebar ul li {
-    padding: 15px 20px;
-    cursor: pointer;
-}
-
-.sidebar ul li.active, .sidebar ul li:hover {
-    background: #0066cc;
-}
-
-.content {
-    margin-left: 240px;
-    padding: 20px;
-    margin-top: 60px;
-}
-
-.cards {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.card {
-    background: #f4f4f4;
-    padding: 20px;
-    flex: 1;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.positive {
-    color: green;
-}
-
-.negative {
-    color: red;
-}
-
-.charts {
-    display: flex;
-    margin-top: 30px;
-    gap: 40px;
-    flex-wrap: wrap;
-}
-
-.calendar {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.legend span {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin-right: 5px;
-    border-radius: 50%;
-}
-
-.green { background: green; }
-.red { background: red; }
-.orange { background: orange; }
-
-.logout-btn {
-    margin-left: 15px;
-    padding: 5px 10px;
-    background: maroon;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.logout-btn:hover {
-    background: darkred;
-}
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    background-color: white;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    right: 0;
-    margin-top: 10px;
-    border-radius: 5px;
-    z-index: 100;
-}
-.dropdown-menu a {
-    display: block;
-    padding: 10px;
-    text-decoration: none;
-    color: #333;
-}
-.dropdown-menu a:hover {
-    background-color: #f0f0f0;
-}
-.user-dropdown {
-    position: relative;
-    display: inline-block;
-    margin-left: 20px;
-    cursor: pointer;
-}
-.fa-user {
-    font-size: 18px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 15px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin-top: 20px;
-}
-
-thead tr {
-    background-color: #003366;
-    color: white;
-    text-align: left;
-    font-weight: bold;
-}
-
-th, td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #ddd;
-    background-color: #fff;
-    color: #333;
-}
-
-tbody tr:hover {
-    background-color: #f2f6fa;
-    transition: background-color 0.3s ease;
-}
-
-/* Department headers (grouped users by department) */
-.department-header {
-    background-color: #004080;
-    color: white;
-    text-align: left;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 10px 15px;
-    border-bottom: 1px solid #ccc;
-}
-button {
-    background-color: #dc3545;
-    color: white; 
-    padding: 5px 10px; 
-    border: none; 
-    border-radius: 4px;
-}
-
-button:hover {
-    background-color: #b02a37;
-}
-</style>
 <body>
 
-<header class="topbar">
-<div class="logo"><img src="../img/lspulogo.jpg">EVENT ADMIN PORTAL</div>
+  <header class="topbar">
+    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">EVENT ADMIN PORTAL</div>
     <nav>
-        <a href="../index.php">Home</a>
-        <a href="../aboutus.php">About Us</a>
-        <a href="../calendar1.php">Calendar</a>
-        <div class="admin-info">
-            <i class="icon-calendar"></i>
+      <a href="../index.php">Home</a>
+      <a href="../aboutus.php">About Us</a>
+      <a href="../calendar1.php">Calendar</a>
+      <div class="admin-info" id="userDropdown">
+	              <i class="icon-calendar"></i>
             <i class="icon-bell"></i>
             <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
-
-            <!-- User Dropdown -->
-            <div class="user-dropdown" id="userDropdown">
-                <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
-                        <a href="admin_dashboard.php">Admin Dashboard</a>
-                    <?php endif; ?>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+        <i class="fa-solid fa-user" onclick="toggleDropdown()"></i>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
+            <a href="admin_dashboard.php">Admin Dashboard</a>
+          <?php endif; ?>
+          <a href="logout.php">Logout</a>
         </div>
+      </div>
     </nav>
-</header>
+  </header>
 
-
-
-<aside class="sidebar">
-    <div class="toggle-btn">&#9776;</div>
+  <aside class="sidebar">
     <ul>
-        <li id="dashboardTab" class="active">Dashboard</li>
-        <li id="userManagementTab">User Management</li>
-        <li>Event Monitoring</li>
-        <li>Budget Analytics</li>
-        <li id="venueTab">Venue</li>
+      <li id="dashboardTab" class="active">Dashboard</li>
+      <li id="userManagementTab">User Management</li>
+      <li>Event Monitoring</li>
+      <li>Budget Analytics</li>
+      <li id="venueTab">Venue</li>
     </ul>
-</aside>
+  </aside>
 
-<!-- Dashboard Content -->
-<div id="dashboardContent">
-<main class="content">
-    <h1>Dashboard</h1>
-    <p>Welcome back! Here's what's happening today.</p>
-    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
-</main>
-</div>
-
-<!-- User Management Content -->
-<div id="userManagementContent" style="display:none;">
-    <main class="content" >
-        <h1 style="margin-bottom: 0;">User Management</h1>
-        <p style="margin-top: 5px; color: #666;">Manage user department and accounts</p>
-        <div>
-            <a href="signup.php" class="add-user-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 20px; float: right; cursor: pointer;" >+ Add Department</a>
-        </div>
-        <div style="margin: 20px 0; clear: both;">
-      <input type="text" placeholder="Search User..." style="width: 50%; padding: 8px; border-radius: 20px; border: 1px solid #ccc;">
-    </div>
-        <table  style="width: 100%; border-collapse: collapse;" width="100%" id="userTable">
-            <thead>
-                <tr style="background-color: #003366; color: white; padding: 10px;">
-                    <th>Username</th>
-                    <th>Password</th>  
-                    <th>Department</th>
-                    <th>User Type</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody style="text-align: center; padding: 10px; border-bottom: 1px solid #ddd;">
-                <!-- Filled dynamically -->
-            </tbody>
-        </table>
+  <div id="dashboardContent">
+    <main class="content">
+      <h1>Dashboard</h1>
+      <p>Welcome back! Here's what's happening today.</p>
+      <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
     </main>
-</div>
-
-
-<!-- Venue Content -->
-<div id="venueContent" style="display:none;">
-    <main class="content" >
-        <h1 style="margin-bottom: 0;">Venue Management</h1>
-        <div>
-            <a href="venue.php" class="add-user-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 20px; float: right; cursor: pointer;" >+ Add Venue</a>
-        </div>
-        <div style="margin: 20px 0; clear: both;">
-      <input type="text" placeholder="Search User..." style="width: 50%; padding: 8px; border-radius: 20px; border: 1px solid #ccc;">
-    </div>
-        <table style="width: 100%; border-collapse: collapse;" width="100%" id="venueTable">
-            <thead>
-                <tr style="background-color: #003366; color: white; padding: 10px;">
-                    <th>Organizer</th>
-                    <th>Email</th>
-                    <th>Venue</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody style="text-align: center; padding: 10px; border-bottom: 1px solid #ddd;">
-                <!-- Filled dynamically -->
-            </tbody>
-        </table>
-    </main>
-</div>
-<!-- Example table row in your JS -->
-
-<!-- Modal Overlay -->
-<div id="modalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-    background:rgba(0, 0, 0, 0.5); z-index:999;" onclick="closeEditModal()"></div>
-
-<!-- Edit Modal -->
-<div id="editModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
-    background:#fff; padding:20px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1000; min-width: 300px;">
-  <h3 style="margin-top: 0;">Edit Venue</h3>
-  <input type="hidden" id="editVenueId">
-  <label>Organizer:</label>
-  <input type="text" id="editOrganizer" style="width:100%;"><br><br>
-  <label>Email:</label>
-  <input type="email" id="editEmail" style="width:100%;"><br><br>
-  <label>Venue:</label>
-  <input type="text" id="editVenue" style="width:100%;"><br><br>
-  <div style="text-align: right;">
-    <button onclick="saveVenueEdit()">Save</button>
-    <button onclick="closeEditModal()">Cancel</button>
   </div>
-</div>
 
+  <div id="userManagementContent" style="display:none">
+    <main class="content">
+      <h1>User Management</h1>
+      <a href="signup.php" class="add-user-btn">+ Add Department</a><br><br>
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>Full Name</th><th>Username</th><th>Email</th><th>Password</th><th>Role</th><th>Date/Time Created</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+  </div>
 
-<script>
-// Function to show the modal
-function editVenue(id, organizer, email, venue) {
-    document.getElementById("editVenueId").value = id;
-    document.getElementById("editOrganizer").value = organizer;
-    document.getElementById("editEmail").value = email;
-    document.getElementById("editVenue").value = venue;
-    document.getElementById("editModal").style.display = "block";
-}
+  <div id="venueContent" style="display:none">
+    <main class="content">
+      <h1>Venue Management</h1>
+      <a href="venue.php" class="add-user-btn">+ Add Venue</a><br><br>
+      <table id="venueTable">
+        <thead>
+          <tr>
+            <th>Organizer</th><th>Email</th><th>Venue</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+  </div>
 
-function openEditModal(venue) {
-    document.getElementById("editVenueId").value = venue.id;
-    document.getElementById("editOrganizer").value = venue.organizer;
-    document.getElementById("editEmail").value = venue.email;
-    document.getElementById("editVenue").value = venue.venue;
-    
-    document.getElementById("modalOverlay").style.display = "block";
-    document.getElementById("editModal").style.display = "block";
-}
+  <div class="modal-overlay" id="modalOverlay" onclick="closeEditModal()"></div>
+  <div id="editModal">
+    <h3>Edit Venue</h3>
+    <input type="hidden" id="editVenueId">
+    <label>Organizer:</label>
+    <input type="text" id="editOrganizer">
+    <label>Email:</label>
+    <input type="email" id="editEmail">
+    <label>Venue:</label>
+    <input type="text" id="editVenue">
+    <div style="text-align: right;">
+      <button onclick="saveVenueEdit()">Save</button>
+      <button onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
 
-function closeEditModal() {
-    document.getElementById("modalOverlay").style.display = "none";
-    document.getElementById("editModal").style.display = "none";
-}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 
-// Save changes
-function saveVenueEdit() {
-    const id = document.getElementById("editVenueId").value;
-    const organizer = document.getElementById("editOrganizer").value;
-    const email = document.getElementById("editEmail").value;
-    const venue = document.getElementById("editVenue").value;
+      function toggleDropdown() {
+        const menu = document.getElementById("dropdownMenu");
+        menu.style.display = (menu.style.display === "block") ? "none" : "block";
+      }
+      window.toggleDropdown = toggleDropdown;
 
-    fetch('edit_venue.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ id, organizer, email, venue })
-    })
-    .then(res => res.text())
-    .then(data => {
-        alert(data); // or use better UI message
-        closeEditModal();
-        fetchVenueData(); // Refresh the table
-    })
-    .catch(err => {
-        console.error("Error updating venue:", err);
-    });
-}
-
-// Populate table (example fetchVenueData function)
-function fetchVenueData() {
-    fetch("view_venue.php")
-        .then((res) => res.json())
-        .then((data) => {
-            const tableBody = document.getElementById("venueTableBody");
-            tableBody.innerHTML = "";
-            data.forEach((venue) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${venue.organizer}</td>
-                    <td>${venue.email}</td>
-                    <td>${venue.venue}</td>
-                    <td>
-                        <button 
-                            class="editBtn"
-                            data-id="${venue.id}"
-                            data-organizer="${venue.organizer}"
-                            data-email="${venue.email}"
-                            data-venue="${venue.venue}">
-                            Edit
-                        </button>
-                    </td>`;
-                tableBody.appendChild(row);
-            });
-
-            document.querySelectorAll(".editBtn").forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    editVenue(
-                        btn.dataset.id,
-                        btn.dataset.organizer,
-                        btn.dataset.email,
-                        btn.dataset.venue
-                    );
-                });
-            });
-        });
-}
-
-fetchVenueData(); // Call on page load
-</script>
-
-<!-- Tab Switching & User Fetching Script -->
-<script>
-document.getElementById("dashboardTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "block";
-    document.getElementById("userManagementContent").style.display = "none";
-    document.getElementById("venueContent").style.display = "none";
-    this.classList.add("active");
-    document.getElementById("venueTab").classList.remove("active");
-    document.getElementById("userManagementTab").classList.remove("active");
-});
-
-document.getElementById("userManagementTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("venueContent").style.display = "none";
-    document.getElementById("userManagementContent").style.display = "block";
-    this.classList.add("active");
-    document.getElementById("venueTab").classList.remove("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-
-    // Fetch users
-    fetch("get_users.php")
-    .then(response => response.json())
-        .then(users => {
-        const table = document.getElementById("userTable");
-        const departments = {};
-
-        // Group users by department
-        users.forEach(user => {
-            if (!departments[user.department]) {
-                departments[user.department] = [];
-            }
-            departments[user.department].push(user);
-        });
-
-        // Clear current table content
-        table.innerHTML = "";
-
-        for (const department in departments) {
-            const group = departments[department];
-
-            // Create a section heading
-            const heading = document.createElement("tr");
-            heading.innerHTML = `<th colspan="6" style="background:#004080; color: white; text-align: center; padding: 10px;">${department.toUpperCase()}</th>`;
-            table.appendChild(heading);
-
-            // Add column headers for each department section
-            const header = document.createElement("tr");
-            header.innerHTML = `
-                <th>Username</th>
-                <th>Password</th>  
-                <th>Department</th>
-                <th>User Type</th>
-                <th>Status</th>
-            `;
-            table.appendChild(header);
-
-            // Populate user rows
-            group.forEach(user => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${user.email}</td>
-                    <td>${user.password}</td>
-                    <td>${user.department}</td>
-                    <td>${user.role}</td>
-                    <td>${user.status}</td>
-                `;
-                table.appendChild(row);
-            });
+      document.addEventListener("click", (e) => {
+        if(!document.getElementById("userDropdown").contains(e.target)) {
+          document.getElementById("dropdownMenu").style.display = "none";
         }
-    })
+      });
 
-        .catch(err => console.error("Error loading users:", err));
-});
+      // Tab helpers
+      function deactivateAllTabs() {
+        ["dashboardTab","userManagementTab","venueTab"].forEach(id => {
+          document.getElementById(id).classList.remove('active');
+        });
+        ["dashboardContent","userManagementContent","venueContent"].forEach(id => {
+          document.getElementById(id).style.display = "none";
+        });
+      }
 
-</script>
-<script>
-document.getElementById("venueTab").addEventListener("click", function () {
-    document.getElementById("dashboardContent").style.display = "none";
-    document.getElementById("userManagementContent").style.display = "none";
-    document.getElementById("venueContent").style.display = "block";
-    this.classList.add("active");
-    document.getElementById("dashboardTab").classList.remove("active");
-    document.getElementById("userManagementTab").classList.remove("active");
+      document.getElementById("dashboardTab").addEventListener("click", () => {
+        deactivateAllTabs();
+        document.getElementById("dashboardTab").classList.add('active');
+        document.getElementById("dashboardContent").style.display = 'block';
+      });
 
-    // Fetch users
-    fetch("get_venues.php")
-        .then(response => response.json())
-        .then(venues => {
+      document.getElementById("userManagementTab").addEventListener("click", () => {
+        deactivateAllTabs();
+        document.getElementById("userManagementTab").classList.add('active');
+        document.getElementById("userManagementContent").style.display = 'block';
+        fetch("get_users.php")
+          .then(r => r.json())
+          .then(users => {
+            const tbody = document.querySelector("#userTable tbody");
+            tbody.innerHTML = "";
+            const grouped = {};
+            users.forEach(u => {
+              (grouped[u.department] ??= []).push(u);
+            });
+            Object.keys(grouped).forEach(dept => {
+              const header = document.createElement("tr");
+              header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
+              tbody.append(header);
+              grouped[dept].forEach(u => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                  <td>${u.fullname}</td><td>${u.username}</td><td>${u.email}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
+                `;
+                tbody.append(row);
+              });
+            });
+          })
+          .catch(e => console.error(e));
+      });
+
+      document.getElementById("venueTab").addEventListener("click", () => {
+        deactivateAllTabs();
+        document.getElementById("venueTab").classList.add('active');
+        document.getElementById("venueContent").style.display = 'block';
+        loadVenues();
+      });
+
+      window.editVenue = (id, org, email, venue) => {
+        document.getElementById("editVenueId").value = id;
+        document.getElementById("editOrganizer").value = org;
+        document.getElementById("editEmail").value = email;
+        document.getElementById("editVenue").value = venue;
+        document.getElementById("modalOverlay").style.display = 'block';
+        document.getElementById("editModal").style.display = 'block';
+      }
+
+      window.closeEditModal = () => {
+        document.getElementById("modalOverlay").style.display = 'none';
+        document.getElementById("editModal").style.display = 'none';
+      }
+
+      window.saveVenueEdit = () => {
+        const data = {
+          id: document.getElementById("editVenueId").value,
+          organizer: document.getElementById("editOrganizer").value,
+          email: document.getElementById("editEmail").value,
+          venue: document.getElementById("editVenue").value,
+        };
+        fetch('edit_venue.php', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        })
+        .then(r => r.text())
+        .then(msg => { alert(msg); closeEditModal(); loadVenues(); })
+        .catch(e => console.error(e));
+      }
+
+      window.loadVenues = () => {
+        fetch("get_venues.php")
+          .then(r => r.json())
+          .then(venues => {
             const tbody = document.querySelector("#venueTable tbody");
             tbody.innerHTML = "";
-            venues.forEach(user => {
-                const row = `<tr>
-                    <td>${user.organizer}</td>
-                    <td>${user.email}</td>
-                    <td>${user.venue}</td>
-                    <td>
-                        <button style="background-color: green; color: white; padding: 5px 10px; border: none; border-radius: 4px;" onclick="editVenue('${user.id}', '${user.organizer}', '${user.email}', '${user.venue}')">Edit</button>
-                        <button onclick="deleteUser('${user.id}')">Delete</button>
-                    </td>
-                </tr>`;
-                tbody.innerHTML += row;
+            venues.forEach(v => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${v.organizer}</td>
+                <td>${v.email}</td>
+                <td>${v.venue}</td>
+                <td>
+                  <button class="editBtn" onclick="editVenue('${v.id}','${v.organizer}','${v.email}','${v.venue}')">Edit</button>
+                  <button class="deleteBtn" onclick="deleteVenue('${v.id}')">Delete</button>
+                </td>
+              `;
+              tbody.append(tr);
             });
-        })
-        .catch(err => console.error("Error loading users:", err));
-});
+          }).catch(e => console.error(e));
+      }
 
-function deleteUser(id) {
-    if (confirm("Delete this venue?")) {
-        fetch(`delete_user.php?id=${id}`)
-            .then(res => res.text())
-            .then(msg => {
-                alert(msg);
-                document.getElementById("venueTab").click(); // refresh
-            });
-    }
-}
-</script>
-<!-- Dropdown Script -->
-<script>
-function toggleDropdown() {
-    const menu = document.getElementById("dropdownMenu");
-    menu.style.display = (menu.style.display === "block") ? "none" : "block";
-}
+      window.deleteVenue = (id) => {
+        if(confirm("Delete this venue?")) {
+          fetch(`delete_user.php?id=${id}`)
+            .then(r => r.text())
+            .then(msg => { alert(msg); loadVenues(); })
+            .catch(e=>console.error(e));
+        }
+      };
 
-document.addEventListener("click", function(event) {
-    const dropdown = document.getElementById("userDropdown");
-    const menu = document.getElementById("dropdownMenu");
-    if (!dropdown.contains(event.target)) {
-        menu.style.display = "none";
-    }
-});
-document.addEventListener("DOMContentLoaded", function () {
-  document.getElementById("calendarFrame").src = "../proposal/calendar.php";});
-</script>
+      // Initial load
+      loadVenues();
+    });
+  </script>
+
 </body>
 </html>
