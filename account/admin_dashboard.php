@@ -14,12 +14,22 @@ if (!isset($_SESSION['admin_logged_in'])) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; font-family: Arial, sans-serif; }
-    body {
-      background: url('../img/homebg2.jpg') no-repeat center center fixed;
-      background-size: cover;
-      position: relative;
-    }
+html {
+  height: 100%;
+  background: url('../img/homebg2.jpg') no-repeat center center fixed;
+  background-size: cover;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  font-family: Arial, sans-serif;
+}
+
+
     body::before {
       content: "";
       position: fixed;

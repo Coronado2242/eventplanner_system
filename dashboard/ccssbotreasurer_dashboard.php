@@ -170,60 +170,61 @@ $result = $stmt->get_result();
   $stmt->execute();
   $result = $stmt->get_result();
 
-  while ($row = $result->fetch_assoc()) {
-      echo '<div class="card p-4 mb-4 shadow-sm">';
-      echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
-      echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
-      echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
-      echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
-      echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
-      echo '<h5 class="mt-4">Requirements</h5>';
-      echo '<div class="row g-3">';
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        echo '<div class="card p-4 mb-4 shadow-sm">';
+        echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+        echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+        echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+        echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+        echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+        echo '<h5 class="mt-4">Requirements</h5>';
+        echo '<div class="row g-3">';
 
-$requirements = [
-    "Letter Attachment" => "letter_attachment",
-    "Adviser Commitment form" => "adviser_form",
-    "Constitution ang by-laws of the Org." => "constitution",
-    "Certification from Responsive Dean/Associate Dean" => "certification",
-    "Accomplishment reports" => "reports",
-    "Financial Report" => "financial",
-    "Plan of Activities" => "activity_plan",
-    "Budget Plan" => "budget_file"
-];
+        $requirements = [
+            "Letter Attachment" => "letter_attachment",
+            "Adviser Commitment form" => "adviser_form",
+            "Constitution ang by-laws of the Org." => "constitution",
+            "Certification from Responsive Dean/Associate Dean" => "certification",
+            "Accomplishment reports" => "reports",
+            "Financial Report" => "financial",
+            "Plan of Activities" => "activity_plan",
+            "Budget Plan" => "budget_file"
+        ];
 
-// Map each field to its directory
-$requirementDirectories = [
-    "letter_attachment" => "../proposal/",
-    "adviser_form" => "../proposal/",
-    "constitution" => "../proposal/",
-    "certification" => "../proposal/",
-    "reports" => "../proposal/",
-    "financial" => "../proposal/",
-    "activity_plan" => "../proposal/",
-    "budget_file" => "../proposal/uploads/" // budget_file is in a different directory
-];
+        $requirementDirectories = [
+            "letter_attachment" => "../proposal/",
+            "adviser_form" => "../proposal/",
+            "constitution" => "../proposal/",
+            "certification" => "../proposal/",
+            "reports" => "../proposal/",
+            "financial" => "../proposal/",
+            "activity_plan" => "../proposal/",
+            "budget_file" => "../proposal/uploads/"
+        ];
 
-foreach ($requirements as $label => $field) {
-    echo '<div class="col-md-4">';
-    echo '<div class="border rounded p-3 bg-light h-100">';
-    echo '<small class="text-danger fw-bold">Requirement*</small><br>';
-    echo '<strong>' . $label . '</strong><br>';
+        foreach ($requirements as $label => $field) {
+            echo '<div class="col-md-4">';
+            echo '<div class="border rounded p-3 bg-light h-100">';
+            echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+            echo '<strong>' . $label . '</strong><br>';
 
-    if (!empty($row[$field])) {
-        $directory = $requirementDirectories[$field] ?? '../proposal/';
-        echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
-    } else {
-        echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+            if (!empty($row[$field])) {
+                $directory = $requirementDirectories[$field] ?? '../proposal/';
+                echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+            } else {
+                echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+            }
+
+            echo '</div></div>';
+        }
+
+        echo '</div></div>';
     }
-
-    echo '</div></div>';
+} else {
+    echo '<div class="alert alert-info text-center">No requirements found for SBO Treasurer.</div>';
 }
-
-
-
-      echo '</div></div>';
-  }
-  ?>
+?>
 </div>
 
 <!-- Approve Confirmation Modal -->
