@@ -98,7 +98,7 @@ $result = $stmt->get_result();
         <?= isset($_SESSION['fullname']) && isset($_SESSION['role']) ? htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")" : '' ?>
       </span>
       <div class="user-dropdown" id="userDropdown">
-        <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
+        <i class="fa-solid fa-user" onclick="toggleDropdown()"></i>
         <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
           <?php if ($_SESSION['role'] === 'CCSSBOAuditor'): ?>
             <a href="ccssboauditor_dashboard.php">CCS SBO Auditor Dashboard</a>

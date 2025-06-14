@@ -1,4 +1,6 @@
+
 <?php
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
@@ -83,8 +85,11 @@ $result = $stmt->get_result();
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  
 </head>
+<style>
 
+</style>
 <body>
 <header class="topbar">
   <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS TREASURER PORTAL</div>
@@ -98,7 +103,7 @@ $result = $stmt->get_result();
         <?= isset($_SESSION['fullname']) && isset($_SESSION['role']) ? htmlspecialchars($_SESSION['fullname']) . " (" . htmlspecialchars($_SESSION['role']) . ")" : '' ?>
       </span>
       <div class="user-dropdown" id="userDropdown">
-        <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
+        <i class="fa-solid fa-user" onclick="toggleDropdown()"></i>
         <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
           <?php if ($_SESSION['role'] === 'CCSSBOTreasurer'): ?>
             <a href="ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
