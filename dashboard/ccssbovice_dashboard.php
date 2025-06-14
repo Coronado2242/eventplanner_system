@@ -69,8 +69,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['
         <a href="../aboutus.php">About Us</a>
         <a href="../calendar1.php">Calendar</a>
         <div class="admin-info">
-            <i class="icon-calendar"></i>
-            <i class="icon-bell"></i>
             <span>
                 <?php
                 if (isset($_SESSION['fullname']) && isset($_SESSION['role'])) {
@@ -80,7 +78,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['
             </span>
             <!-- User Dropdown -->
             <div class="user-dropdown" id="userDropdown">
-                <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
+                <i class="fa-solid fa-user" onclick="toggleDropdown()"></i>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOVice'): ?>
                         <a href="ccssbovice_dashboard.php">CCS SBO Vice Dashboard</a>
@@ -129,55 +127,63 @@ if ($result === false) {
 ?>
 <!-- Approval Management Content -->
 <div id="approvalContent" style="display:none;">
-    <main class="content" >
+    <main class="content">
         <h1 style="margin-bottom: 0;">Request Approval</h1>
-<table class="approval-table">
-    <thead>
-        <tr>
-            <th>Department</th>
-            <th>Requirements</th>
-             <th>Budget File</th>
-            <th>Event Type</th>
-            <th>Budget (₱)</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php while($row = $result->fetch_assoc()): ?>
-            <tr data-id="<?= $row['id'] ?>">
-                <td><?= htmlspecialchars($row['department']) ?></td>
-                <td><button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">View</button></td>
+        <table class="approval-table">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Requirements</th>
+                    <th>Budget File</th>
+                    <th>Event Type</th>
+                    <th>Budget (₱)</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($result->num_rows > 0): ?>
+                    <?php while($row = $result->fetch_assoc()): ?>
+                        <tr data-id="<?= $row['id'] ?>">
+                            <td><?= htmlspecialchars($row['department']) ?></td>
+                            <td>
+                                <button onclick="showRequirementsTab()" style="background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;">
+                                    View
+                                </button>
+                            </td>
+                            <td>
+                                <?php 
+                                    $fileName = htmlspecialchars($row['budget_file']);
+                                    if (!empty($row['budget_file'])): 
+                                        echo "<a href='../proposal/uploads/$fileName' target='_blank'>$fileName</a>";
+                                        $isDisabled = '';
+                                    else: 
+                                        echo "No file";
+                                        $isDisabled = 'disabled';
+                                    endif;
+                                ?>
+                            </td>
+                            <td><?= htmlspecialchars($row['event_type']) ?></td>
+                            <td>
+                                <input type="number" name="budget" class="budget-input" placeholder="Enter amount">
+                            </td>
+                            <td>
+                                <button class="approve-btn" onclick="approveBudget(<?= $row['id'] ?>, this)" <?= $isDisabled ?>>Approve</button>
+                                <button class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal" <?= $isDisabled ?>>
+                                    Disapprove
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" class="text-center">No proposals found for SBO Vice President.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </main>
+</div>
 
-                <td>
-                        <?php 
-                        $fileName = htmlspecialchars($row['budget_file']);
-                        if (!empty($row['budget_file'])): 
-                            echo "<a href='../proposal/uploads/$fileName' target='_blank'>$fileName</a>";
-                            $isDisabled = '';
-                        else: 
-                            echo "No file";
-                            $isDisabled = 'disabled';
-                        endif;
-                        ?>
-                    </td>
-                    <td><?= htmlspecialchars($row['event_type']) ?></td>
-                    <td>
-                        <input type="number" name="budget" class="budget-input" placeholder="Enter amount">
-                    </td>
-                    <td>
-                        <button class="approve-btn" onclick="approveBudget(<?= $row['id'] ?>, this)" <?= $isDisabled ?>>Approve</button>
-                          <button class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal" <?= $isDisabled ?>>
-  Disapprove
-</button>
-
-                    </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-
-                    </main>
-                </div>
 
 <!-- Requirements Section -->
 <div id="requirementContent" class="content" style="display:none;">
@@ -186,62 +192,62 @@ if ($result === false) {
  $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
  $result = mysqli_query($conn, $sql);
 
-  while ($row = $result->fetch_assoc()) {
-      echo '<div class="card p-4 mb-4 shadow-sm">';
-      echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
-      echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
-      echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
-      echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
-      echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
-      echo '<h5 class="mt-4">Requirements</h5>';
-      echo '<div class="row g-3">';
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        echo '<div class="card p-4 mb-4 shadow-sm">';
+        echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+        echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+        echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+        echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+        echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+        echo '<h5 class="mt-4">Requirements</h5>';
+        echo '<div class="row g-3">';
 
-$requirements = [
-    "Letter Attachment" => "letter_attachment",
-    "Adviser Commitment form" => "adviser_form",
-    "Constitution ang by-laws of the Org." => "constitution",
-    "Certification from Responsive Dean/Associate Dean" => "certification",
-    "Accomplishment reports" => "reports",
-    "Financial Report" => "financial",
-    "Plan of Activities" => "activity_plan",
-    "Budget Plan" => "budget_file"
-];
+        $requirements = [
+            "Letter Attachment" => "letter_attachment",
+            "Adviser Commitment form" => "adviser_form",
+            "Constitution ang by-laws of the Org." => "constitution",
+            "Certification from Responsive Dean/Associate Dean" => "certification",
+            "Accomplishment reports" => "reports",
+            "Financial Report" => "financial",
+            "Plan of Activities" => "activity_plan",
+            "Budget Plan" => "budget_file"
+        ];
 
-// Map each field to its directory
-$requirementDirectories = [
-    "letter_attachment" => "../proposal/",
-    "adviser_form" => "../proposal/",
-    "constitution" => "../proposal/",
-    "certification" => "../proposal/",
-    "reports" => "../proposal/",
-    "financial" => "../proposal/",
-    "activity_plan" => "../proposal/",
-    "budget_file" => "../proposal/uploads/" // budget_file is in a different directory
-];
+        $requirementDirectories = [
+            "letter_attachment" => "../proposal/",
+            "adviser_form" => "../proposal/",
+            "constitution" => "../proposal/",
+            "certification" => "../proposal/",
+            "reports" => "../proposal/",
+            "financial" => "../proposal/",
+            "activity_plan" => "../proposal/",
+            "budget_file" => "../proposal/uploads/"
+        ];
 
-foreach ($requirements as $label => $field) {
-    echo '<div class="col-md-4">';
-    echo '<div class="border rounded p-3 bg-light h-100">';
-    echo '<small class="text-danger fw-bold">Requirement*</small><br>';
-    echo '<strong>' . $label . '</strong><br>';
+        foreach ($requirements as $label => $field) {
+            echo '<div class="col-md-4">';
+            echo '<div class="border rounded p-3 bg-light h-100">';
+            echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+            echo '<strong>' . $label . '</strong><br>';
 
-    if (!empty($row[$field])) {
-        $directory = $requirementDirectories[$field] ?? '../proposal/';
-        echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
-    } else {
-        echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+            if (!empty($row[$field])) {
+                $directory = $requirementDirectories[$field] ?? '../proposal/';
+                echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+            } else {
+                echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+            }
+
+            echo '</div></div>';
+        }
+
+        echo '</div></div>';
     }
-
-    echo '</div></div>';
+} else {
+    echo '<div class="alert alert-info text-center">No requirements found for SBO Vice President.</div>';
 }
-
-
-
-      echo '</div></div>';
-  }
-  ?>
+?>
 </div>
-
 
 <!-- Budget Plan -->
 <div id="budgetForm" class="content" style="display:none;">
@@ -252,40 +258,39 @@ foreach ($requirements as $label => $field) {
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) == 0) {
-    echo "<p>No pending proposals at this time.</p>";
-} else {
-    echo '<table>';
-    echo '<thead><tr>
-            <th>Event Type</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Venue</th>
-            <th>Department</th>
-            <th>Actions</th>
-          </tr></thead><tbody>';
+        echo '<div class="alert alert-info text-center">No pending budget plan for SBO Vice President.</div>';
+    } else {
+        echo '<table>';
+        echo '<thead><tr>
+                <th>Event Type</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Venue</th>
+                <th>Department</th>
+                <th>Actions</th>
+              </tr></thead><tbody>';
 
-    while ($row = mysqli_fetch_assoc($result)) {
-        echo '<tr>';
-        echo '<td>' . htmlspecialchars($row['event_type']) . '</td>';
-        echo '<td>' . date("M d, Y", strtotime($row['start_date'])) . ' - ' . date("M d, Y", strtotime($row['end_date'])) . '</td>';
-        echo '<td>' . htmlspecialchars($row['time']) . '</td>';
-        echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
-        echo '<td>' . htmlspecialchars($row['department']) . '</td>';
-        echo '<td>';
+        while ($row = mysqli_fetch_assoc($result)) {
+            echo '<tr>';
+            echo '<td>' . htmlspecialchars($row['event_type']) . '</td>';
+            echo '<td>' . date("M d, Y", strtotime($row['start_date'])) . ' - ' . date("M d, Y", strtotime($row['end_date'])) . '</td>';
+            echo '<td>' . htmlspecialchars($row['time']) . '</td>';
+            echo '<td>' . htmlspecialchars($row['venue']) . '</td>';
+            echo '<td>' . htmlspecialchars($row['department']) . '</td>';
+            echo '<td>';
 
-        echo '<form method="POST" action=" " style="display:inline;">';
-        echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
-        echo '<input type="hidden" name="level" value="CCSVice">';
-        echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn" onclick="openBudgetPlanModal(' . $row['id'] . ')" data-proposal-id="' . $row['id'] . '">Set Budget Plan</button>';
+            echo '<form method="POST" action="" style="display:inline;">';
+            echo '<input type="hidden" name="proposal_id" value="' . htmlspecialchars($row['id']) . '">';
+            echo '<input type="hidden" name="level" value="CCSVice">';
+            echo '<button type="button" id="uploadBudgetBtn" name="action" value="approve" class="action-btn upload-btn" onclick="openBudgetPlanModal(' . $row['id'] . ')" data-proposal-id="' . $row['id'] . '">Set Budget Plan</button>';
+            echo '</form>';
 
-        echo '</form>';
+            echo '</td>';
+            echo '</tr>';
+        }
 
-        echo '</td>';
-        echo '</tr>';
+        echo '</tbody></table>';
     }
-
-    echo '</tbody></table>';
-}
     ?>
 </div>
 
@@ -300,7 +305,7 @@ if (isset($_GET['budget']) && $_GET['budget'] == 1 && isset($_GET['proposal_id']
  
  <!-- Budget Plan Modal -->
 <div id="budgetPlanModal" class="modal">
-  <div class="modal-content">
+  <div class="modal-content1">
     <span class="close-btn" onclick="closeBudgetPlanModal()">&times;</span>
 <!-- Budget Plan Form (initially hidden) -->
 <div class="container mt-5 content" id="budgetPlanForm" style="display:none;">
@@ -770,6 +775,11 @@ document.addEventListener("click", function (event) {
     menu.style.display = "none";
   }
 });
+
+function toggleMobileNav() {
+  const nav = document.getElementById("mainNav");
+  nav.classList.toggle("show");
+}
 </script>
 
 </body>

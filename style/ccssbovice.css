@@ -1,9 +1,13 @@
+html {
+  height: 100%;
+  background: url('../img/homebg2.jpg') no-repeat center center fixed;
+  background-size: cover;
+}
 
-html, body {
+body {
   margin: 0;
   padding: 0;
-  height: 100%;
-  width: 100%;
+  min-height: 100vh;
   overflow-x: hidden;
   position: relative;
   font-family: Arial, sans-serif;
@@ -70,7 +74,6 @@ body::before {
 }
 .admin-info {
     display: inline-block;
-    margin-left: 20px;
 }
 
 .sidebar {
@@ -407,16 +410,56 @@ table {
     margin-top: 20px;
     font-family: Arial, sans-serif;
 }
+/* Rounded corners for table and container */
+
+.table-responsive {
+    width: 100%;
+    max-width: 1000px; /* optional: limit width for aesthetics */
+    overflow-x: auto;
+    border-radius: 1rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.table-responsive table {
+  width: 100%;
+  table-layout: auto; /* or fixed, depending on your needs */
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.table th:first-child {
+  border-top-left-radius: 1rem;
+}
+
+.table th:last-child {
+  border-top-right-radius: 1rem;
+}
+
+.table tr:last-child td:first-child {
+  border-bottom-left-radius: 1rem;
+}
+
+.table tr:last-child td:last-child {
+  border-bottom-right-radius: 1rem;
+}
 
 thead tr {
     background-color: #007BFF; /* example: blue header */
     color: white;
 }
 
+td {
+background-color: #fff;
+}
 th, td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
+    
 }
 
 tr:nth-child(even) {
@@ -477,3 +520,159 @@ tr:nth-child(even) {
   color: black;
 }
 
+/* Modal Background (semi-transparent with blur) */
+#budgetPlanModal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 1050;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.05); /* Soft white overlay */
+  backdrop-filter: blur(8px); /* Glass effect */
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Modal Content (Glass card) */
+#budgetPlanModal .modal-content {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 5% auto;
+  padding: 2rem;
+  max-width: 1000px;
+  animation: fadeInUp 0.3s ease-out;
+  color: #fff; /* Light text for contrast */
+  position: relative;
+}
+
+/* Close Button */
+.close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  font-size: 1.5rem;
+  color: #fff;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+  color: #ccc;
+}
+
+/* Headings */
+#budgetPlanForm h2 {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Table Styling */
+.table th {
+  background-color: rgba(0, 64, 128, 0.8);
+  color: #fff;
+}
+
+.table td input {
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  border-radius: 5px;
+  padding: 4px;
+}
+
+.table td input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #00408044;
+}
+
+/* Button Styling */
+#budgetForm {
+  border: none;
+  padding: 0.5rem 2rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  color: #000;
+  transition: background-color 0.3s ease;
+    display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+
+
+/* Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* General Nav Link Hover */
+#mainNav a {
+    text-decoration: none;
+    color: #000;
+    padding: 10px 15px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+#mainNav a:hover {
+    background-color: #007bff;
+    color: #fff; /* Example: Gold on hover */
+}
+
+/* Hover for Icons */
+.admin-info i {
+    margin: 0 8px;
+    color: #000;
+    transition: color 0.3s;
+    cursor: pointer;
+}
+
+.admin-info i:hover {
+    color: #007bff;
+}
+
+/* User Dropdown Styles */
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.user-dropdown .dropdown-menu {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    min-width: 160px;
+    right: 0;
+    z-index: 1;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.user-dropdown .dropdown-menu a {
+    color: #333;
+    padding: 10px 15px;
+    display: block;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.user-dropdown .dropdown-menu a:hover {
+    background-color: #000;
+}
+
+/* Show dropdown on .show class */
+.user-dropdown .dropdown-menu.show {
+    display: block;
+}
