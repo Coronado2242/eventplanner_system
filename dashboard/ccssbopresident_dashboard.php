@@ -21,9 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         if ($action === 'approve') {
         $status = 'Pending';
         $new_level = 'CCS Faculty';
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
+        $viewed = 0;
+
+        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=?, viewed=? WHERE id=?");
         if (!$stmt) die("Prepare failed: " . $conn->error);
-        $stmt->bind_param("ssi", $status, $new_level, $id);
+
+        $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
     
         // Redirect with success flag
@@ -379,6 +382,23 @@ document.querySelectorAll('.approve-btn').forEach(button => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   });
+
+  
+  document.addEventListener("DOMContentLoaded", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tab = urlParams.get('tab');
+
+  if (tab && ['dashboard', 'proposal', 'requirement'].includes(tab)) {
+    switchTab(tab);
+
+    // Optional: Remove the query string from the URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  if (urlParams.get('approved') === '1') {
+    alert("✅ Proposal approved successfully!");
+  }
+});
 </script>
 </body>
 </html>

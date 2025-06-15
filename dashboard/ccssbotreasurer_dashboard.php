@@ -1,4 +1,3 @@
-
 <?php
 
 error_reporting(E_ALL);
@@ -20,17 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
-        if ($action === 'approve') {
-          $status = 'Pending';
-          $new_level = 'CCS Auditor';
-          $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
-          if (!$stmt) die("Prepare failed: " . $conn->error);
-          $stmt->bind_param("ssi", $status, $new_level, $id);
-          if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-      
-          // Redirect with success flag
-          header("Location: ccssbotreasurer_dashboard.php?approved=1");
-          exit;
+      if ($action === 'approve') {
+        $status = 'Pending';
+        $new_level = 'CCS Auditor';
+        $viewed = 0;
+    
+        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=?, viewed=? WHERE id=?");
+        if (!$stmt) die("Prepare failed: " . $conn->error);
+    
+        $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
+    
+        // Redirect with success flag
+        header("Location: ccssbotreasurer_dashboard.php?approved=1");
+        exit;
         } elseif ($action === 'disapprove') {
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
@@ -384,6 +386,23 @@ document.querySelectorAll('.approve-btn').forEach(button => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   });
+
+  document.addEventListener("DOMContentLoaded", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tab = urlParams.get('tab');
+
+  if (tab && ['dashboard', 'proposal', 'requirement'].includes(tab)) {
+    switchTab(tab);
+
+    // Optional: Remove the query string from the URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  if (urlParams.get('approved') === '1') {
+    alert("✅ Proposal approved successfully!");
+  }
+});
+
 </script>
 </body>
 </html>
