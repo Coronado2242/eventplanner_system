@@ -6,275 +6,135 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Extract department from username
 $notifCount = 0;
 $notifHTML = '';
 
-if (isset($_SESSION['username']) && isset($_SESSION['role'])) {
+// === USER DISAPPROVAL NOTIFICATION (needs username) ===
+$excludedRoles = ['superadmin', 'Osas', 'CCSDean', 'CCSSBOVice', 'CCSSBOPresident', 'CCSSBOTreasurer', 'CCSSBOAuditor', 'CCSFaculty'];
+
+if (isset($_SESSION['username']) && $role && !in_array($role, $excludedRoles)) {
     $username = $_SESSION['username'];
-    $role = $_SESSION['role']; 
-    $excludedRoles = ['superadmin', 'Osas', 'CCSDean', 'CCSSBOVice', 'CCSSBOPresident', 'CCSSBOTreasurer', 'CCSSBOAuditor', 'CCSFaculty'];
-    
-    if (!in_array($_SESSION['role'], $excludedRoles)) {
-        $username = $_SESSION['username'];
-        $parts = explode('_', $username);
-        $department = $parts[0] ?? '';
+    $parts = explode('_', $username);
+    $department = $parts[0] ?? '';
 
-        $stmt = $conn->prepare("SELECT id, event_type, disapproved_by, remarks FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
-        $stmt->bind_param("s", $department);
-        $stmt->execute();
-        $stmt->store_result();
-        $notifCount = $stmt->num_rows;
+    $stmt = $conn->prepare("SELECT id, event_type, disapproved_by, remarks FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
+    $stmt->bind_param("s", $department);
+    $stmt->execute();
+    $stmt->store_result();
+    $notifCount = $stmt->num_rows;
 
-        if ($notifCount > 0) {
-            $stmt->bind_result($id, $event_type, $disapproved_by, $remarks);
-            while ($stmt->fetch()) {
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc;'>
-                        <b>$event_type</b><br>
-                        Disapproved by: <b>$disapproved_by</b><br>
-                        <small>Remarks:</small> <i>$remarks</i>
-                    </div>
-                ";
-            }
+    if ($notifCount > 0) {
+        $stmt->bind_result($id, $event_type, $disapproved_by, $remarks);
+        while ($stmt->fetch()) {
+            $notifHTML .= "
+                <div style='padding: 10px; border-bottom: 1px solid #ccc;'>
+                    <b>$event_type</b><br>
+                    Disapproved by: <b>$disapproved_by</b><br>
+                    <small>Remarks:</small> <i>$remarks</i>
+                </div>
+            ";
         }
-    
-
-    //  If user is Vice Presindent – show proposals that need OSAS approval
-        } elseif ($role === 'CCSSBOVice') {
-            $sql = "SELECT id, department, event_type, budget_file 
-                    FROM proposals 
-                    WHERE budget_amount IS NULL 
-                    AND department = 'CCS' 
-                    AND status != 'Disapproved'";
-                    
-            $stmt = $conn->prepare($sql);
-            $stmt->execute();
-            $stmt->store_result();
-            $notifCount = $stmt->num_rows;
-
-            if ($notifCount > 0) {
-                $stmt->bind_result($id, $department, $event_type, $budget_file);
-                while ($stmt->fetch()) {
-                    $notifHTML .= "
-                        <div style='padding: 10px; border-bottom: 1px solid #ccc;'>
-                            <b>$event_type</b><br>
-                            Requires your approval.
-                            <a href='admin.php?tab=approval' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                        </div>
-                    ";
-                }
-            }
-    
-    //  If user is Treasurer 
-        } elseif ($role === 'CCSSBOTreasurer') {
-            $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = 'CCS Treasurer' AND status = 'Pending'");
-            $stmt->execute();
-            $stmt->store_result();
-
-            $stmt->bind_result($id, $event_type, $viewed); // ✅ bind_result MUST come before fetch()
-
-            $notifCount = 0;
-            $notifHTML = '';
-
-            while ($stmt->fetch()) {
-                if (isset($_GET['viewed']) && is_numeric($_GET['viewed'])) {
-                    $id = (int) $_GET['viewed'];
-                    $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
-                    header("Location: dashboard/ccssbotreasurer_dashboard.php?tab=proposal");
-                    exit;
-                }
-                
-                if ($viewed == 0) {
-                    $notifCount++;
-                }
-
-                $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
-
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
-                        <b>$event_type</b><br>
-                        Requires your approval.<br>
-                        <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                    </div>
-                ";
-            }
-
-    //  If user is Auditor 
-        } elseif ($role === 'CCSSBOAuditor') {
-            $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = 'CCS Auditor' AND status = 'Pending'");
-            $stmt->execute();
-            $stmt->store_result();
-
-            $stmt->bind_result($id, $event_type, $viewed); // ✅ bind_result MUST come before fetch()
-
-            $notifCount = 0;
-            $notifHTML = '';
-
-            while ($stmt->fetch()) {
-                if (isset($_GET['viewed']) && is_numeric($_GET['viewed'])) {
-                    $id = (int) $_GET['viewed'];
-                    $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
-                    header("Location: dashboard/ccssboauditor_dashboard.php?tab=proposal");
-                    exit;
-                }
-                
-                if ($viewed == 0) {
-                    $notifCount++;
-                }
-
-                $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
-
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
-                        <b>$event_type</b><br>
-                        Requires your approval.<br>
-                        <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                    </div>
-                ";
-            }
-
-    //  If user is President 
-        } elseif ($role === 'CCSSBOPresident') {
-            $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = 'CCS President' AND status = 'Pending'");
-            $stmt->execute();
-            $stmt->store_result();
-
-            $stmt->bind_result($id, $event_type, $viewed); // ✅ bind_result MUST come before fetch()
-
-            $notifCount = 0;
-            $notifHTML = '';
-
-            while ($stmt->fetch()) {
-                if (isset($_GET['viewed']) && is_numeric($_GET['viewed'])) {
-                    $id = (int) $_GET['viewed'];
-                    $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
-                    header("Location: dashboard/ccssbopresident_dashboard.php?tab=proposal");
-                    exit;
-                }
-                
-                if ($viewed == 0) {
-                    $notifCount++;
-                }
-
-                $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
-
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
-                        <b>$event_type</b><br>
-                        Requires your approval.<br>
-                        <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                    </div>
-                ";
-            }
-
-    //  If user is Faculty 
-        } elseif ($role === 'CCSFaculty') {
-            $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = 'CCS Faculty' AND status = 'Pending'");
-            $stmt->execute();
-            $stmt->store_result();
-
-            $stmt->bind_result($id, $event_type, $viewed); // ✅ bind_result MUST come before fetch()
-
-            $notifCount = 0;
-            $notifHTML = '';
-
-            while ($stmt->fetch()) {
-                if (isset($_GET['viewed']) && is_numeric($_GET['viewed'])) {
-                    $id = (int) $_GET['viewed'];
-                    $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
-                    header("Location: dashboard/ccsfaculty_dashboard.php?tab=proposal");
-                    exit;
-                }
-                
-                if ($viewed == 0) {
-                    $notifCount++;
-                }
-
-                $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
-
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
-                        <b>$event_type</b><br>
-                        Requires your approval.<br>
-                        <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                    </div>
-                ";
-            }
-
-    //  If user is Dean 
-        } elseif ($role === 'CCSDean') {
-            $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = 'CCS Dean' AND status = 'Pending'");
-            $stmt->execute();
-            $stmt->store_result();
-
-            $stmt->bind_result($id, $event_type, $viewed); // ✅ bind_result MUST come before fetch()
-
-            $notifCount = 0;
-            $notifHTML = '';
-
-            while ($stmt->fetch()) {
-                if (isset($_GET['viewed']) && is_numeric($_GET['viewed'])) {
-                    $id = (int) $_GET['viewed'];
-                    $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
-                    header("Location: dashboard/ccsdean_dashboard.php?tab=proposal");
-                    exit;
-                }
-                
-                if ($viewed == 0) {
-                    $notifCount++;
-                }
-
-                $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
-
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
-                        <b>$event_type</b><br>
-                        Requires your approval.<br>
-                        <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                    </div>
-                ";
-            }
-
-    //  If user is Osas 
-        } elseif ($role === 'Osas') {
-            $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = 'OSAS' AND status = 'Pending'");
-            $stmt->execute();
-            $stmt->store_result();
-
-            $stmt->bind_result($id, $event_type, $viewed);
-
-            $notifCount = 0;
-            $notifHTML = '';
-
-            while ($stmt->fetch()) {
-                if (isset($_GET['viewed']) && is_numeric($_GET['viewed'])) {
-                    $id = (int) $_GET['viewed'];
-                    $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
-                    header("Location: dashboard/osas.php?tab=proposal");
-                    exit;
-                }
-                
-                if ($viewed == 0) {
-                    $notifCount++;
-                }
-
-                $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
-
-                $notifHTML .= "
-                    <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
-                        <b>$event_type</b><br>
-                        Requires your approval.<br>
-                        <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
-                    </div>
-                ";
-            }
-
-    //  You can add more approver roles (like President, Treasurer, etc.) below if needed
     }
 }
 
+// === FUNCTION TO RENDER APPROVAL NOTIFICATIONS ===
+function handleApproverNotifications($conn, $roleMatch, $levelFilter, $redirectUrl) {
+    global $notifHTML, $notifCount;
+
+    $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = ? AND status = 'Pending'");
+    $stmt->bind_param("s", $levelFilter);
+    $stmt->execute();
+    $stmt->store_result();
+    $stmt->bind_result($id, $event_type, $viewed);
+
+    $notifCount = 0;
+    $notifHTML = '';
+
+    while ($stmt->fetch()) {
+        if (isset($_GET['viewed']) && is_numeric($_GET['viewed']) && $_GET['viewed'] == $id) {
+            $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
+            header("Location: $redirectUrl");
+            exit;
+        }
+
+        if ($viewed == 0) {
+            $notifCount++;
+        }
+
+        $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+        $notifHTML .= "
+            <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                <b>$event_type</b><br>
+                Requires your approval.<br>
+                <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
+            </div>
+        ";
+    }
+}
+
+// === ROLE-SPECIFIC APPROVER NOTIFICATIONS ===
+switch ($role) {
+    case 'CCSSBOVice':
+        $stmt = $conn->prepare("SELECT id, department, event_type, budget_file, viewed FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'");
+        $stmt->execute();
+        $stmt->store_result();
+        $stmt->bind_result($id, $department, $event_type, $budget_file, $viewed);
+
+        $notifCount = 0;
+        $notifHTML = '';
+
+        while ($stmt->fetch()) {
+            if (isset($_GET['viewed']) && is_numeric($_GET['viewed']) && $_GET['viewed'] == $id) {
+                $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
+                header("Location: dashboard/ccssbovice_dashboard.php?tab=proposal");
+                exit;
+            }
+
+            if ($viewed == 0) {
+                $notifCount++;
+            }
+
+            $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+            $notifHTML .= "
+                <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                    <b>$event_type</b><br>
+                    Requires your approval.<br>
+                    <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
+                </div>
+            ";
+        }
+        break;
+
+    case 'CCSSBOTreasurer':
+        handleApproverNotifications($conn, $role, 'CCS Treasurer', 'dashboard/ccssbotreasurer_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSSBOAuditor':
+        handleApproverNotifications($conn, $role, 'CCS Auditor', 'dashboard/ccssboauditor_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSSBOPresident':
+        handleApproverNotifications($conn, $role, 'CCS President', 'dashboard/ccssbopresident_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSFaculty':
+        handleApproverNotifications($conn, $role, 'CCS Faculty', 'dashboard/ccsfaculty_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSDean':
+        handleApproverNotifications($conn, $role, 'CCS Dean', 'dashboard/ccsdean_dashboard.php?tab=proposal');
+        break;
+
+    case 'Osas':
+        handleApproverNotifications($conn, $role, 'OSAS', 'dashboard/osas.php?tab=proposal');
+        break;
+
+    // Add more roles here if needed...
+}
 ?>
+
 
 
 <!DOCTYPE html>

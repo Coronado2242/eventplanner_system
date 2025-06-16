@@ -1,5 +1,138 @@
 <?php
 session_start();
+$role = $_SESSION['role'] ?? '';
+$conn = new mysqli("localhost", "root", "", "eventplanner");
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$notifCount = 0;
+$notifHTML = '';
+
+// === USER DISAPPROVAL NOTIFICATION (needs username) ===
+$excludedRoles = ['superadmin', 'Osas', 'CCSDean', 'CCSSBOVice', 'CCSSBOPresident', 'CCSSBOTreasurer', 'CCSSBOAuditor', 'CCSFaculty'];
+
+if (isset($_SESSION['username']) && $role && !in_array($role, $excludedRoles)) {
+    $username = $_SESSION['username'];
+    $parts = explode('_', $username);
+    $department = $parts[0] ?? '';
+
+    $stmt = $conn->prepare("SELECT id, event_type, disapproved_by, remarks FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
+    $stmt->bind_param("s", $department);
+    $stmt->execute();
+    $stmt->store_result();
+    $notifCount = $stmt->num_rows;
+
+    if ($notifCount > 0) {
+        $stmt->bind_result($id, $event_type, $disapproved_by, $remarks);
+        while ($stmt->fetch()) {
+            $notifHTML .= "
+                <div style='padding: 10px; border-bottom: 1px solid #ccc;'>
+                    <b>$event_type</b><br>
+                    Disapproved by: <b>$disapproved_by</b><br>
+                    <small>Remarks:</small> <i>$remarks</i>
+                </div>
+            ";
+        }
+    }
+}
+
+// === FUNCTION TO RENDER APPROVAL NOTIFICATIONS ===
+function handleApproverNotifications($conn, $roleMatch, $levelFilter, $redirectUrl) {
+    global $notifHTML, $notifCount;
+
+    $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = ? AND status = 'Pending'");
+    $stmt->bind_param("s", $levelFilter);
+    $stmt->execute();
+    $stmt->store_result();
+    $stmt->bind_result($id, $event_type, $viewed);
+
+    $notifCount = 0;
+    $notifHTML = '';
+
+    while ($stmt->fetch()) {
+        if (isset($_GET['viewed']) && is_numeric($_GET['viewed']) && $_GET['viewed'] == $id) {
+            $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
+            header("Location: $redirectUrl");
+            exit;
+        }
+
+        if ($viewed == 0) {
+            $notifCount++;
+        }
+
+        $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+        $notifHTML .= "
+            <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                <b>$event_type</b><br>
+                Requires your approval.<br>
+                <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
+            </div>
+        ";
+    }
+}
+
+// === ROLE-SPECIFIC APPROVER NOTIFICATIONS ===
+switch ($role) {
+    case 'CCSSBOVice':
+        $stmt = $conn->prepare("SELECT id, department, event_type, budget_file, viewed FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'");
+        $stmt->execute();
+        $stmt->store_result();
+        $stmt->bind_result($id, $department, $event_type, $budget_file, $viewed);
+
+        $notifCount = 0;
+        $notifHTML = '';
+
+        while ($stmt->fetch()) {
+            if (isset($_GET['viewed']) && is_numeric($_GET['viewed']) && $_GET['viewed'] == $id) {
+                $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
+                header("Location: dashboard/ccssbovice_dashboard.php?tab=proposal");
+                exit;
+            }
+
+            if ($viewed == 0) {
+                $notifCount++;
+            }
+
+            $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+            $notifHTML .= "
+                <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                    <b>$event_type</b><br>
+                    Requires your approval.<br>
+                    <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
+                </div>
+            ";
+        }
+        break;
+
+    case 'CCSSBOTreasurer':
+        handleApproverNotifications($conn, $role, 'CCS Treasurer', 'dashboard/ccssbotreasurer_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSSBOAuditor':
+        handleApproverNotifications($conn, $role, 'CCS Auditor', 'dashboard/ccssboauditor_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSSBOPresident':
+        handleApproverNotifications($conn, $role, 'CCS President', 'dashboard/ccssbopresident_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSFaculty':
+        handleApproverNotifications($conn, $role, 'CCS Faculty', 'dashboard/ccsfaculty_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSDean':
+        handleApproverNotifications($conn, $role, 'CCS Dean', 'dashboard/ccsdean_dashboard.php?tab=proposal');
+        break;
+
+    case 'Osas':
+        handleApproverNotifications($conn, $role, 'OSAS', 'dashboard/osas.php?tab=proposal');
+        break;
+
+    // Add more roles here if needed...
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -280,69 +413,71 @@ h1 {
     text-decoration: underline;
 }
 
-
+.notif-icon { font-size: 20px; color: #333; transition: color 0.3s; cursor: pointer; margin-left: 15px; }
+.notif-icon:hover {color: #007bff;}
+.notif-badge { position: absolute;  background: red; color: white; border-radius: 50%; font-size: 12px; padding: 2px 6px; }
+#notifModal { display: none; position: fixed; z-index: 1000; top: 60px; right: 20px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: 300px; max-height: 400px; overflow-y: auto; }
+    
 </style>
 
 <body>
 
-<header class="navbar">
+    <header class="navbar">
         <div class="logo"><img src="img/lspulogo.jpg">Event<span style="color:blue;">Sync</span></div>
         <nav>
             <ul>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="aboutus.php" class="active">About Us</a></li>
                 <li><a href="calendar1.php">Calendar</a></li>
-                <!-- Only show user dropdown if admin or client is logged in -->
                 <?php if (isset($_SESSION['admin_logged_in']) || isset($_SESSION['role'])): ?>
                     <li>
-            <div class="admin-info">
-                <i class="icon-calendar"></i>
-                <i class="icon-bell"></i>
+                        <div class="admin-info">
 
-                <!-- Display role if set -->
-                <?php if (isset($_SESSION['fullname'])): ?>
-                    <span><?php echo htmlspecialchars($_SESSION['fullname']); ?></span>
-                <?php endif; ?>
-                <?php if (isset($_SESSION['role'])): ?>
-                    <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
-                <?php endif; ?>
-
-                <!-- User Dropdown -->
-                <div class="user-dropdown" id="userDropdown">
-                    <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
-                    <div class="dropdown-menu" id="dropdownMenu">
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
-                            <a href="account/admin_dashboard.php">Admin Dashboard</a>
+                        <?php if (isset($_SESSION['fullname'])): ?>
+                            <span><?php echo htmlspecialchars($_SESSION['fullname']); ?></span>
                         <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'Osas'): ?>
-                            <a href="dashboard/osas.php">Osas Dashboard</a>
+                        <?php if (isset($_SESSION['role'])): ?>
+                            <span><?php echo htmlspecialchars($_SESSION['role']); ?></span>
                         <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
-                            <a href="dashboard/ccsdean_dashboard.php">CCS Dean Dashboard</a>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOVice'): ?>
-                            <a href="dashboard/ccssbovice_dashboard.php">CCS SBO Vice Dashboard</a>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOPresident'): ?>
-                            <a href="dashboard/ccssbopresident_dashboard.php">CCS SBO President Dashboard</a>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOTreasurer'): ?>
-                            <a href="dashboard/ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOAuditor'): ?>
-                            <a href="dashboard/ccssboauditor_dashboard.php">CCS SBO Auditor Dashboard</a>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSFaculty'): ?>
-                            <a href="dashboard/ccsfaculty_dashboard.php">CCS Faculty Dashboard</a>
-                        <?php endif; ?>
-                        <a href="account/logout.php">Logout</a>
-                    </div>
-                </div>
-            </div>
-        </li>
-
+                            <div class="user-dropdown" id="userDropdown">
+                                <i class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown()"></i>
+                                <div class="dropdown-menu" id="dropdownMenu">
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
+                                    <a href="account/admin_dashboard.php">Admin Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'Osas'): ?>Add commentMore actions
+                                    <a href="dashboard/osas.php">Osas Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>Add commentMore actions
+                                    <a href="dashboard/ccsdean_dashboard.php">CCS Dean Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOVice'): ?>
+                                    <a href="dashboard/ccssbovice_dashboard.php">CCS SBO Vice Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOPresident'): ?>
+                                    <a href="dashboard/ccssbopresident_dashboard.php">CCS SBO President Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOTreasurer'): ?>
+                                    <a href="dashboard/ccssbotreasurer_dashboard.php">CCS SBO Treasurer Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOAuditor'): ?>
+                                    <a href="dashboard/ccssboauditor_dashboard.php">CCS SBO Auditor Dashboard</a>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSFaculty'): ?>
+                                    <a href="dashboard/ccsfaculty_dashboard.php">CCS Faculty Dashboard</a>
+                                <?php endif; ?>
+                                    <a href="account/logout.php">Logout</a>
+                                </div>
+                            </div>
+                            <span class="notif-icon" onclick="toggleNotif()">
+                                <i class="fas fa-bell"></i>
+                                <?php if ($notifCount > 0): ?>
+                                    <span class="notif-badge"><?php echo $notifCount; ?></span>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                    </li>
                 <?php else: ?>
-                    <!-- Show sign in only if no one is logged in -->
                     <li><a href="account/login.php">Sign In</a></li>
                 <?php endif; ?>
             </ul>
@@ -380,6 +515,11 @@ h1 {
         </div>
     </div>
 </div>
+
+    <!-- Notification Modal -->
+    <div id="notifModal">
+        <?php echo $notifHTML ?: "<div style='padding:10px;'>No notification.</div>"; ?>
+    </div>
 <!-- Dropdown Script -->
 <script>
 function toggleDropdown() {
@@ -394,6 +534,12 @@ document.addEventListener("click", function(event) {
         menu.style.display = "none";
     }
 });
+
+// Notification modal toggle
+function toggleNotif() {
+    const notifModal = document.getElementById("notifModal");
+    notifModal.style.display = notifModal.style.display === "block" ? "none" : "block";
+}
 </script>
 </body>
 </html>

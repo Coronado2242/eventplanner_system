@@ -18,7 +18,7 @@ if (!isset($_SESSION['proposal_id'])) {
 
 $proposal_id = $_SESSION['proposal_id'];
 
-$stmt = $conn->prepare("UPDATE proposals SET submit = 'submitted', level = 'CCS Treasurer' WHERE id = ?");
+$stmt = $conn->prepare("UPDATE proposals SET submit = 'submitted', level = 'CCS Treasurer', viewed = '0' WHERE id = ?");
 if (!$stmt) {
     die("Prepare failed: " . $conn->error);
 }

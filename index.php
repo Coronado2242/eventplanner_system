@@ -1,30 +1,34 @@
 <?php
 session_start();
+$role = $_SESSION['role'] ?? '';
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Extract department from username
 $notifCount = 0;
 $notifHTML = '';
-if (isset($_SESSION['username'])) {
+
+// === USER DISAPPROVAL NOTIFICATION (needs username) ===
+$excludedRoles = ['superadmin', 'Osas', 'CCSDean', 'CCSSBOVice', 'CCSSBOPresident', 'CCSSBOTreasurer', 'CCSSBOAuditor', 'CCSFaculty'];
+
+if (isset($_SESSION['username']) && $role && !in_array($role, $excludedRoles)) {
     $username = $_SESSION['username'];
     $parts = explode('_', $username);
     $department = $parts[0] ?? '';
 
-    $stmt = $conn->prepare("SELECT id, disapproved_by, remarks FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
+    $stmt = $conn->prepare("SELECT id, event_type, disapproved_by, remarks FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
     $stmt->bind_param("s", $department);
     $stmt->execute();
     $stmt->store_result();
     $notifCount = $stmt->num_rows;
 
     if ($notifCount > 0) {
-        $stmt->bind_result($proposal_id, $disapproved_by, $remarks);
+        $stmt->bind_result($id, $event_type, $disapproved_by, $remarks);
         while ($stmt->fetch()) {
             $notifHTML .= "
                 <div style='padding: 10px; border-bottom: 1px solid #ccc;'>
-                    <b>Proposal #$proposal_id</b><br>
+                    <b>$event_type</b><br>
                     Disapproved by: <b>$disapproved_by</b><br>
                     <small>Remarks:</small> <i>$remarks</i>
                 </div>
@@ -32,7 +36,105 @@ if (isset($_SESSION['username'])) {
         }
     }
 }
+
+// === FUNCTION TO RENDER APPROVAL NOTIFICATIONS ===
+function handleApproverNotifications($conn, $roleMatch, $levelFilter, $redirectUrl) {
+    global $notifHTML, $notifCount;
+
+    $stmt = $conn->prepare("SELECT id, event_type, viewed FROM proposals WHERE level = ? AND status = 'Pending'");
+    $stmt->bind_param("s", $levelFilter);
+    $stmt->execute();
+    $stmt->store_result();
+    $stmt->bind_result($id, $event_type, $viewed);
+
+    $notifCount = 0;
+    $notifHTML = '';
+
+    while ($stmt->fetch()) {
+        if (isset($_GET['viewed']) && is_numeric($_GET['viewed']) && $_GET['viewed'] == $id) {
+            $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
+            header("Location: $redirectUrl");
+            exit;
+        }
+
+        if ($viewed == 0) {
+            $notifCount++;
+        }
+
+        $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+        $notifHTML .= "
+            <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                <b>$event_type</b><br>
+                Requires your approval.<br>
+                <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
+            </div>
+        ";
+    }
+}
+
+// === ROLE-SPECIFIC APPROVER NOTIFICATIONS ===
+switch ($role) {
+    case 'CCSSBOVice':
+        $stmt = $conn->prepare("SELECT id, department, event_type, budget_file, viewed FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'");
+        $stmt->execute();
+        $stmt->store_result();
+        $stmt->bind_result($id, $department, $event_type, $budget_file, $viewed);
+
+        $notifCount = 0;
+        $notifHTML = '';
+
+        while ($stmt->fetch()) {
+            if (isset($_GET['viewed']) && is_numeric($_GET['viewed']) && $_GET['viewed'] == $id) {
+                $conn->query("UPDATE proposals SET viewed = 1 WHERE id = $id");
+                header("Location: dashboard/ccssbovice_dashboard.php?tab=proposal");
+                exit;
+            }
+
+            if ($viewed == 0) {
+                $notifCount++;
+            }
+
+            $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+            $notifHTML .= "
+                <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                    <b>$event_type</b><br>
+                    Requires your approval.<br>
+                    <a href='?viewed=$id' style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>Go to Approval</a>
+                </div>
+            ";
+        }
+        break;
+
+    case 'CCSSBOTreasurer':
+        handleApproverNotifications($conn, $role, 'CCS Treasurer', 'dashboard/ccssbotreasurer_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSSBOAuditor':
+        handleApproverNotifications($conn, $role, 'CCS Auditor', 'dashboard/ccssboauditor_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSSBOPresident':
+        handleApproverNotifications($conn, $role, 'CCS President', 'dashboard/ccssbopresident_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSFaculty':
+        handleApproverNotifications($conn, $role, 'CCS Faculty', 'dashboard/ccsfaculty_dashboard.php?tab=proposal');
+        break;
+
+    case 'CCSDean':
+        handleApproverNotifications($conn, $role, 'CCS Dean', 'dashboard/ccsdean_dashboard.php?tab=proposal');
+        break;
+
+    case 'Osas':
+        handleApproverNotifications($conn, $role, 'OSAS', 'dashboard/osas.php?tab=proposal');
+        break;
+
+    // Add more roles here if needed...
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,10 +171,10 @@ if (isset($_SESSION['username'])) {
         .modal-content { background-color: #fff; margin: 2% auto; padding: 30px; border-radius: 10px; width: 95%; height: 75%; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .close-button { float: right; font-size: 28px; cursor: pointer; }
 
-        .notif-icon { font-size: 20px; color: #333; transition: color 0.3s; cursor: pointer; margin-left: 15px; }
-        .notif-icon:hover {color: #007bff;}
-        .notif-badge { position: absolute; top: -8px; right: -10px; background: red; color: white; border-radius: 50%; font-size: 12px; padding: 2px 6px; }
-        #notifModal { display: none; position: fixed; z-index: 1000; top: 60px; right: 20px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: 300px; max-height: 400px; overflow-y: auto; }
+.notif-icon { font-size: 20px; color: #333; transition: color 0.3s; cursor: pointer; margin-left: 15px; }
+.notif-icon:hover {color: #007bff;}
+.notif-badge { position: absolute;  background: red; color: white; border-radius: 50%; font-size: 12px; padding: 2px 6px; }
+#notifModal { display: none; position: fixed; z-index: 1000; top: 60px; right: 20px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: 300px; max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body>

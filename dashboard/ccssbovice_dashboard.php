@@ -780,6 +780,55 @@ function toggleMobileNav() {
   const nav = document.getElementById("mainNav");
   nav.classList.toggle("show");
 }
+
+function switchTab(tab) {
+  const sections = {
+    dashboard: "dashboardContent",
+    proposal: "approvalContent",
+    requirement: "requirementContent",
+    budget: "budgetForm"
+  };
+
+  for (const key in sections) {
+    document.getElementById(sections[key]).style.display = (key === tab) ? 'block' : 'none';
+    document.getElementById(key + 'Tab').classList.toggle('active', key === tab);
+  }
+}
+
+// Set proposal ID into modal for approval
+document.querySelectorAll('.approve-btn').forEach(button => {
+  button.addEventListener('click', function () {
+    const proposalId = this.getAttribute('data-id');
+    document.getElementById('approve_proposal_id').value = proposalId;
+  });
+});
+
+
+  // Check for ?approved=1 in URL
+  document.addEventListener("DOMContentLoaded", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('approved') === '1') {
+      alert("✅ Proposal approved successfully!");
+      // Remove the query string from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tab = urlParams.get('tab');
+
+  if (tab && ['dashboard', 'proposal', 'requirement', 'budget'].includes(tab)) {
+    switchTab(tab);
+
+    // Optional: Remove the query string from the URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  if (urlParams.get('approved') === '1') {
+    alert("✅ Proposal approved successfully!");
+  }
+});
 </script>
 
 </body>
