@@ -17,25 +17,35 @@ if (isset($_SESSION['username']) && $role && !in_array($role, $excludedRoles)) {
     $parts = explode('_', $username);
     $department = $parts[0] ?? '';
 
-    $stmt = $conn->prepare("SELECT id, event_type, disapproved_by, remarks FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
+    $stmt = $conn->prepare("SELECT id, event_type, disapproved_by, remarks, viewed FROM proposals WHERE department = ? AND status = 'Disapproved' AND notified = 0");
     $stmt->bind_param("s", $department);
     $stmt->execute();
-    $stmt->store_result();
-    $notifCount = $stmt->num_rows;
+    $result = $stmt->get_result();
 
-    if ($notifCount > 0) {
-        $stmt->bind_result($id, $event_type, $disapproved_by, $remarks);
-        while ($stmt->fetch()) {
-            $notifHTML .= "
-                <div style='padding: 10px; border-bottom: 1px solid #ccc;'>
-                    <b>$event_type</b><br>
-                    Disapproved by: <b>$disapproved_by</b><br>
-                    <small>Remarks:</small> <i>$remarks</i>
-                </div>
-            ";
+    while ($row = $result->fetch_assoc()) {
+        $id = $row['id'];
+        $event_type = $row['event_type'];
+        $disapproved_by = $row['disapproved_by'];
+        $remarks = $row['remarks'];
+        $viewed = $row['viewed'];
+
+        if ($viewed == 0) {
+            $notifCount++; // count only unviewed ones
         }
+
+        $highlightStyle = ($viewed == 0) ? "background-color: #ffeeba;" : "";
+
+        $notifHTML .= "
+            <div style='padding: 10px; border-bottom: 1px solid #ccc; $highlightStyle'>
+                <b>$event_type</b><br>
+                Disapproved by: <b>$disapproved_by</b><br>
+                <small>Remarks:</small> <i>$remarks</i><br>
+                <a href='#' onclick=\"showModal($id); return false;\" style='display:inline-block; margin-top:5px; padding:5px 10px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;'>View</a>
+            </div>
+        ";
     }
 }
+
 
 // === FUNCTION TO RENDER APPROVAL NOTIFICATIONS ===
 function handleApproverNotifications($conn, $roleMatch, $levelFilter, $redirectUrl) {
@@ -133,6 +143,7 @@ switch ($role) {
 
     // Add more roles here if needed...
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -269,6 +280,23 @@ switch ($role) {
     <div id="notifModal">
         <?php echo $notifHTML ?: "<div style='padding:10px;'>No notification.</div>"; ?>
     </div>
+<!-- Modal -->
+<div id="detailsModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 30px; border-radius: 10px; width: 420px; max-width: 90%; z-index: 9999; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); font-family: 'Segoe UI', sans-serif;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; font-size: 20px;">📄 Proposal Details</h3>
+        <button onclick="closeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #999;">&times;</button>
+    </div>
+    <div id="modalContent" style="font-size: 15px; color: #333;">
+        Loading...
+    </div>
+    <div style="text-align: right; margin-top: 20px;">
+        <button onclick="closeModal()" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">Close</button>
+    </div>
+</div>
+
+<!-- Overlay -->
+<div id="modalOverlay" onclick="closeModal()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); z-index: 9998;"></div>
+
 
 <script>
 function toggleDropdown() {
@@ -303,5 +331,29 @@ function toggleNotif() {
     notifModal.style.display = notifModal.style.display === "block" ? "none" : "block";
 }
 </script>
+<script>
+function showModal(id) {
+    document.getElementById('detailsModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = "Loading...";
+
+    fetch(`get_proposal_details.php?id=${id}`)
+        .then(res => res.text())
+        .then(data => {
+            modalContent.innerHTML = data;
+        })
+        .catch(() => {
+            modalContent.innerHTML = "Failed to load details.";
+        });
+}
+
+function closeModal() {
+    document.getElementById('detailsModal').style.display = 'none';
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+</script>
+
 </body>
 </html>
