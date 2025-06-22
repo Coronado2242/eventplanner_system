@@ -106,11 +106,25 @@ h5 {
     padding: 15px 20px;
     cursor: pointer;
 }
-
+.submenu {
+  display: none;
+}
 .sidebar ul li.active, .sidebar ul li:hover {
     background: #0066cc;
 }
-
+    .sidebar ul ul.submenu {
+      list-style-type: none;
+      padding-left: 20px;
+      display: none;
+    }
+    .sidebar ul ul.submenu li {
+      cursor: pointer;
+      padding: 5px 0;
+      font-size: 0.95em;
+    }
+    .sidebar ul ul.submenu li:hover {
+      text-decoration: underline;
+    }
 .content {
     margin-left: 240px;
     padding: 20px;

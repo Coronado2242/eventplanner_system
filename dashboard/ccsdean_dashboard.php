@@ -13,26 +13,27 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Approval & Disapproval Logic
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
+// === Separate levels for Proposal and Venue ===
+$proposal_level = 'CCS Dean';
+$venue_level = 'Venues'; 
+
+// === Handle Approve/Disapprove for Proposals (excluding Gym venue) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && isset($_POST['type']) && $_POST['type'] === 'proposal') {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
-        if ($action === 'approve') {
+    if ($action === 'approve') {
         $status = 'Pending';
 <<<<<<< Updated upstream
         $new_level = 'OSAS';
         $viewed = 0;
 
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=?, viewed=? WHERE id=?");
-        if (!$stmt) die("Prepare failed: " . $conn->error);
-
+        $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=?, viewed=? WHERE id=?");
         $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
-        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-    
-        // Redirect with success flag
-        header("Location: ccsdean_dashboard.php?approved=1");
+        $stmt->execute();
+        header("Location: ccsdean_dashboard.php?approved=1&tab=proposal");
         exit;
+<<<<<<< HEAD
         } elseif ($action === 'disapprove') {
 =======
         $new_level = 'CCS Dean';  
@@ -48,6 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         exit;
     } elseif ($action === 'disapprove') {
 >>>>>>> Stashed changes
+=======
+    } elseif ($action === 'disapprove') {
+>>>>>>> b09586ad51f4f85b3a498be3c3bd2280ddf3e561
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
 
@@ -74,10 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         // Debug: Check session username
 >>>>>>> Stashed changes
         $disapproved_by = $_SESSION['username'] ?? 'Unknown';
-        if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
-            die("Error: Disapproved by user is not set in session.");
-        }
 
+<<<<<<< HEAD
         $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
 <<<<<<< Updated upstream
         if (!$stmt) die("Prepare failed: " . $conn->error);
@@ -94,10 +96,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
 >>>>>>> Stashed changes
         header("Location: ccsdean_dashboard.php");
+=======
+        $stmt = $conn->prepare("UPDATE sooproposal SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
+        $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
+        $stmt->execute();
+        header("Location: ccsdean_dashboard.php?tab=proposal");
+>>>>>>> b09586ad51f4f85b3a498be3c3bd2280ddf3e561
         exit;
     }
 }
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 $current_level = 'CCS Dean';
 $search_department = '%CCS%';
@@ -109,10 +118,69 @@ $search_department = '%CCS%';
 >>>>>>> Stashed changes
 $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
+=======
+// === Handle Approve/Disapprove for Venue (Gym only) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && isset($_POST['type']) && $_POST['type'] === 'venue') {
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve') {
+        $status = 'Pending';
+        $new_level = 'CCS Treasurer';
+        $viewed = 0;
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=?, viewed=? WHERE id=?");
+        $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
+        $stmt->execute();
+        header("Location: ccsdean_dashboard.php?approved=1&tab=venue");
+        exit;
+    } elseif ($action === 'disapprove') {
+        $reasons = $_POST['reasons'] ?? [];
+        $remarks = [];
+
+        if (in_array("Incomplete Documents", $reasons)) {
+            $remarks[] = "Incomplete Documents – " . ($_POST['details_missing'] ?? '');
+        }
+        if (in_array("Incorrect Information", $reasons)) {
+            $remarks[] = "Incorrect Information – " . ($_POST['details_incorrect'] ?? '');
+        }
+        if (in_array("Other", $reasons)) {
+            $remarks[] = "Other – " . ($_POST['details_other'] ?? '');
+        }
+
+        foreach ($reasons as $reason) {
+            if (!in_array($reason, ["Incomplete Documents", "Incorrect Information", "Other"])) {
+                $remarks[] = $reason;
+            }
+        }
+
+        $final_remarks = implode("; ", $remarks);
+        $disapproved_by = $_SESSION['username'] ?? 'Unknown';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
+        $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
+        $stmt->execute();
+        header("Location: ccsdean_dashboard.php?tab=venue");
+        exit;
+    }
+}
+
+// === Fetch Proposals for Approval (excluding Gym venue) ===
+$search_department = '%CCS%';
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt->bind_param("ss", $proposal_level, $search_department);
+>>>>>>> b09586ad51f4f85b3a498be3c3bd2280ddf3e561
 $stmt->execute();
-$result = $stmt->get_result();
+$proposal_result = $stmt->get_result();
+
+// === Fetch Venue Requests for Gym ===
+$venue_stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ? AND LOWER(venue) = 'gym'");
+$venue_stmt->bind_param("ss", $venue_level, $search_department);
+$venue_stmt->execute();
+$venue_result = $venue_stmt->get_result();
 ?>
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 <!-- Flash Messages -->
@@ -125,6 +193,9 @@ $result = $stmt->get_result();
 <?php endif; ?>
 
 >>>>>>> Stashed changes
+=======
+
+>>>>>>> b09586ad51f4f85b3a498be3c3bd2280ddf3e561
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -186,8 +257,16 @@ $result = $stmt->get_result();
 <aside class="sidebar">
   <ul>
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
-    <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
-    <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+    <li onclick="toggleSubMenu('createEventSubMenu')"><i class="fa fa-folder-plus" ></i> Proposal Approval <i class="fa fa-caret-down" ></i></li>
+    <ul id="createEventSubMenu" class="submenu" style="display:none;">
+    <li id="proposalTab"> Proposals</li>
+    <li id="requirementTab"> Requirements</li>
+    </ul>
+    <li onclick="toggleSubMenu('venueSubMenu')"><i class="fa fa-folder-plus" ></i> Venue Approval <i class="fa fa-caret-down" ></i></li>
+    <ul id="venueSubMenu" class="submenu" style="display:none;">
+    <li id="venueTab"> Venue</li>
+    <li id="venuerequirementTab"> Requirements</li>
+    </ul>
   </ul>
 </aside>
 
@@ -208,12 +287,12 @@ $result = $stmt->get_result();
       </tr>
     </thead>
     <tbody>
-    <?php if ($result && $result->num_rows > 0): ?>
-      <?php while ($row = $result->fetch_assoc()): ?>
+    <?php if ($proposal_result && $proposal_result->num_rows > 0): ?>
+      <?php while ($row = $proposal_result->fetch_assoc()): ?>
         <tr>
 <<<<<<< Updated upstream
           <td><?= htmlspecialchars($row['department']) ?></td>
-          <td><?= htmlspecialchars($row['event_type']) ?></td>
+          <td><?= htmlspecialchars($row['activity_name']) ?></td>
           <td><?= htmlspecialchars($row['start_date']) ?></td>
           <td><?= htmlspecialchars($row['end_date']) ?></td>
           <td><?= htmlspecialchars($row['venue']) ?></td>
@@ -381,13 +460,42 @@ if (mysqli_num_rows($result) == 0) {
     echo '<div class="alert alert-info text-center">No requirements found for Dean.</div>';
 }
 ?>
+<<<<<<< HEAD
 
 =======
     }
         ?>
     </main>
 >>>>>>> Stashed changes
+=======
+>>>>>>> b09586ad51f4f85b3a498be3c3bd2280ddf3e561
 </div>
+
+<!-- Venue Approval -->
+<div id="venueContent" class="content" style="display:none;">
+  <h1>Pending Venue Requests</h1>
+  <table class="table table-bordered">
+    <thead><tr><th>Department</th><th>Activity Name</th><th>Date</th><th>Venue</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <?php if ($venue_result && $venue_result->num_rows > 0): while ($row = $venue_result->fetch_assoc()): ?>
+        <tr>
+          <td><?= htmlspecialchars($row['department']) ?></td>
+          <td><?= htmlspecialchars($row['activity_name']) ?></td>
+          <td><?= htmlspecialchars($row['start_date']) ?> - <?= htmlspecialchars($row['end_date']) ?></td>
+          <td><?= htmlspecialchars($row['venue']) ?></td>
+          <td><?= htmlspecialchars($row['status']) ?></td>
+          <td>
+            <button class="btn btn-success btn-sm approve-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#approveModal">Approve</button>
+            <button class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
+          </td>
+        </tr>
+      <?php endwhile; else: ?>
+        <tr><td colspan="7" class="text-center">No venue requests found.</td></tr>
+      <?php endif; ?>
+    </tbody>
+  </table>
+</div>
+
 
 <!-- Approve Confirmation Modal -->
 <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
@@ -402,6 +510,7 @@ if (mysqli_num_rows($result) == 0) {
         <div class="modal-body">
           <input type="hidden" name="proposal_id" id="approve_proposal_id">
           <input type="hidden" name="action" value="approve">
+          <input type="hidden" name="type" id="approve_type">
           Are you sure you want to approve this proposal?
         </div>
 
@@ -412,6 +521,7 @@ if (mysqli_num_rows($result) == 0) {
     </form>
   </div>
 </div>
+
 
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
@@ -430,6 +540,7 @@ if (mysqli_num_rows($result) == 0) {
           <input type="hidden" name="proposal_id" id="modal_proposal_id">
           <input type="hidden" name="level" value="CCSDean">
           <input type="hidden" name="action" value="disapprove">
+          <input type="hidden" name="type" id="modal_type">
 
           <p><strong>📝 Remarks / Comments:</strong></p>
           <p>
@@ -561,7 +672,7 @@ if (mysqli_num_rows($result) == 0) {
 <script>
 function toggleDropdown() {
   const menu = document.getElementById('dropdownMenu');
-  menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
 function toggleMobileNav() {
@@ -569,68 +680,86 @@ function toggleMobileNav() {
   nav.classList.toggle("show");
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  document.getElementById("calendarFrame").src = "../proposal/calendar.php";
-
-  document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
-  document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
-  document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
-
-  document.querySelectorAll('.disapprove-btn').forEach(button => {
-    button.addEventListener('click', function () {
-      const proposalId = this.getAttribute('data-id');
-      document.getElementById('modal_proposal_id').value = proposalId;
-    });
-  });
-});
+function toggleSubMenu(id) {
+  const submenu = document.getElementById(id);
+  submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
+}
 
 function switchTab(tab) {
   const sections = {
     dashboard: "dashboardContent",
     proposal: "proposalContent",
-    requirement: "requirementContent"
+    requirement: "requirementContent",
+    venue: "venueContent"
   };
 
   for (const key in sections) {
-    document.getElementById(sections[key]).style.display = (key === tab) ? 'block' : 'none';
-    document.getElementById(key + 'Tab').classList.toggle('active', key === tab);
+    const content = document.getElementById(sections[key]);
+    const tabElement = document.getElementById(key + "Tab");
+
+    if (content) content.style.display = (key === tab) ? 'block' : 'none';
+    if (tabElement) tabElement.classList.toggle('active', key === tab);
   }
 }
 
-// Set proposal ID into modal for approval
-document.querySelectorAll('.approve-btn').forEach(button => {
-  button.addEventListener('click', function () {
-    const proposalId = this.getAttribute('data-id');
-    document.getElementById('approve_proposal_id').value = proposalId;
-  });
-});
-
-
-  // Check for ?approved=1 in URL
-  document.addEventListener("DOMContentLoaded", function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('approved') === '1') {
-      alert("✅ Proposal approved successfully!");
-      // Remove the query string from URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+function setupModalButtons() {
+  document.querySelectorAll('.approve-btn').forEach(button => {
+    button.addEventListener('click', function () {
+      const proposalId = this.getAttribute('data-id');
+      const contentSection = this.closest('#proposalContent') ? 'proposal' : 'venue';
+      document.getElementById('approve_proposal_id').value = proposalId;
+      document.getElementById('approve_type').value = contentSection;
+    });
   });
 
-  document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll('.disapprove-btn').forEach(button => {
+    button.addEventListener('click', function () {
+      const proposalId = this.getAttribute('data-id');
+      const contentSection = this.closest('#proposalContent') ? 'proposal' : 'venue';
+      document.getElementById('modal_proposal_id').value = proposalId;
+      document.getElementById('modal_type').value = contentSection;
+    });
+  });
+}
+
+
+function checkURLParams() {
   const urlParams = new URLSearchParams(window.location.search);
-  const tab = urlParams.get('tab');
 
-  if (tab && ['dashboard', 'proposal', 'requirement'].includes(tab)) {
+  const tab = urlParams.get('tab');
+  if (tab && ['dashboard', 'proposal', 'requirement', 'venue'].includes(tab)) {
     switchTab(tab);
+<<<<<<< HEAD
 
 <<<<<<< Updated upstream
     // Optional: Remove the query string from the URL
     window.history.replaceState({}, document.title, window.location.pathname);
+=======
+    window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+>>>>>>> b09586ad51f4f85b3a498be3c3bd2280ddf3e561
   }
 
   if (urlParams.get('approved') === '1') {
     alert("✅ Proposal approved successfully!");
+    window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
   }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("calendarFrame").src = "../proposal/calendar.php";
+
+  // Set tab click listeners
+  const tabIds = ["dashboard", "proposal", "requirement", "venue"];
+  tabIds.forEach(tab => {
+    const tabElement = document.getElementById(tab + "Tab");
+    if (tabElement) {
+      tabElement.addEventListener("click", () => switchTab(tab));
+    }
+  });
+
+  // Setup modals and check URL
+  setupModalButtons();
+  checkURLParams();
 });
 =======
     requirementTab.addEventListener('click', () => {
@@ -670,5 +799,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 >>>>>>> Stashed changes
 </script>
+
 </body>
 </html>

@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Create department-specific table
+    // Define the table name and create department-specific table with venue column
     $table = strtolower($department) . "_department";
     $createTableSQL = "
         CREATE TABLE IF NOT EXISTS `$table` (
@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             email VARCHAR(255) DEFAULT '',
             fullname VARCHAR(255) DEFAULT '',
             firstlogin VARCHAR(255) DEFAULT 'yes',
+            venue VARCHAR(255) DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     ";
@@ -60,20 +61,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check->bind_param("s", $username);
         $check->execute();
         $check->store_result();
-
+    
         if ($check->num_rows === 0) {
             $email = '';
             $fullname = '';
             $firstlogin = 'yes';
-            
-            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role, email, fullname, firstlogin) VALUES (?, ?, ?, ?, ?, ?)");
-            $insert->bind_param("ssssss", $username, $defaultPassword, $role, $email, $fullname, $firstlogin);
-            
+            $venue = ($role === "CCSDean") ? "Voag" : "";
+    
+            $insert = $conn->prepare("INSERT INTO `$table` (username, password, role, email, fullname, firstlogin, venue) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $insert->bind_param("sssssss", $username, $defaultPassword, $role, $email, $fullname, $firstlogin, $venue);
             $insert->execute();
         }
     }
 
-    header("Location: signup.php?success=Department '$department' added with default users");
+    header("Location: signup.php?success=Department '$department' added with default users and venue");
     exit;
 } else {
     header("Location: signup.php");
