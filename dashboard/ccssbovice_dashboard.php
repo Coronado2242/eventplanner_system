@@ -41,6 +41,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action']) && $_POST['
     exit();
 }
 
+// Fetch proposals currently for Auditor approval (You had $current_level = 'CCS Auditor', changed it accordingly)
+$current_level = 'CCS Vice';
+$search_department = '%CCS%';
+
+$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted' AND department LIKE ?";
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
+$stmt->bind_param("ss", $current_level, $search_department);
+
+$stmt->execute();
+$result = $stmt->get_result();
 
 
 ?>

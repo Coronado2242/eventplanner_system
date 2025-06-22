@@ -127,9 +127,15 @@ $result = $stmt->get_result();
 
 <!-- Dashboard Section -->
 <div id="dashboardContent" class="content">
+<<<<<<< Updated upstream
   <h1>Welcome to the CCS Treasurer Dashboard</h1>
   <p>This is your overview page.</p>
   <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+=======
+    <h1>Welcome to the CCS Treasurer Dashboard</h1>
+    <p>This is your overview page.</p>
+    <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+>>>>>>> Stashed changes
 </div>
 
 <!-- Proposals Section -->
@@ -145,6 +151,7 @@ $result = $stmt->get_result();
     <?php if ($result && $result->num_rows > 0): ?>
       <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
+<<<<<<< Updated upstream
           <td><?= htmlspecialchars($row['department']) ?></td>
           <td><?= htmlspecialchars($row['event_type']) ?></td>
           <td><?= htmlspecialchars($row['start_date']) ?></td>
@@ -159,12 +166,35 @@ $result = $stmt->get_result();
             </button>
             <button type="button" class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
           </td>
+=======
+            <td><?= htmlspecialchars($row['id']) ?></td>
+            <td><?= htmlspecialchars($row['department']) ?></td>
+            <td><?= htmlspecialchars($row['event_type']) ?></td>
+            <td><?= htmlspecialchars($row['start_date']) ?></td>
+            <td><?= htmlspecialchars($row['end_date']) ?></td>
+            <td><?= htmlspecialchars($row['venue']) ?></td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+            <td>
+                <form method="POST" action="" style="display:inline;">
+    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
+</form>
+<form method="POST" action="ccssbotreasurer_dashboard.php" style="display: inline;">
+    <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
+  Disapprove
+</button>
+
+</form>
+
+            </td>
+>>>>>>> Stashed changes
         </tr>
       <?php endwhile; ?>
     <?php else: ?>
       <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
     <?php endif; ?>
     </tbody>
+<<<<<<< Updated upstream
   </table>
 </div>
 
@@ -258,6 +288,84 @@ if ($result->num_rows > 0) {
   </div>
 </div>
 
+=======
+</table>
+
+</body>
+</html>
+
+<?php
+$conn->close();
+?>
+
+
+
+<!-- Requirements Content -->
+<<div id="requirementContent" style="display:none;">
+    <main class="content">
+        <h1 style="margin-bottom: 0;">Requirements</h1>
+
+        <?php
+        $host = "localhost";
+        $user = "root";
+        $pass = "";
+        $db   = "eventplanner";
+
+        $conn = mysqli_connect($host, $user, $pass, $db);
+
+        if (!$conn) {
+            die("Connection failed: " . mysqli_connect_error());
+        }
+
+ $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
+$result = mysqli_query($conn, $sql);
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
+            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
+
+            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
+            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
+            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
+            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
+            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
+            echo '</div>';
+
+            // Attachments Section
+            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
+            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
+
+            $requirements = [
+                "Letter Attachment" => "letter_attachment",
+                "Adviser Commitment form" => "adviser_form",
+                "Constitution and by-laws of the Org." => "constitution",
+                "Certification from Responsive Dean/Associate Dean" => "certification",
+                "Accomplishment reports" => "reports",
+                "Financial Report" => "financial",
+                "Plan of Activities" => "plan",
+                "Budget Plan" => "budget"
+            ];
+
+            foreach ($requirements as $label => $field) {
+                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
+                echo '<small style="color: red;">Requirement*</small><br>';
+                echo '<strong>' . $label . '</strong><br>';
+                if (!empty($row[$field])) {
+                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
+                } else {
+                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
+                }
+                echo '</div>';
+            }
+
+            echo '</div>';
+            echo '</div>';
+        }
+        ?>
+    </main>
+</div>
+
+>>>>>>> Stashed changes
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
