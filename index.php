@@ -144,6 +144,39 @@ switch ($role) {
     // Add more roles here if needed...
 }
 
+
+$dashboardUrl = "#"; // default fallback
+
+switch ($_SESSION['role'] ?? '') {
+    case 'superadmin':
+        $dashboardUrl = 'account/admin_dashboard.php';
+        break;
+    case 'Osas':
+        $dashboardUrl = 'dashboard/osas.php';
+        break;
+    case 'CCSDean':
+        $dashboardUrl = 'dashboard/ccsdean_dashboard.php';
+        break;
+    case 'CCSSBOVice':
+        $dashboardUrl = 'dashboard/ccssbovice_dashboard.php';
+        break;
+    case 'CCSSBOPresident':
+        $dashboardUrl = 'dashboard/ccssbopresident_dashboard.php';
+        break;
+    case 'CCSSBOTreasurer':
+        $dashboardUrl = 'dashboard/ccssbotreasurer_dashboard.php';
+        break;
+    case 'CCSSBOAuditor':
+        $dashboardUrl = 'dashboard/ccssboauditor_dashboard.php';
+        break;
+    case 'CCSFaculty':
+        $dashboardUrl = 'dashboard/ccsfaculty_dashboard.php';
+        break;
+    default:
+        if (isset($_SESSION['account_type']) && $_SESSION['account_type'] === 'department') {
+            $dashboardUrl = 'dashboard/' . strtolower($_SESSION['role']) . '_dashboard.php';
+        }
+}
 ?>
 
 <!DOCTYPE html>
@@ -254,16 +287,10 @@ switch ($role) {
     <section class="hero">
         <div class="overlay">
             <h1><span class="welcome-line">WELCOME TO</span><br><span class="brand-line"><span style="color:black;">Event</span><span style="color:blue;">Sync</span></span></h1>
-            <?php
-            $role = $_SESSION['role'] ?? '';
-            if (str_ends_with(strtolower($role), 'soo')):
-            ?>
                 <p>LET'S START A PLAN</p>
                 <div class="buttons">
-                    <a href="#" class="btn propose">PROPOSE PLAN</a>
-                    <a href="#" class="btn read">Read more</a>
+                    <a href="<?php echo $dashboardUrl; ?>" class="btn read">Go to Dashboard</a>
                 </div>
-            <?php endif; ?>
         </div>
     </section>
 
