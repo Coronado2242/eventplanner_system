@@ -23,6 +23,7 @@ $result = $stmt->get_result();
 if ($row = $result->fetch_assoc()) {
     if ($pass === $row['password']) {
         $_SESSION['user_logged_in'] = true;
+        $_SESSION['admin_logged_in'] = true; // ✅ Add this line
         $_SESSION['username'] = $row['username'];
         $_SESSION['role'] = $row['role'];
         $_SESSION['user_id'] = $row['id'];

@@ -245,10 +245,10 @@ switch ($_SESSION['role'] ?? '') {
                                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
                                     <a href="account/admin_dashboard.php">Admin Dashboard</a>
                                 <?php endif; ?>
-                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'Osas'): ?>Add commentMore actions
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'Osas'): ?>
                                     <a href="dashboard/osas.php">Osas Dashboard</a>
                                 <?php endif; ?>
-                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>Add commentMore actions
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSDean'): ?>
                                     <a href="dashboard/ccsdean_dashboard.php">CCS Dean Dashboard</a>
                                 <?php endif; ?>
                                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'CCSSBOVice'): ?>

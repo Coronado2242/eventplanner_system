@@ -27,15 +27,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
     $stmt->bind_param("sssssdssss", $department, $activity_name, $start_date, $end_date, $objective, $budget, $description, $venue, $person_involved, $username);
 
     if ($stmt->execute()) {
-        $last_id = $stmt->insert_id;
-        echo "<script>
-            alert('Activity saved! Proceeding to budget form...');
-            document.addEventListener('DOMContentLoaded', function() {
-                switchTab('eventBudgetContent');
-                document.getElementById('budgetProposalId').value = '$last_id';
-            });
-        </script>";
-    } else {
+      $last_id = $stmt->insert_id;
+      $_SESSION['last_proposal_id'] = $last_id;
+  
+      // === START: Generate POA PDF ===
+      require_once('fpdf/fpdf.php');
+      $target_date = "$start_date to $end_date";
+      $budget_display = 'Php ' . number_format(floatval($budget), 2);
+  
+      $poa_pdf = new FPDF();
+      $poa_pdf->AddPage();
+      $poa_pdf->SetFont('Arial', 'B', 14);
+      $poa_pdf->Cell(0, 10, 'Plan of Activities', 0, 1, 'C');
+      $poa_pdf->Ln(5);
+  
+      $poa_pdf->SetFont('Arial', 'B', 10);
+      $poa_pdf->SetFillColor(220, 220, 220);
+      $headers = ['OBJECTIVE', 'ACTIVITIES', 'BRIEF DESCRIPTION', 'PERSONS INVOLVED', 'TARGET DATE', 'BUDGET'];
+      $widths = [30, 30, 40, 40, 30, 20];
+  
+      foreach ($headers as $i => $header) {
+          $poa_pdf->Cell($widths[$i], 10, $header, 1, 0, 'C', true);
+      }
+      $poa_pdf->Ln();
+  
+      $poa_pdf->SetFont('Arial', '', 9);
+      $rowData = [$objective, $activity_name, $description, $person_involved, $target_date, $budget_display];
+  
+      $lineHeight = 5;
+      $cellLines = [];
+      $maxLines = 1;
+  
+      foreach ($rowData as $i => $text) {
+          $textWidth = $widths[$i] - 2;
+          $words = explode(' ', $text);
+          $line = '';
+          $lines = 1;
+          foreach ($words as $word) {
+              if ($poa_pdf->GetStringWidth($line . ' ' . $word) < $textWidth) {
+                  $line .= ' ' . $word;
+              } else {
+                  $lines++;
+                  $line = $word;
+              }
+          }
+          $cellLines[$i] = $lines;
+          if ($lines > $maxLines) $maxLines = $lines;
+      }
+  
+      $rowHeight = $lineHeight * $maxLines;
+      $x = $poa_pdf->GetX();
+      $y = $poa_pdf->GetY();
+  
+      for ($i = 0; $i < count($rowData); $i++) {
+          $poa_pdf->SetXY($x, $y);
+          $currentX = $x;
+          $currentY = $y;
+          $poa_pdf->Rect($currentX, $currentY, $widths[$i], $rowHeight);
+          $poa_pdf->MultiCell($widths[$i], $lineHeight, $rowData[$i], 0);
+          $x += $widths[$i];
+      }
+  
+      $poa_pdf->SetY($y + $rowHeight);
+  
+      $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
+      $poaFile = 'plan_of_activities_' . time() . '.pdf';
+      $poaPath = $uploadDir . '/' . $poaFile;
+      $poa_pdf->Output('F', $poaPath);
+  
+      if (file_exists($poaPath)) {
+          $conn->query("UPDATE sooproposal SET POA_file = '$poaFile' WHERE id = '$last_id'");
+      }
+  
+      // === END: Generate POA PDF ===
+  
+      echo "<script>
+          alert('Activity saved! Proceeding to budget form...');
+          document.addEventListener('DOMContentLoaded', function() {
+              switchTab('eventBudgetContent');
+              document.getElementById('budgetProposalId').value = '$last_id';
+          });
+      </script>";
+  }
+   else {
         echo "<script>alert('Error saving activity.');</script>";
     }
 }
@@ -69,6 +143,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
     .sidebar ul ul.submenu li:hover {
       text-decoration: underline;
     }
+    .table {
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.95rem;
+}
+
+.table thead th {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.badge.bg-success {
+  font-size: 0.8rem;
+  padding: 5px 8px;
+}
+
+.badge.bg-secondary {
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  opacity: 0.75;
+}
+
   </style>
 </head>
 <body>
@@ -98,9 +194,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
     <li onclick="toggleSubMenu('createEventSubMenu')"><i class="fa fa-folder-plus"></i> Create Event <i class="fa fa-caret-down"></i></li>
     <ul id="createEventSubMenu" class="submenu">
       <li onclick="switchTab('createEventContent')">Create Event Form</li>
-      <li onclick="switchTab('financialReportContent')">Financial Report</li>
+      <li onclick="switchTab('eventSummaryContent')">Summary Requirements</li>
+      <li onclick="switchTab('eventSummaryContent')">Request Pending</li>
+      <li onclick="switchTab('eventSummaryContent')">Completed</li>
     </ul>
-    
+    <li onclick="switchTab('financialReportContent')">Financial Report</li>
   </ul>
 </aside>
 
@@ -203,6 +301,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
       </div>
     </form>
   </div>
+
+
+  <div id="eventSummaryContent" class="content">
+  <h2 class="mb-3 fw-bold">Summary of Requirements</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Target Dates</th>
+          <th>POA File</th>
+          <th>Budget Plan</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+$username = $_SESSION['username'] ?? '';
+$query = "SELECT * FROM sooproposal WHERE username = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$result = $stmt->get_result();
+
+while ($row = $result->fetch_assoc()):
+    $status = $row['status'] ?? '';
+    if ($status === 'Submitted' || $status === 'Cancelled') continue; // skip if already processed
+
+    $start = date("M d, Y", strtotime($row['start_date']));
+    $end = date("M d, Y", strtotime($row['end_date']));
+    $poa = $row['POA_file'];
+    $budget = $row['budget_file'];
+?>
+<tr>
+  <td><?= htmlspecialchars($row['activity_name']) ?></td>
+  <td><?= "$start to $end" ?></td>
+  <td>
+    <?php if ($poa): ?>
+      <a href="../proposal/uploads/<?= $poa ?>" target="_blank" class="badge bg-success text-decoration-none">
+        <i class="fa fa-file-pdf"></i> View
+      </a>
+    <?php else: ?>
+      <span class="badge bg-secondary">Not Generated</span>
+    <?php endif; ?>
+  </td>
+  <td>
+    <?php if ($budget): ?>
+      <a href="../proposal/uploads/<?= $budget ?>" target="_blank" class="badge bg-success text-decoration-none">
+        <i class="fa fa-file-pdf"></i> View
+      </a>
+    <?php else: ?>
+      <span class="badge bg-secondary">Not Generated</span>
+    <?php endif; ?>
+  </td>
+  <td>
+    <form method="POST" action="handle_action.php" style="display:inline-block;">
+      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+      <button type="submit" name="submit_proposal" class="btn btn-success btn-sm">Submit</button>
+    </form>
+    <form method="POST" action="handle_action.php" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to cancel this proposal?');">
+      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+      <button type="submit" name="cancel_proposal" class="btn btn-danger btn-sm">Cancel</button>
+    </form>
+  </td>
+</tr>
+<?php endwhile; ?>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
 
   <div id="financialReportContent" class="content">
     <h2>Financial Report</h2>
@@ -309,10 +480,14 @@ document.addEventListener("DOMContentLoaded", function () {
   qtyInputs.forEach(input => input.addEventListener("input", calculateTotal));
   amountInputs.forEach(input => input.addEventListener("input", calculateTotal));
 });
+function switchTab(tabId) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+}
 </script>
 
 <?php
-require('fpdf/fpdf.php');
+require_once('fpdf/fpdf.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
     $proposal_id = intval($_POST['proposal_id']);
@@ -324,6 +499,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
 
     $grandTotal = array_sum(array_map('floatval', $totals));
 
+    // === Generate Budget Plan PDF ===
     $pdf = new FPDF();
     $pdf->AddPage();
     $pdf->SetFont('Arial','B',14);
@@ -351,12 +527,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
     $pdf->Cell(30,10,number_format($grandTotal,2),1,1,'R');
 
     $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
-    $pdfFile = 'budget_plan_' . time() . '.pdf';
-    $pdfPath = $uploadDir . '/' . $pdfFile;
-    $pdf->Output('F', $pdfPath);
+    $budgetFile = 'budget_plan_' . time() . '.pdf';
+    $budgetPath = $uploadDir . '/' . $budgetFile;
+    $pdf->Output('F', $budgetPath);
 
-    if (file_exists($pdfPath)) {
-        $conn->query("UPDATE sooproposal  SET budget_file = '$pdfFile' WHERE id = '$proposal_id'");
+    // === Save Budget File & Entries ===
+    if (file_exists($budgetPath)) {
+        $conn->query("UPDATE sooproposal SET budget_file = '$budgetFile' WHERE id = '$proposal_id'");
 
         foreach ($event_names as $i => $event_name) {
             if (empty(trim($event_name)) && empty(trim($particulars[$i]))) continue;
@@ -369,127 +546,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
 
             $conn->query("INSERT INTO budget_plans 
               (proposal_id, event_name, particulars, qty, amount, total, grand_total, attachment)
-              VALUES ('$proposal_id', '$event', '$particular', '$qty', '$amount', '$total', '$grandTotal', '$pdfFile')");
+              VALUES ('$proposal_id', '$event', '$particular', '$qty', '$amount', '$total', '$grandTotal', '$budgetFile')");
         }
 
-        echo "<p><a href='../proposal/uploads/$pdfFile' target='_blank'>View Generated Budget PDF</a></p>";
+        echo "<p><a href='../proposal/uploads/$budgetFile' target='_blank'>View Generated Budget PDF</a></p>";
     } else {
         echo "<p style='color:red;'>Failed to generate PDF.</p>";
     }
-}
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
-    require_once('fpdf/fpdf.php');
-
-    // === SAFE INPUT HANDLING ===
-    $objective = $_POST['objective'] ?? '';
-    $activity_name = $_POST['activity_name'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $person_involved = $_POST['person_involved'] ?? '';
-    $budget = $_POST['budget'] ?? 0;
-    $last_id = $_POST['last_id'] ?? null;
-
-    // === HANDLE DATE RANGE ===
-    $date_range = $_POST['date_range'] ?? '';
-    if (!empty($date_range) && strpos($date_range, 'to') !== false) {
-        [$start_date, $end_date] = array_map('trim', explode('to', $date_range));
-    } else {
-        $start_date = '';
-        $end_date = '';
-    }
-
-    // === SAFE DATE FORMATTING ===
-    if (!empty($start_date) && strtotime($start_date) !== false &&
-        !empty($end_date) && strtotime($end_date) !== false) {
-        $target_date = date("F j, Y", strtotime($start_date)) . " to " . date("F j, Y", strtotime($end_date));
-    } else {
-        $target_date = "N/A";
-    }
-
-    // === FORMAT BUDGET ===
-    $budget_display = 'Php ' . number_format(floatval($budget), 2);
-
-    // === SETUP PDF ===
-    $poa_pdf = new FPDF();
-    $poa_pdf->AddPage();
-    $poa_pdf->SetFont('Arial', 'B', 14);
-    $poa_pdf->Cell(0, 10, 'Plan of Activities', 0, 1, 'C');
-    $poa_pdf->Ln(5);
-
-    // === TABLE HEADER ===
-    $poa_pdf->SetFont('Arial', 'B', 10);
-    $poa_pdf->SetFillColor(220, 220, 220);
-    $headers = ['OBJECTIVE', 'ACTIVITIES', 'BRIEF DESCRIPTION', 'PERSONS INVOLVED', 'TARGET DATE', 'BUDGET'];
-    $widths = [30, 30, 40, 40, 30, 20]; // Must total ≤ 190mm
-
-    foreach ($headers as $i => $header) {
-        $poa_pdf->Cell($widths[$i], 10, $header, 1, 0, 'C', true);
-    }
-    $poa_pdf->Ln();
-
-    // === TABLE ROW DATA ===
-    $poa_pdf->SetFont('Arial', '', 9);
-    $rowData = [$objective, $activity_name, $description, $person_involved, $target_date, $budget_display];
-
-    // === DYNAMIC ROW HEIGHT BASED ON WRAPPING ===
-    $lineHeight = 5;
-    $cellLines = [];
-    $maxLines = 1;
-
-    foreach ($rowData as $i => $text) {
-        // Estimate number of lines
-        $textWidth = $widths[$i] - 2; // Adjust for padding
-        $words = explode(' ', $text);
-        $line = '';
-        $lines = 1;
-        foreach ($words as $word) {
-            if ($poa_pdf->GetStringWidth($line . ' ' . $word) < $textWidth) {
-                $line .= ' ' . $word;
-            } else {
-                $lines++;
-                $line = $word;
-            }
-        }
-        $cellLines[$i] = $lines;
-        if ($lines > $maxLines) $maxLines = $lines;
-    }
-
-    $rowHeight = $lineHeight * $maxLines;
-
-    // === DRAW CELLS EVENLY ALIGNED ===
-    $x = $poa_pdf->GetX();
-    $y = $poa_pdf->GetY();
-
-    for ($i = 0; $i < count($rowData); $i++) {
-        $poa_pdf->SetXY($x, $y);
-        $currentX = $x;
-        $currentY = $y;
-
-        // Draw rectangle
-        $poa_pdf->Rect($currentX, $currentY, $widths[$i], $rowHeight);
-
-        // Write text inside
-        $poa_pdf->MultiCell($widths[$i], $lineHeight, $rowData[$i], 0);
-
-        // Move X cursor to the next cell
-        $x += $widths[$i];
-    }
-
-    // Move Y cursor to the next row
-    $poa_pdf->SetY($y + $rowHeight);
-
-    // === SAVE PDF FILE ===
-    $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
-    $poaFile = 'plan_of_activities_' . time() . '.pdf';
-    $poaPath = $uploadDir . '/' . $poaFile;
-    $poa_pdf->Output('F', $poaPath);
-
-    // === STORE PDF PATH IN DATABASE ===
-    if ($last_id) {
-        $conn->query("UPDATE sooproposal SET POA_file = '$poaFile' WHERE id = '$last_id'");
-    }
-
-    // === OUTPUT DOWNLOAD LINK ===
-    echo "<p><a href='../proposal/uploads/$poaFile' target='_blank'>View Plan of Activities PDF</a></p>";
 }
 
 ?>
