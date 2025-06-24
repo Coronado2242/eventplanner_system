@@ -208,7 +208,8 @@ body {
   <div id="userManagementContent" style="display:none">
     <main class="content">
       <h1>User Management</h1>
-      <a href="signup.php" class="add-user-btn">+ Add Department</a><br><br>
+      <a href="signup.php" class="add-user-btn">+ Add Department</a>
+      <a href="solo_signup.php" class="add-user-btn" style="background-color: #007bff;">+ Add Solo Account</a>
       <table id="userTable">
         <thead>
           <tr>

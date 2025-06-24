@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
     <ul id="createEventSubMenu" class="submenu">
       <li onclick="switchTab('createEventContent')">Create Event Form</li>
       <li onclick="switchTab('eventSummaryContent')">Summary Requirements</li>
-      <li onclick="switchTab('eventSummaryContent')">Request Pending</li>
+      <li onclick="switchTab('eventPendingContent')">Request Pending</li>
       <li onclick="switchTab('eventSummaryContent')">Completed</li>
     </ul>
     <li onclick="switchTab('financialReportContent')">Financial Report</li>
@@ -318,56 +318,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
       </thead>
       <tbody>
       <?php
-$username = $_SESSION['username'] ?? '';
-$query = "SELECT * FROM sooproposal WHERE username = ?";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("s", $username);
-$stmt->execute();
-$result = $stmt->get_result();
+      $username = $_SESSION['username'] ?? '';
+      $query = "SELECT * FROM sooproposal WHERE username = ?";
+      $stmt = $conn->prepare($query);
+      $stmt->bind_param("s", $username);
+      $stmt->execute();
+      $result = $stmt->get_result();
 
-while ($row = $result->fetch_assoc()):
-    $status = $row['status'] ?? '';
-    if ($status === 'Submitted' || $status === 'Cancelled') continue; // skip if already processed
+      while ($row = $result->fetch_assoc()):
+          $status = $row['status'] ?? '';
+          if ($status === 'Submitted' || $status === 'Cancelled') continue; // skip if already processed
 
-    $start = date("M d, Y", strtotime($row['start_date']));
-    $end = date("M d, Y", strtotime($row['end_date']));
-    $poa = $row['POA_file'];
-    $budget = $row['budget_file'];
-?>
-<tr>
-  <td><?= htmlspecialchars($row['activity_name']) ?></td>
-  <td><?= "$start to $end" ?></td>
-  <td>
-    <?php if ($poa): ?>
-      <a href="../proposal/uploads/<?= $poa ?>" target="_blank" class="badge bg-success text-decoration-none">
-        <i class="fa fa-file-pdf"></i> View
-      </a>
-    <?php else: ?>
-      <span class="badge bg-secondary">Not Generated</span>
-    <?php endif; ?>
-  </td>
-  <td>
-    <?php if ($budget): ?>
-      <a href="../proposal/uploads/<?= $budget ?>" target="_blank" class="badge bg-success text-decoration-none">
-        <i class="fa fa-file-pdf"></i> View
-      </a>
-    <?php else: ?>
-      <span class="badge bg-secondary">Not Generated</span>
-    <?php endif; ?>
-  </td>
-  <td>
-    <form method="POST" action="handle_action.php" style="display:inline-block;">
-      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-      <button type="submit" name="submit_proposal" class="btn btn-success btn-sm">Submit</button>
-    </form>
-    <form method="POST" action="handle_action.php" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to cancel this proposal?');">
-      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-      <button type="submit" name="cancel_proposal" class="btn btn-danger btn-sm">Cancel</button>
-    </form>
-  </td>
-</tr>
-<?php endwhile; ?>
+          $start = date("M d, Y", strtotime($row['start_date']));
+          $end = date("M d, Y", strtotime($row['end_date']));
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td><?= "$start to $end" ?></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= $poa ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= $budget ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <form method="POST" action="handle_action.php" style="display:inline-block;">
+            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+            <button type="submit" name="submit_proposal" class="btn btn-success btn-sm">Submit</button>
+          </form>
+          <form method="POST" action="handle_action.php" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to cancel this proposal?');">
+            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+            <button type="submit" name="cancel_proposal" class="btn btn-danger btn-sm">Cancel</button>
+          </form>
+        </td>
+      </tr>
+      <?php endwhile; ?>
 
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="eventPendingContent" class="content">
+  <h2 class="mb-3 fw-bold">Pending Proposal</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Status</th>
+          <th>POA File</th>
+          <th>Budget Plan</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+
+      $username = $_SESSION['username'] ?? '';
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Submitted'";
+      $stmt = $conn->prepare($query);
+      $stmt->bind_param("s", $username);
+      $stmt->execute();
+      $result = $stmt->get_result();
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td><span class="badge bg-warning text-dark">Pending</span></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <?php endwhile; ?>
       </tbody>
     </table>
   </div>
