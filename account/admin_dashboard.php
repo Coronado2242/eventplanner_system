@@ -309,6 +309,23 @@ body {
                 tbody.append(row);
               });
             });
+
+            // Fetch and append solo accounts (from solo_accounts table)
+            fetch("get_solo_users.php")
+              .then(r => r.json())
+              .then(soloUsers => {
+                const header = document.createElement("tr");
+                header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
+                tbody.append(header);
+                soloUsers.forEach(u => {
+                  const row = document.createElement("tr");
+                  row.innerHTML = `
+                    <td>${u.fullname || '-'}</td><td>${u.username}</td><td>${u.email || '-'}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
+                  `;
+                  tbody.append(row);
+                });
+              });
+
           })
           .catch(e => console.error(e));
       });
