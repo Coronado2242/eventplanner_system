@@ -1,9 +1,45 @@
-<?php session_start(); ?>
+<?php
+session_start();
+$conn = new mysqli("localhost", "root", "", "eventplanner");
+
+$venueOptions = [];
+
+$query = "SELECT TABLE_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = 'eventplanner' 
+          AND COLUMN_NAME = 'venue'";
+
+$result = $conn->query($query);
+$tablesWithVenue = [];
+
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $table = $row['TABLE_NAME'];
+        if ($table !== 'sooproposal') { 
+            $tablesWithVenue[] = $table;
+        }
+    }
+}
+
+foreach ($tablesWithVenue as $table) {
+    $sql = "SELECT DISTINCT venue FROM `$table` WHERE venue IS NOT NULL AND venue != ''";
+    $res = $conn->query($sql);
+    if ($res && $res->num_rows > 0) {
+        while ($r = $res->fetch_assoc()) {
+            $venueOptions[] = $r['venue'];
+        }
+    }
+}
+
+$venueOptions = array_unique($venueOptions);
+sort($venueOptions);
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- ✅ Important for responsiveness -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
   <title>Event Sync - Sign Up</title>
   <style>
     * {
@@ -175,7 +211,13 @@
     <form method="POST" action="process_venue.php">
       <input type="text" name="organization" placeholder="Organizer" required>
       <input type="email" name="email" placeholder="Email" required>
-      <input type="text" name="venue" placeholder="Venue" required>
+      <select name="venue" required>
+      <option value="">* Select Venue *</option>
+      <?php foreach ($venueOptions as $venue): ?>
+        <option value="<?= htmlspecialchars($venue) ?>"><?= htmlspecialchars($venue) ?></option>
+      <?php endforeach; ?>
+    </select>
+
 
       <button type="submit" class="signup-button">ADD VENUE</button>
     </form>
