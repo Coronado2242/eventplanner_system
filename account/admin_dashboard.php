@@ -194,6 +194,7 @@ body {
       <li>Event Monitoring</li>
       <li>Budget Analytics</li>
       <li id="venueTab">Venue</li>
+      <li id="activitiesTab">Activities</li>   
     </ul>
   </aside>
 
@@ -236,6 +237,47 @@ body {
     </main>
   </div>
 
+<div id="activitiesContent" style="display:none">
+  <main class="content">
+    <h1>POA Activities</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Department</th>
+          <th>Activity Name</th>
+          <th>Objective</th>
+          <th>Brief Description</th>
+          <th>Persons Involved</th>
+          <th>Submitted At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php
+        $conn = new mysqli("localhost", "root", "", "eventplanner");
+        $sql = "SELECT * FROM activity ORDER BY created_at DESC";
+        $res = $conn->query($sql);
+        if ($res->num_rows > 0):
+          while ($row = $res->fetch_assoc()):
+        ?>
+        <tr>
+          <td><?= htmlspecialchars($row['department']) ?></td>
+          <td><?= htmlspecialchars($row['activity_name']) ?></td>
+          <td><?= htmlspecialchars($row['objective']) ?></td>
+          <td><?= htmlspecialchars($row['brief_description']) ?></td>
+          <td><?= htmlspecialchars($row['person_involved']) ?></td>
+          <td><?= htmlspecialchars($row['created_at']) ?></td>
+        </tr>
+        <?php endwhile; else: ?>
+        <tr><td colspan="6">No activities found.</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </main>
+</div>
+
+
+
+
   <div class="modal-overlay" id="modalOverlay" onclick="closeEditModal()"></div>
   <div id="editModal">
     <h3>Edit Venue</h3>
@@ -252,157 +294,164 @@ body {
     </div>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById("calendarFrame").src = "../proposal/calendar.php";
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 
-      function toggleDropdown() {
-        const menu = document.getElementById("dropdownMenu");
-        menu.style.display = (menu.style.display === "block") ? "none" : "block";
+    function toggleDropdown() {
+      const menu = document.getElementById("dropdownMenu");
+      menu.style.display = (menu.style.display === "block") ? "none" : "block";
+    }
+    window.toggleDropdown = toggleDropdown;
+
+    document.addEventListener("click", (e) => {
+      if (!document.getElementById("userDropdown").contains(e.target)) {
+        document.getElementById("dropdownMenu").style.display = "none";
       }
-      window.toggleDropdown = toggleDropdown;
+    });
 
-      document.addEventListener("click", (e) => {
-        if(!document.getElementById("userDropdown").contains(e.target)) {
-          document.getElementById("dropdownMenu").style.display = "none";
-        }
+    // Tab helpers
+    function deactivateAllTabs() {
+      ["dashboardTab", "userManagementTab", "venueTab", "activitiesTab"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
       });
-
-      // Tab helpers
-      function deactivateAllTabs() {
-        ["dashboardTab","userManagementTab","venueTab"].forEach(id => {
-          document.getElementById(id).classList.remove('active');
-        });
-        ["dashboardContent","userManagementContent","venueContent"].forEach(id => {
-          document.getElementById(id).style.display = "none";
-        });
-      }
-
-      document.getElementById("dashboardTab").addEventListener("click", () => {
-        deactivateAllTabs();
-        document.getElementById("dashboardTab").classList.add('active');
-        document.getElementById("dashboardContent").style.display = 'block';
+      ["dashboardContent", "userManagementContent", "venueContent", "activitiesContent"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
       });
+    }
 
-      document.getElementById("userManagementTab").addEventListener("click", () => {
-        deactivateAllTabs();
-        document.getElementById("userManagementTab").classList.add('active');
-        document.getElementById("userManagementContent").style.display = 'block';
-        fetch("get_users.php")
-          .then(r => r.json())
-          .then(users => {
-            const tbody = document.querySelector("#userTable tbody");
-            tbody.innerHTML = "";
-            const grouped = {};
-            users.forEach(u => {
-              (grouped[u.department] ??= []).push(u);
+    document.getElementById("dashboardTab").addEventListener("click", () => {
+      deactivateAllTabs();
+      document.getElementById("dashboardTab").classList.add('active');
+      document.getElementById("dashboardContent").style.display = 'block';
+    });
+
+    document.getElementById("userManagementTab").addEventListener("click", () => {
+      deactivateAllTabs();
+      document.getElementById("userManagementTab").classList.add('active');
+      document.getElementById("userManagementContent").style.display = 'block';
+      fetch("get_users.php")
+        .then(r => r.json())
+        .then(users => {
+          const tbody = document.querySelector("#userTable tbody");
+          tbody.innerHTML = "";
+          const grouped = {};
+          users.forEach(u => {
+            (grouped[u.department] ??= []).push(u);
+          });
+          Object.keys(grouped).forEach(dept => {
+            const header = document.createElement("tr");
+            header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
+            tbody.append(header);
+            grouped[dept].forEach(u => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${u.fullname}</td><td>${u.username}</td><td>${u.email}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
+              `;
+              tbody.append(row);
             });
-            Object.keys(grouped).forEach(dept => {
+          });
+
+          // Fetch and append solo accounts (from solo_accounts table)
+          fetch("get_solo_users.php")
+            .then(r => r.json())
+            .then(soloUsers => {
               const header = document.createElement("tr");
-              header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
+              header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
               tbody.append(header);
-              grouped[dept].forEach(u => {
+              soloUsers.forEach(u => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                  <td>${u.fullname}</td><td>${u.username}</td><td>${u.email}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
+                  <td>${u.fullname || '-'}</td><td>${u.username}</td><td>${u.email || '-'}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
                 `;
                 tbody.append(row);
               });
             });
-
-            // Fetch and append solo accounts (from solo_accounts table)
-            fetch("get_solo_users.php")
-              .then(r => r.json())
-              .then(soloUsers => {
-                const header = document.createElement("tr");
-                header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
-                tbody.append(header);
-                soloUsers.forEach(u => {
-                  const row = document.createElement("tr");
-                  row.innerHTML = `
-                    <td>${u.fullname || '-'}</td><td>${u.username}</td><td>${u.email || '-'}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
-                  `;
-                  tbody.append(row);
-                });
-              });
-
-          })
-          .catch(e => console.error(e));
-      });
-
-      document.getElementById("venueTab").addEventListener("click", () => {
-        deactivateAllTabs();
-        document.getElementById("venueTab").classList.add('active');
-        document.getElementById("venueContent").style.display = 'block';
-        loadVenues();
-      });
-
-      window.editVenue = (id, org, email, venue) => {
-        document.getElementById("editVenueId").value = id;
-        document.getElementById("editOrganizer").value = org;
-        document.getElementById("editEmail").value = email;
-        document.getElementById("editVenue").value = venue;
-        document.getElementById("modalOverlay").style.display = 'block';
-        document.getElementById("editModal").style.display = 'block';
-      }
-
-      window.closeEditModal = () => {
-        document.getElementById("modalOverlay").style.display = 'none';
-        document.getElementById("editModal").style.display = 'none';
-      }
-
-      window.saveVenueEdit = () => {
-        const data = {
-          id: document.getElementById("editVenueId").value,
-          organizer: document.getElementById("editOrganizer").value,
-          email: document.getElementById("editEmail").value,
-          venue: document.getElementById("editVenue").value,
-        };
-        fetch('edit_venue.php', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(data)
         })
+        .catch(e => console.error(e));
+    });
+
+    document.getElementById("venueTab").addEventListener("click", () => {
+      deactivateAllTabs();
+      document.getElementById("venueTab").classList.add('active');
+      document.getElementById("venueContent").style.display = 'block';
+      loadVenues();
+    });
+
+    document.getElementById("activitiesTab").addEventListener("click", () => {
+      deactivateAllTabs();
+      document.getElementById("activitiesTab").classList.add('active');
+      document.getElementById("activitiesContent").style.display = 'block';
+    });
+
+    window.editVenue = (id, org, email, venue) => {
+      document.getElementById("editVenueId").value = id;
+      document.getElementById("editOrganizer").value = org;
+      document.getElementById("editEmail").value = email;
+      document.getElementById("editVenue").value = venue;
+      document.getElementById("modalOverlay").style.display = 'block';
+      document.getElementById("editModal").style.display = 'block';
+    }
+
+    window.closeEditModal = () => {
+      document.getElementById("modalOverlay").style.display = 'none';
+      document.getElementById("editModal").style.display = 'none';
+    }
+
+    window.saveVenueEdit = () => {
+      const data = {
+        id: document.getElementById("editVenueId").value,
+        organizer: document.getElementById("editOrganizer").value,
+        email: document.getElementById("editEmail").value,
+        venue: document.getElementById("editVenue").value,
+      };
+      fetch('edit_venue.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
         .then(r => r.text())
         .then(msg => { alert(msg); closeEditModal(); loadVenues(); })
         .catch(e => console.error(e));
+    }
+
+    window.loadVenues = () => {
+      fetch("get_venues.php")
+        .then(r => r.json())
+        .then(venues => {
+          const tbody = document.querySelector("#venueTable tbody");
+          tbody.innerHTML = "";
+          venues.forEach(v => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${v.organizer}</td>
+              <td>${v.email}</td>
+              <td>${v.venue}</td>
+              <td>
+                <button class="editBtn" onclick="editVenue('${v.id}','${v.organizer}','${v.email}','${v.venue}')">Edit</button>
+                <button class="deleteBtn" onclick="deleteVenue('${v.id}')">Delete</button>
+              </td>
+            `;
+            tbody.append(tr);
+          });
+        }).catch(e => console.error(e));
+    }
+
+    window.deleteVenue = (id) => {
+      if (confirm("Delete this venue?")) {
+        fetch(`delete_user.php?id=${id}`)
+          .then(r => r.text())
+          .then(msg => { alert(msg); loadVenues(); })
+          .catch(e => console.error(e));
       }
+    };
 
-      window.loadVenues = () => {
-        fetch("get_venues.php")
-          .then(r => r.json())
-          .then(venues => {
-            const tbody = document.querySelector("#venueTable tbody");
-            tbody.innerHTML = "";
-            venues.forEach(v => {
-              const tr = document.createElement("tr");
-              tr.innerHTML = `
-                <td>${v.organizer}</td>
-                <td>${v.email}</td>
-                <td>${v.venue}</td>
-                <td>
-                  <button class="editBtn" onclick="editVenue('${v.id}','${v.organizer}','${v.email}','${v.venue}')">Edit</button>
-                  <button class="deleteBtn" onclick="deleteVenue('${v.id}')">Delete</button>
-                </td>
-              `;
-              tbody.append(tr);
-            });
-          }).catch(e => console.error(e));
-      }
-
-      window.deleteVenue = (id) => {
-        if(confirm("Delete this venue?")) {
-          fetch(`delete_user.php?id=${id}`)
-            .then(r => r.text())
-            .then(msg => { alert(msg); loadVenues(); })
-            .catch(e=>console.error(e));
-        }
-      };
-
-      // Initial load
-      loadVenues();
-    });
-  </script>
+    // Initial load
+    loadVenues();
+  });
+</script>
 
 </body>
 </html>
