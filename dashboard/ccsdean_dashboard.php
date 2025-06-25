@@ -326,7 +326,7 @@ if ($result->num_rows > 0) {
         <div class="modal-body">
           <input type="hidden" name="proposal_id" id="approve_proposal_id">
           <input type="hidden" name="action" value="approve">
-          <input type="hidden" name="type" id="approve_type"> <!-- ✅ FIXED -->
+          <input type="hidden" name="type" id="approve_type">
           Are you sure you want to approve this proposal?
         </div>
 
