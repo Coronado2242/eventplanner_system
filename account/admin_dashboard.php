@@ -293,7 +293,6 @@ body {
       <button onclick="closeEditModal()">Cancel</button>
     </div>
   </div>
-
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("calendarFrame").src = "../proposal/calendar.php";
@@ -380,12 +379,17 @@ body {
       loadVenues();
     });
 
-    document.getElementById("activitiesTab").addEventListener("click", () => {
-      deactivateAllTabs();
-      document.getElementById("activitiesTab").classList.add('active');
-      document.getElementById("activitiesContent").style.display = 'block';
-    });
+    // ✅ AYOS NA ITO: Gumagana na ang Activities tab
+    const activitiesTab = document.getElementById("activitiesTab");
+    if (activitiesTab) {
+      activitiesTab.addEventListener("click", () => {
+        deactivateAllTabs();
+        document.getElementById("activitiesTab").classList.add('active');
+        document.getElementById("activitiesContent").style.display = 'block';
+      });
+    }
 
+    // Venue Modal Logic
     window.editVenue = (id, org, email, venue) => {
       document.getElementById("editVenueId").value = id;
       document.getElementById("editOrganizer").value = org;
@@ -452,6 +456,5 @@ body {
     loadVenues();
   });
 </script>
-
 </body>
 </html>
