@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Default solo account info
     $normalized = strtolower(str_replace(' ', '', $venue));  // e.g., researchhall
     $username = $normalized . "_incharge";                   // e.g., researchhall_incharge
-    $password = "venue123";                                  // can be hashed later
+    $password = "user12345";                                  // can be hashed later
     $role = ucfirst($venue) . "InCharge";                    // e.g., Research HallInCharge
     $email = '';
     $fullname = '';

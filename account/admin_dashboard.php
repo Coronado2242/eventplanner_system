@@ -210,7 +210,7 @@ body {
     <main class="content">
       <h1>User Management</h1>
       <a href="signup.php" class="add-user-btn">+ Add Department</a>
-      <a href="solo_signup.php" class="add-user-btn" style="background-color: #007bff;">+ Add Solo Account</a>
+      <a href="solo_signup.php" class="add-user-btn" style="background-color: #007bff;">+ Add Solo Account</a><br><br>
       <table id="userTable">
         <thead>
           <tr>
@@ -240,7 +240,7 @@ body {
 <div id="activitiesContent" style="display:none">
   <main class="content">
     <h1>POA Activities</h1>
-    <a href="activities.php" class="add-user-btn" style="background-color: #007bff;">+ Add Activities</a>
+    <a href="activities.php" class="add-user-btn" style="background-color: #007bff;">+ Add Activities</a><br><br>
     <table>
       <thead>
         <tr>
