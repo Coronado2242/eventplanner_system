@@ -113,6 +113,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
         echo "<script>alert('Error saving activity.');</script>";
     }
 }
+
+// Step 2: Run the Query
+$sql = "SELECT * FROM activities";
+$result = $conn->query($sql);
+
+if (!$result) {
+    die("❌ Query error: " . $conn->error);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -214,7 +222,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
         <div class="row mb-3">
             <div class="col-md-6">
             <label class="form-label">Name of Activities:</label>
-            <input type="text" class="form-control" name="activity_name" required>
+            <select name="activity_name" id="activity_name" class="form-control" required>
+    <option value="">-- Select an Activity --</option>
+    <?php
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $name = htmlspecialchars($row['activity_name']);
+            echo "<option value=\"$name\">$name</option>";
+        }
+    } else {
+        echo "<option disabled>No activities found</option>";
+    }
+    ?>
+            </select>
             </div>
             <div class="col-md-6">
             <label class="form-label">Target Date Range:</label>
@@ -225,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
         <div class="row mb-3">
             <div class="col-md-6">
             <label class="form-label">Objective:</label>
-            <input type="text" class="form-control" name="objective" required>
+            <input type="text" class="form-control" name="objective" id="objective" required>
             </div>
             <div class="col-md-6">
             <label class="form-label">Budget:</label>
@@ -236,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
         <div class="row mb-3">
             <div class="col-md-6">
             <label class="form-label">Brief Description:</label>
-            <input type="text" class="form-control" name="description">
+            <input type="text" class="form-control" name="description" id="description">
             </div>
             <div class="col-md-6">
             <label class="form-label">Venue:</label>
@@ -247,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
         <div class="row mb-4">
             <div class="col-md-12">
             <label class="form-label">Person Involved:</label>
-            <input type="text" class="form-control" name="person_involved" required>
+            <input type="text" class="form-control" name="person_involved" id="person_involved" required>
             </div>
         </div>
 
@@ -539,6 +559,34 @@ function switchTab(tabId) {
   document.getElementById(tabId).classList.add('active');
 }
 </script>
+<script>
+document.getElementById("activity_name").addEventListener("change", function() {
+    const activity = this.value;
+
+    if (activity !== "") {
+        fetch("get_activity_info.php?activity_name=" + encodeURIComponent(activity))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("objective").value = data.objective || "";
+                    document.getElementById("description").value = data.description || "";
+                    document.getElementById("person_involved").value = data.person_involved || "";
+                } else {
+                    alert("Activity not found.");
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching activity data:", error);
+            });
+    } else {
+        // Clear fields if nothing selected
+        document.getElementById("objective").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("person_involved").value = "";
+    }
+});
+</script>
+
 
 <?php
 require_once('fpdf/fpdf.php');

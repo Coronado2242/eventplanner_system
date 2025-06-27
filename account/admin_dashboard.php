@@ -240,6 +240,7 @@ body {
 <div id="activitiesContent" style="display:none">
   <main class="content">
     <h1>POA Activities</h1>
+    <a href="activities.php" class="add-user-btn" style="background-color: #007bff;">+ Add Activities</a>
     <table>
       <thead>
         <tr>
@@ -248,13 +249,12 @@ body {
           <th>Objective</th>
           <th>Brief Description</th>
           <th>Persons Involved</th>
-          <th>Submitted At</th>
         </tr>
       </thead>
       <tbody>
         <?php
         $conn = new mysqli("localhost", "root", "", "eventplanner");
-        $sql = "SELECT * FROM activity ORDER BY created_at DESC";
+        $sql = "SELECT * FROM activities ORDER BY created_at DESC";
         $res = $conn->query($sql);
         if ($res->num_rows > 0):
           while ($row = $res->fetch_assoc()):
@@ -265,7 +265,6 @@ body {
           <td><?= htmlspecialchars($row['objective']) ?></td>
           <td><?= htmlspecialchars($row['brief_description']) ?></td>
           <td><?= htmlspecialchars($row['person_involved']) ?></td>
-          <td><?= htmlspecialchars($row['created_at']) ?></td>
         </tr>
         <?php endwhile; else: ?>
         <tr><td colspan="6">No activities found.</td></tr>

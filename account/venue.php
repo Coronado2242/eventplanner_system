@@ -4,6 +4,7 @@ $conn = new mysqli("localhost", "root", "", "eventplanner");
 
 $venueOptions = [];
 
+// Get all tables that have a 'venue' column (excluding certain tables)
 $query = "SELECT TABLE_NAME 
           FROM INFORMATION_SCHEMA.COLUMNS 
           WHERE TABLE_SCHEMA = 'eventplanner' 
@@ -15,32 +16,44 @@ $tablesWithVenue = [];
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $table = $row['TABLE_NAME'];
-        if ($table !== 'sooproposal') { 
+        if ($table !== 'sooproposal' && $table !== 'proposals') {
             $tablesWithVenue[] = $table;
         }
     }
 }
 
 foreach ($tablesWithVenue as $table) {
-    $sql = "SELECT DISTINCT venue FROM `$table` WHERE venue IS NOT NULL AND venue != ''";
+    // Check if the table has a 'role' column
+    $roleCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'role'");
+    $hasRole = ($roleCheck && $roleCheck->num_rows > 0);
+
+    // Build the query based on role availability
+    $sql = $hasRole
+        ? "SELECT DISTINCT venue, role FROM `$table` WHERE venue IS NOT NULL AND venue != ''"
+        : "SELECT DISTINCT venue FROM `$table` WHERE venue IS NOT NULL AND venue != ''";
+
     $res = $conn->query($sql);
     if ($res && $res->num_rows > 0) {
         while ($r = $res->fetch_assoc()) {
-            $venueOptions[] = $r['venue'];
+            $venueKey = $r['venue'];
+            $venueOptions[$venueKey] = [
+                'venue' => $venueKey,
+                'role' => $hasRole ? ($r['role'] ?? '') : '',
+                'table' => $table
+            ];
         }
     }
 }
 
-$venueOptions = array_unique($venueOptions);
-sort($venueOptions);
 
+ksort($venueOptions); // optional: sort alphabetically
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-  <title>Event Sync - Sign Up</title>
+  <title>Event Sync - Add Venue</title>
   <style>
     * {
       box-sizing: border-box;
@@ -113,20 +126,6 @@ sort($venueOptions);
       font-size: 16px;
     }
 
-    .terms {
-      margin-top: 10px;
-      font-size: 14px;
-    }
-
-    .terms input {
-      margin-right: 5px;
-    }
-
-    .terms a {
-      color: #1e4dd8;
-      text-decoration: none;
-    }
-
     .signup-button {
       width: 100%;
       background-color: #004080;
@@ -153,7 +152,6 @@ sort($venueOptions);
       color: black;
     }
 
-    /* ✅ Responsive adjustments */
     @media (max-width: 768px) {
       body {
         flex-direction: column;
@@ -209,15 +207,21 @@ sort($venueOptions);
     <?php endif; ?>
 
     <form method="POST" action="process_venue.php">
-      <input type="text" name="organization" placeholder="Organizer" required>
+      <input type="text" id="organizer" name="organization" placeholder="Organizer" readonly required>
       <input type="email" name="email" placeholder="Email" required>
-      <select name="venue" required>
-      <option value="">* Select Venue *</option>
-      <?php foreach ($venueOptions as $venue): ?>
-        <option value="<?= htmlspecialchars($venue) ?>"><?= htmlspecialchars($venue) ?></option>
-      <?php endforeach; ?>
-    </select>
 
+      <select name="venue" id="venueSelect" required>
+        <option value="">* Select Venue *</option>
+        <?php foreach ($venueOptions as $venueData): ?>
+          <option 
+            value="<?= htmlspecialchars($venueData['venue']) ?>" 
+            data-role="<?= htmlspecialchars($venueData['role']) ?>" 
+            data-table="<?= htmlspecialchars($venueData['table']) ?>"
+          >
+            <?= htmlspecialchars($venueData['venue']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
 
       <button type="submit" class="signup-button">ADD VENUE</button>
     </form>
@@ -230,6 +234,14 @@ sort($venueOptions);
     window.location.href = "admin_dashboard.php";
   </script>
 <?php endif; ?>
+
+<script>
+document.getElementById('venueSelect').addEventListener('change', function () {
+  const selectedOption = this.options[this.selectedIndex];
+  const role = selectedOption.getAttribute('data-role');
+  document.getElementById('organizer').value = role || '';
+});
+</script>
 
 </body>
 </html>
