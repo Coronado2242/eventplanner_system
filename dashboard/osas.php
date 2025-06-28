@@ -13,19 +13,11 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-<<<<<<< Updated upstream
-=======
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
-}
-
->>>>>>> Stashed changes
 // Approval & Disapproval Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
-<<<<<<< Updated upstream
         if ($action === 'approve') {
         $status = 'Approved';
         $new_level = 'Completed';
@@ -41,22 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         header("Location: osas.php?approved=1");
         exit;
         } elseif ($action === 'disapprove') {
-=======
-    if ($action === 'approve') {
-        $status = 'Pending';
-        $new_level = 'CCS OSAS';  
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
-        if(!$stmt){
-            die("Prepare failed: " . $conn->error);
-        }
-        $stmt->bind_param("ssi", $status, $new_level, $id);
-        if(!$stmt->execute()){
-            die("Execute failed: " . $stmt->error);
-        }
-        header("Location: ccssbopresident_dashboard.php");
-        exit;
-    } elseif ($action === 'disapprove') {
->>>>>>> Stashed changes
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
 
@@ -77,23 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
         $final_remarks = implode("; ", $remarks);
-<<<<<<< Updated upstream
-=======
 
         // Debug: Check session username
->>>>>>> Stashed changes
         $disapproved_by = $_SESSION['username'] ?? 'Unknown';
         if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
             die("Error: Disapproved by user is not set in session.");
         }
 
         $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
-<<<<<<< Updated upstream
-        if (!$stmt) die("Prepare failed: " . $conn->error);
-        $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
-        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-        header("Location: osas.php");
-=======
         if(!$stmt){
             die("Prepare failed: " . $conn->error);
         }
@@ -103,29 +70,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
         header("Location: ccsfaculty_dashboard.php");
->>>>>>> Stashed changes
         exit;
     }
 }
 
-<<<<<<< Updated upstream
-$current_level = 'OSAS';
-$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted'");
-$stmt->bind_param("s", $current_level);
-=======
 // Fetch proposals
 $current_level = 'CCS OSAS';
 $search_department = '%CCS%';
 
 $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
->>>>>>> Stashed changes
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
 
-<<<<<<< Updated upstream
-=======
 <!-- Flash Messages -->
 <?php if(isset($_SESSION['success'])): ?>
 <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
@@ -135,33 +93,16 @@ $result = $stmt->get_result();
 <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
 <?php endif; ?>
 
->>>>>>> Stashed changes
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-<<<<<<< Updated upstream
   <title>OSAS Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="../style/sbotreasure.css">
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
-=======
-  <title>CCS SBO OSAS Dashboard</title>
-
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-
-  <!-- Your other CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="../style/css_all.css">
-
-  <!-- Popper.js and Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
-
->>>>>>> Stashed changes
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 </head>
 
@@ -205,41 +146,6 @@ $result = $stmt->get_result();
 
 <!-- Proposals Section -->
 <div id="proposalContent" class="content" style="display:none;">
-<<<<<<< Updated upstream
-  <h1>Pending Proposals for Approval</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-    <?php if ($result && $result->num_rows > 0): ?>
-      <?php while ($row = $result->fetch_assoc()): ?>
-        <tr>
-          <td><?= htmlspecialchars($row['id']) ?></td>
-          <td><?= htmlspecialchars($row['department']) ?></td>
-          <td><?= htmlspecialchars($row['event_type']) ?></td>
-          <td><?= htmlspecialchars($row['start_date']) ?></td>
-          <td><?= htmlspecialchars($row['end_date']) ?></td>
-          <td><?= htmlspecialchars($row['venue']) ?></td>
-          <td><?= htmlspecialchars($row['status']) ?></td>
-          <td>
-            <button type="button" class="btn btn-success btn-sm approve-btn" 
-            data-id="<?= $row['id'] ?>" 
-            data-bs-toggle="modal" 
-            data-bs-target="#approveModal">Approve
-            </button>
-            <button type="button" class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
-          </td>
-        </tr>
-      <?php endwhile; ?>
-    <?php else: ?>
-      <tr><td colspan="8" class="text-center">No proposals found for OSAS.</td></tr>
-    <?php endif; ?>
-    </tbody>
-  </table>
-=======
     <h1>Pending Proposals for Approval</h1>
 
     
@@ -285,7 +191,6 @@ $result = $stmt->get_result();
         <?php endif; ?>
         </tbody>
     </table>
->>>>>>> Stashed changes
 </div>
 
 <!-- Requirements Section -->
@@ -383,22 +288,17 @@ if ($result->num_rows > 0) {
   <div class="modal-dialog modal-dialog-centered modal-lg">
    <form method="POST" action="osas.php">
 
-<<<<<<< Updated upstream
-=======
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
    <form method="POST" action="ccsdean_dashboard.php">
 
->>>>>>> Stashed changes
       <div class="modal-content">
         <!-- Header -->
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title" id="disapproveModalLabel">Disapproved</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-<<<<<<< Updated upstream
-=======
 
         <!-- Body -->
         <div class="modal-body">
@@ -461,7 +361,6 @@ if ($result->num_rows > 0) {
 
 
 
->>>>>>> Stashed changes
 
         <!-- Body -->
         <div class="modal-body">
@@ -592,12 +491,10 @@ document.querySelectorAll('.approve-btn').forEach(button => {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-<<<<<<< Updated upstream
   if (urlParams.get('approved') === '1') {
     alert("✅ Proposal approved successfully!");
   }
 });
-=======
     document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
@@ -624,7 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
  
->>>>>>> Stashed changes
 </script>
 </body>
 </html>
