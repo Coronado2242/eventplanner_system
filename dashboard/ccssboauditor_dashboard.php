@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
         if ($action === 'approve') {
         $status = 'Pending';
-<<<<<<< Updated upstream
         $new_level = 'CCS President';
         $viewed = 0;
 
@@ -34,20 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         header("Location: ccssboauditor_dashboard.php?approved=1");
         exit;
         } elseif ($action === 'disapprove') {
-=======
-        $new_level = 'CCS President';  
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
-        if(!$stmt){
-            die("Prepare failed: " . $conn->error);
-        }
-        $stmt->bind_param("ssi", $status, $new_level, $id);
-        if(!$stmt->execute()){
-            die("Execute failed: " . $stmt->error);
-        }
-        header("Location: ccssboauditor_dashboard.php");
-        exit;
-    } elseif ($action === 'disapprove') {
->>>>>>> Stashed changes
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
 
@@ -68,22 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
         $final_remarks = implode("; ", $remarks);
-<<<<<<< Updated upstream
-=======
 
         // Debug: Check session username
->>>>>>> Stashed changes
         $disapproved_by = $_SESSION['username'] ?? 'Unknown';
         if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
             die("Error: Disapproved by user is not set in session.");
         }
 
         $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
-<<<<<<< Updated upstream
-        if (!$stmt) die("Prepare failed: " . $conn->error);
-        $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
-        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-=======
         if(!$stmt){
             die("Prepare failed: " . $conn->error);
         }
@@ -92,29 +69,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
             die("Execute failed: " . $stmt->error);
         }
 
->>>>>>> Stashed changes
         header("Location: ccssboauditor_dashboard.php");
         exit;
     }
 }
 
-<<<<<<< Updated upstream
-$current_level = 'CCS Auditor';
-$search_department = '%CCS%';
-=======
 // Fetch proposals
 $current_level = 'CCS Auditor';
 $search_department = '%CCS%';
 
->>>>>>> Stashed changes
 $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
 
-<<<<<<< Updated upstream
-=======
 <!-- Flash Messages -->
 <?php if(isset($_SESSION['success'])): ?>
 <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
@@ -124,21 +93,11 @@ $result = $stmt->get_result();
 <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
 <?php endif; ?>
 
->>>>>>> Stashed changes
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>CCS SBO Auditor Dashboard</title>
-<<<<<<< Updated upstream
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="../style/sbotreasure.css">
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-</head>
-=======
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
@@ -155,7 +114,6 @@ $result = $stmt->get_result();
 </head>
 
 <body>
->>>>>>> Stashed changes
 
 <body>
 <header class="topbar">
@@ -199,7 +157,6 @@ $result = $stmt->get_result();
 
 <!-- Proposals Section -->
 <div id="proposalContent" class="content" style="display:none;">
-<<<<<<< Updated upstream
   <h1>Pending Proposals for Approval</h1>
   <table>
     <thead>
@@ -393,119 +350,6 @@ if ($result->num_rows > 0) {
       </div>
     </form>
   </div>
-=======
-    <h1>Pending Proposals for Approval</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th><th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if ($result && $result->num_rows > 0): ?>
-                <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?= htmlspecialchars($row['id']) ?></td>
-                    <td><?= htmlspecialchars($row['department']) ?></td>
-                    <td><?= htmlspecialchars($row['event_type']) ?></td>
-                    <td><?= htmlspecialchars($row['start_date']) ?></td>
-                    <td><?= htmlspecialchars($row['end_date']) ?></td>
-                    <td><?= htmlspecialchars($row['venue']) ?></td>
-                    <td><?= htmlspecialchars($row['status']) ?></td>
-                    <td>
-                        <form method="post" action="" style="margin:0; display: inline;">
-                            <!-- Important: assign proposal_id value here -->
-                            <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
-                            <input type="hidden" name="level" value="CCS Auditor">
-                            <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
-                        </form>
-                        <form method="POST" action="ccssboauditor_dashboard.php" style="display: inline;">
-                            <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
-                        Disapprove
-                        </button>
-                </form>
-
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr><td colspan="8" style="text-align:center;">No proposals found for Auditor.</td></tr>
-            <?php endif; ?>
-            </tbody>
-        </table>
-</div>
-
-
-<!-- Requirements Content -->
-<<div id="requirementContent" style="display:none;">
-    <main class="content">
-        <h1 style="margin-bottom: 0;">Requirements</h1>
-
-        <?php
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $db   = "eventplanner";
-
-        $conn = mysqli_connect($host, $user, $pass, $db);
-
-        if (!$conn) {
-            die("Connection failed: " . mysqli_connect_error());
-        }
-
-$sql = "SELECT * FROM proposals WHERE status = 'Pending' AND department = 'CCS'";
-
-$result = mysqli_query($conn, $sql);
-
-// Dito mo ilalagay yung check kung may records
-if (mysqli_num_rows($result) == 0) {
-} else {
-
-        while ($row = mysqli_fetch_assoc($result)) {
-            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
-            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
-
-            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
-            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
-            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
-            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
-            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-            echo '</div>';
-
-            // Attachments Section
-            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
-            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
-
-            $requirements = [
-                "Letter Attachment" => "letter_attachment",
-                "Adviser Commitment form" => "adviser_form",
-                "Constitution and by-laws of the Org." => "constitution",
-                "Certification from Responsive Dean/Associate Dean" => "certification",
-                "Accomplishment reports" => "reports",
-                "Financial Report" => "financial",
-                "Plan of Activities" => "plan",
-                "Budget Plan" => "budget"
-            ];
-
-            foreach ($requirements as $label => $field) {
-                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
-                echo '<small style="color: red;">Requirement*</small><br>';
-                echo '<strong>' . $label . '</strong><br>';
-                if (!empty($row[$field])) {
-                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
-                } else {
-                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
-                }
-                echo '</div>';
-            }
-
-            echo '</div>';
-            echo '</div>';
-        }
-    }
-        ?>
-    </main>
->>>>>>> Stashed changes
 </div>
 
 
@@ -646,7 +490,6 @@ document.querySelectorAll('.approve-btn').forEach(button => {
   if (tab && ['dashboard', 'proposal', 'requirement'].includes(tab)) {
     switchTab(tab);
 
-<<<<<<< Updated upstream
     // Optional: Remove the query string from the URL
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -655,7 +498,6 @@ document.querySelectorAll('.approve-btn').forEach(button => {
     alert("✅ Proposal approved successfully!");
   }
 });
-=======
     requirementTab.addEventListener('click', () => {
         clearActive();
         requirementTab.classList.add('active');
@@ -690,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
->>>>>>> Stashed changes
 </script>
 </body>
 </html>

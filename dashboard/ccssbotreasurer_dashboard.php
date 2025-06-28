@@ -127,15 +127,9 @@ $result = $stmt->get_result();
 
 <!-- Dashboard Section -->
 <div id="dashboardContent" class="content">
-<<<<<<< Updated upstream
-  <h1>Welcome to the CCS Treasurer Dashboard</h1>
-  <p>This is your overview page.</p>
-  <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
-=======
     <h1>Welcome to the CCS Treasurer Dashboard</h1>
     <p>This is your overview page.</p>
     <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
->>>>>>> Stashed changes
 </div>
 
 <!-- Proposals Section -->
@@ -151,22 +145,6 @@ $result = $stmt->get_result();
     <?php if ($result && $result->num_rows > 0): ?>
       <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
-<<<<<<< Updated upstream
-          <td><?= htmlspecialchars($row['department']) ?></td>
-          <td><?= htmlspecialchars($row['event_type']) ?></td>
-          <td><?= htmlspecialchars($row['start_date']) ?></td>
-          <td><?= htmlspecialchars($row['end_date']) ?></td>
-          <td><?= htmlspecialchars($row['venue']) ?></td>
-          <td><?= htmlspecialchars($row['status']) ?></td>
-          <td>
-            <button type="button" class="btn btn-success btn-sm approve-btn" 
-            data-id="<?= $row['id'] ?>" 
-            data-bs-toggle="modal" 
-            data-bs-target="#approveModal">Approve
-            </button>
-            <button type="button" class="btn btn-danger btn-sm disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">Disapprove</button>
-          </td>
-=======
             <td><?= htmlspecialchars($row['id']) ?></td>
             <td><?= htmlspecialchars($row['department']) ?></td>
             <td><?= htmlspecialchars($row['event_type']) ?></td>
@@ -187,108 +165,12 @@ $result = $stmt->get_result();
 </form>
 
             </td>
->>>>>>> Stashed changes
         </tr>
       <?php endwhile; ?>
     <?php else: ?>
       <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
     <?php endif; ?>
     </tbody>
-<<<<<<< Updated upstream
-  </table>
-</div>
-
-<!-- Requirements Section -->
-<div id="requirementContent" class="content" style="display:none;">
-  <h1>Requirements</h1>
-  <?php
-  $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
-  $stmt->bind_param("ss", $current_level, $search_department);
-  $stmt->execute();
-  $result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        echo '<div class="card p-4 mb-4 shadow-sm">';
-        echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
-        echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
-        echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
-        echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
-        echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
-        echo '<h5 class="mt-4">Requirements</h5>';
-        echo '<div class="row g-3">';
-
-        $requirements = [
-            "Letter Attachment" => "letter_attachment",
-            "Adviser Commitment form" => "adviser_form",
-            "Constitution ang by-laws of the Org." => "constitution",
-            "Certification from Responsive Dean/Associate Dean" => "certification",
-            "Accomplishment reports" => "reports",
-            "Financial Report" => "financial",
-            "Plan of Activities" => "activity_plan",
-            "Budget Plan" => "budget_file"
-        ];
-
-        $requirementDirectories = [
-            "letter_attachment" => "../proposal/",
-            "adviser_form" => "../proposal/",
-            "constitution" => "../proposal/",
-            "certification" => "../proposal/",
-            "reports" => "../proposal/",
-            "financial" => "../proposal/",
-            "activity_plan" => "../proposal/",
-            "budget_file" => "../proposal/uploads/"
-        ];
-
-        foreach ($requirements as $label => $field) {
-            echo '<div class="col-md-4">';
-            echo '<div class="border rounded p-3 bg-light h-100">';
-            echo '<small class="text-danger fw-bold">Requirement*</small><br>';
-            echo '<strong>' . $label . '</strong><br>';
-
-            if (!empty($row[$field])) {
-                $directory = $requirementDirectories[$field] ?? '../proposal/';
-                echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
-            } else {
-                echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
-            }
-
-            echo '</div></div>';
-        }
-
-        echo '</div></div>';
-    }
-} else {
-    echo '<div class="alert alert-info text-center">No requirements found for SBO Treasurer.</div>';
-}
-?>
-</div>
-
-<!-- Approve Confirmation Modal -->
-<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <form method="POST" action="ccssbotreasurer_dashboard.php">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title" id="approveModalLabel">Confirm Approval</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-
-        <div class="modal-body">
-          <input type="hidden" name="proposal_id" id="approve_proposal_id">
-          <input type="hidden" name="action" value="approve">
-          Are you sure you want to approve this proposal?
-        </div>
-
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-success w-100">Yes, Approve</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
-=======
 </table>
 
 </body>
@@ -297,11 +179,8 @@ if ($result->num_rows > 0) {
 <?php
 $conn->close();
 ?>
-
-
-
 <!-- Requirements Content -->
-<<div id="requirementContent" style="display:none;">
+<div id="requirementContent" style="display:none;">
     <main class="content">
         <h1 style="margin-bottom: 0;">Requirements</h1>
 
@@ -365,7 +244,6 @@ $result = mysqli_query($conn, $sql);
     </main>
 </div>
 
->>>>>>> Stashed changes
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
