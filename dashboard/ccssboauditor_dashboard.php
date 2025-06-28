@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         $new_level = 'CCS President';
         $viewed = 0;
 
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=?, viewed=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=?, viewed=? WHERE id=?");
         if (!$stmt) die("Prepare failed: " . $conn->error);
 
         $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
             die("Error: Disapproved by user is not set in session.");
         }
 
-        $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
+        $stmt = $conn->prepare("UPDATE sooproposal SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
         if(!$stmt){
             die("Prepare failed: " . $conn->error);
         }
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 $current_level = 'CCS Auditor';
 $search_department = '%CCS%';
 
-$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -195,7 +195,7 @@ $result = $stmt->get_result();
 <div id="requirementContent" class="content" style="display:none;">
   <h1>Requirements</h1>
   <?php
-  $stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+  $stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
   $stmt->bind_param("ss", $current_level, $search_department);
   $stmt->execute();
   $result = $stmt->get_result();

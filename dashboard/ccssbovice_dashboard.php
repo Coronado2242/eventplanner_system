@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         $new_level = 'CCS Auditor';
         $viewed = 0;
     
-        $stmt = $conn->prepare("UPDATE proposals SET status=?, level=?, viewed=? WHERE id=?");
+        $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=?, viewed=? WHERE id=?");
         if (!$stmt) die("Prepare failed: " . $conn->error);
     
         $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
             die("Error: Disapproved by user is not set in session.");
         }
 
-        $stmt = $conn->prepare("UPDATE proposals SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
+        $stmt = $conn->prepare("UPDATE sooproposal SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
         if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
 $current_level = 'CCS Vice';
 $search_department = '%CCS%';
-$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -80,7 +80,7 @@ $result = $stmt->get_result();
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CCS SBO Treasurer Dashboard</title>
+  <title>CCS SBO Vice President Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="../style/sbotreasure.css">
@@ -196,7 +196,7 @@ $conn->close();
             die("Connection failed: " . mysqli_connect_error());
         }
 
- $sql = "SELECT * FROM proposals WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
+ $sql = "SELECT * FROM sooproposal WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
 $result = mysqli_query($conn, $sql);
 
         while ($row = mysqli_fetch_assoc($result)) {
