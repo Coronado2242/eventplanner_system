@@ -196,7 +196,7 @@ $conn->close();
             die("Connection failed: " . mysqli_connect_error());
         }
 
- $sql = "SELECT * FROM sooproposal WHERE budget_amount IS NULL AND department = 'CCS' AND status != 'Disapproved'";
+ $sql = "SELECT * FROM sooproposal WHERE budget IS NULL AND department = 'CCS' AND status != 'Disapproved'";
 $result = mysqli_query($conn, $sql);
 
         while ($row = mysqli_fetch_assoc($result)) {
