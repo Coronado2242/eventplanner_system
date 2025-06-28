@@ -29,8 +29,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 }
 ?>
 
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -63,9 +61,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       border-bottom: 3px solid orange;
       padding-bottom: 2px;
     }
-
     .fc-day-approved-underline .fc-daygrid-day-number {
       border-bottom: 3px solid green;
+      padding-bottom: 2px;
+    }
+    .fc-day-ended-underline .fc-daygrid-day-number {
+      border-bottom: 3px solid red;
       padding-bottom: 2px;
     }
 
@@ -118,8 +119,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 <div id='calendar'></div>
 
 <div class="legend">
-  <span style="color:green;">● Approved</span>
+  <span style="color:green;">● Completed</span>
   <span style="color:orange;">● Pending</span>
+  <span style="color:red;">● Ended</span>
 </div>
 
 <!-- Modal -->
@@ -147,6 +149,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function loadProposals() {
     const dateEvents = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     fetch('calendar.php?action=fetch&_=' + new Date().getTime())
       .then(res => res.json())
@@ -156,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
         events.forEach(event => {
           const start = new Date(event.start);
           const end = new Date(event.end);
-          end.setDate(end.getDate() - 1); // Adjust to include actual end date
+          end.setDate(end.getDate() - 1); // Adjust because +1 day in PHP
 
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dateStr = d.toISOString().slice(0, 10);
@@ -167,10 +171,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const cell = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
             if (cell) {
-              if (event.status === 'pending') {
-                cell.classList.add('fc-day-pending-underline');
-              } else if (event.status === 'completed') {
-                cell.classList.add('fc-day-approved-underline');
+              // Check if ended
+              if (end < today) {
+                cell.classList.add('fc-day-ended-underline');
+              } else {
+                if (event.status === 'pending') {
+                  cell.classList.add('fc-day-pending-underline');
+                } else if (event.status === 'completed') {
+                  cell.classList.add('fc-day-approved-underline');
+                }
               }
               cell.style.cursor = 'pointer';
             }
@@ -188,14 +197,23 @@ document.addEventListener('DOMContentLoaded', function () {
               let html = '';
 
               proposals.forEach(p => {
-                let color = p.status === 'completed' ? 'green' : 'orange';
+                let color = 'orange';
+                if (p.status === 'completed') {
+                  color = 'green';
+                }
+                const endDate = new Date(p.end);
+                endDate.setDate(endDate.getDate() - 1);
+                if (endDate < today) {
+                  color = 'red';
+                }
+
                 html += `
                   <div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                     <strong>Department:</strong> ${p.department}<br>
                     <strong>Activity:</strong> ${p.event_type}<br>
                     <strong>Start Date:</strong> ${p.start}<br>
                     <strong>End Date:</strong> ${p.end}<br>
-                    <strong>Status:</strong> <span style="color:${color};">${p.status}</span>
+                    <strong>Status:</strong> <span style="color:${color};">${p.status}${endDate < today ? ' (Ended)' : ''}</span>
                   </div>
                 `;
               });
@@ -213,8 +231,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function clearUnderlines() {
-    document.querySelectorAll('.fc-day-pending-underline, .fc-day-approved-underline').forEach(el => {
-      el.classList.remove('fc-day-pending-underline', 'fc-day-approved-underline');
+    document.querySelectorAll('.fc-day-pending-underline, .fc-day-approved-underline, .fc-day-ended-underline').forEach(el => {
+      el.classList.remove('fc-day-pending-underline', 'fc-day-approved-underline', 'fc-day-ended-underline');
       el.style.cursor = '';
     });
   }
