@@ -347,7 +347,7 @@ if (!$result) {
 
       while ($row = $result->fetch_assoc()):
           $status = $row['status'] ?? '';
-          if ($status === 'Submitted' || $status === 'Cancelled') continue; // skip if already processed
+          if ($status === 'Pending' || $status === 'Cancelled') continue; // skip if already processed
 
           $start = date("M d, Y", strtotime($row['start_date']));
           $end = date("M d, Y", strtotime($row['end_date']));
@@ -409,7 +409,7 @@ if (!$result) {
       <?php
 
       $username = $_SESSION['username'] ?? '';
-      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Submitted'";
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Pending'";
       $stmt = $conn->prepare($query);
       $stmt->bind_param("s", $username);
       $stmt->execute();
