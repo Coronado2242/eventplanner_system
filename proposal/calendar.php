@@ -4,7 +4,7 @@ session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 
 if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
-  $sql = "SELECT id, department, event_type, start_date, end_date, status FROM proposals";
+  $sql = "SELECT id, department, activity_name, start_date, end_date, status FROM sooproposal";
   $result = $conn->query($sql);
 
   $events = [];
@@ -15,12 +15,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 
       $events[] = [
           'id' => $row['id'],
-          'title' => $row['event_type'],
+          'title' => $row['activity_name'],
           'start' => $row['start_date'],
           'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')),
           'status' => $status,
           'department' => $row['department'],
-          'event_type' => $row['event_type']
+          'event_type' => $row['activity_name']
       ];
   }
 
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (cell) {
               if (event.status === 'pending') {
                 cell.classList.add('fc-day-pending-underline');
-              } else if (event.status === 'approved') {
+              } else if (event.status === 'completed') {
                 cell.classList.add('fc-day-approved-underline');
               }
               cell.style.cursor = 'pointer';
@@ -188,11 +188,11 @@ document.addEventListener('DOMContentLoaded', function () {
               let html = '';
 
               proposals.forEach(p => {
-                let color = p.status === 'approved' ? 'green' : 'orange';
+                let color = p.status === 'completed' ? 'green' : 'orange';
                 html += `
                   <div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                     <strong>Department:</strong> ${p.department}<br>
-                    <strong>Event Type:</strong> ${p.event_type}<br>
+                    <strong>Activity:</strong> ${p.event_type}<br>
                     <strong>Start Date:</strong> ${p.start}<br>
                     <strong>End Date:</strong> ${p.end}<br>
                     <strong>Status:</strong> <span style="color:${color};">${p.status}</span>

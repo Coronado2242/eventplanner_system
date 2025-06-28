@@ -131,6 +131,7 @@ if (!$result) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_orange.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="../style/sbotreasure.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -204,7 +205,7 @@ if (!$result) {
       <li onclick="switchTab('createEventContent')">Create Event Form</li>
       <li onclick="switchTab('eventSummaryContent')">Summary Requirements</li>
       <li onclick="switchTab('eventPendingContent')">Request Pending</li>
-      <li onclick="switchTab('eventSummaryContent')">Completed</li>
+      <li onclick="switchTab('eventCompletedContent')">Completed</li>
     </ul>
     <li onclick="switchTab('financialReportContent')">Financial Report</li>
   </ul>
@@ -376,15 +377,10 @@ if (!$result) {
           <?php endif; ?>
         </td>
         <td>
-          <form method="POST" action="handle_action.php" style="display:inline-block;">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <button type="submit" name="submit_proposal" class="btn btn-success btn-sm">Submit</button>
-          </form>
-          <form method="POST" action="handle_action.php" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to cancel this proposal?');">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <button type="submit" name="cancel_proposal" class="btn btn-danger btn-sm">Cancel</button>
-          </form>
+          <button type="button" class="btn btn-success btn-sm" onclick="openModal('submit', <?= $row['id'] ?>)">Submit</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="openModal('cancel', <?= $row['id'] ?>)">Cancel</button>
         </td>
+
       </tr>
       <?php endwhile; ?>
 
@@ -392,6 +388,30 @@ if (!$result) {
     </table>
   </div>
 </div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmationModalLabel">Confirm Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modalMessage">
+        Are you sure you want to proceed?
+      </div>
+      <div class="modal-footer">
+        <form id="modalForm" method="POST" action="handle_action.php">
+          <input type="hidden" name="proposal_id" id="modalProposalId" value="">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="modalSubmitButton" class="btn"></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
 <div id="eventPendingContent" class="content">
   <h2 class="mb-3 fw-bold">Pending Proposal</h2>
@@ -447,7 +467,59 @@ if (!$result) {
   </div>
 </div>
 
+<div id="eventCompletedContent" class="content">
+  <h2 class="mb-3 fw-bold">Completed Proposal</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Status</th>
+          <th>POA File</th>
+          <th>Budget Plan</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
 
+      $username = $_SESSION['username'] ?? '';
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed'";
+      $stmt = $conn->prepare($query);
+      $stmt->bind_param("s", $username);
+      $stmt->execute();
+      $result = $stmt->get_result();
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td><span class="badge bg-success text-light">Completed</span></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <?php endwhile; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
 
   <div id="financialReportContent" class="content">
     <h2>Financial Report</h2>
@@ -585,6 +657,35 @@ document.getElementById("activity_name").addEventListener("change", function() {
         document.getElementById("person_involved").value = "";
     }
 });
+
+function openModal(action, proposalId) {
+  const modalLabel = document.getElementById('confirmationModalLabel');
+  const modalMessage = document.getElementById('modalMessage');
+  const modalSubmitButton = document.getElementById('modalSubmitButton');
+  const modalProposalId = document.getElementById('modalProposalId');
+
+  // Update modal content
+  if (action === 'submit') {
+    modalLabel.textContent = 'Confirm Submission';
+    modalMessage.textContent = 'Are you sure you want to submit this proposal?';
+    modalSubmitButton.textContent = 'Submit';
+    modalSubmitButton.className = 'btn btn-success';
+    modalSubmitButton.name = 'submit_proposal';
+  } else if (action === 'cancel') {
+    modalLabel.textContent = 'Confirm Cancellation';
+    modalMessage.textContent = 'Are you sure you want to cancel this proposal?';
+    modalSubmitButton.textContent = 'Cancel';
+    modalSubmitButton.className = 'btn btn-danger';
+    modalSubmitButton.name = 'cancel_proposal';
+  }
+
+  modalProposalId.value = proposalId;
+
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+  modal.show();
+}
+
 </script>
 
 
