@@ -38,82 +38,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
 // Fetch proposals for CCS President
 $current_level = 'CCS President';
-$sql = "SELECT * FROM proposals WHERE level = ? AND status = 'Pending' AND submit = 'submitted'";
-$stmt = $conn->prepare($sql);
-
-if (!$stmt) {
-    die("Query error: " . $conn->error);
-}
-
-$stmt->bind_param("s", $current_level);
+$search_department = '%CCS%';
+$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
-$result = $stmt->get_result();  // <- ito ang hinahanap mo para hindi undefined ang $result
+$result = $stmt->get_result();
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['letter_attachment'])) {
+    $uploadDir = "uploads/";
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
 
-$show_modal = false;
+    // File fields to process
+    $fields = [
+        'letter_attachment',
+        'constitution',
+        'reports',
+        'adviser_form',
+        'certification',
+        'financial',
+        'activity_plan'
+    ];
 
-if (isset($_SESSION['upload_success']) && $_SESSION['upload_success'] === true) {
-    $show_modal = true;
-    unset($_SESSION['upload_success']); // clear session to avoid repeat
-}
-// File Upload Logic Below
-$uploadDir = "uploads/";
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
-}
+    $fileData = [];
 
-// File fields to process
-$fields = [
-    'letter_attachment',
-    'constitution',
-    'reports',
-    'adviser_form',
-    'certification',
-    'financial',
-    'activity_plan'
-];
+    foreach ($fields as $field) {
+        if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
+            $filename = time() . '_' . basename($_FILES[$field]['name']);
+            $target = $uploadDir . $filename;
 
-$fileData = []; // To store filenames for DB
-
-foreach ($fields as $field) {
-    if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
-        $filename = time() . '_' . basename($_FILES[$field]['name']);
-        $target = $uploadDir . $filename;
-
-        if (move_uploaded_file($_FILES[$field]['tmp_name'], $target)) {
-            $fileData[$field] = $filename;
+            if (move_uploaded_file($_FILES[$field]['tmp_name'], $target)) {
+                $fileData[$field] = $filename;
+            } else {
+                $fileData[$field] = ''; // fallback kung error sa move
+            }
         } else {
-            $fileData[$field] = ''; // ⚠️ FIX: avoid null error
+            $fileData[$field] = ''; // fallback kung walang file
         }
+    }
+
+    $created_at = date('Y-m-d H:i:s');
+    $department = "CCS"; 
+    $status = "Pending"; 
+    $level = "CCS President"; 
+
+    $sql = "INSERT INTO proposals (
+        department,
+        letter_attachment, constitution, reports, adviser_form, 
+        certification, financial, activity_plan,
+        created_at, status, level
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param(
+        "sssssssssss",
+        $department,
+        $fileData['letter_attachment'],
+        $fileData['constitution'],
+        $fileData['reports'],
+        $fileData['adviser_form'],
+        $fileData['certification'],
+        $fileData['financial'],
+        $fileData['activity_plan'],
+        $created_at,
+        $status,
+        $level
+    );
+
+    if ($stmt->execute()) {
+        $_SESSION['upload_success'] = true;
+        header("Location: ccssbopresident_dashboard.php");
+        exit;
     } else {
-        $fileData[$field] = ''; // ⚠️ FIX: avoid null error
+        echo "Insert failed: " . $stmt->error;
     }
 }
 
-// Insert into database
-$sql = "INSERT INTO requirements(
-    letter_attachment, constitution, reports, adviser_form, 
-    certification, financial, activity_plan, created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param(
-    "ssssssss",
-    $fileData['letter_attachment'],
-    $fileData['constitution'],
-    $fileData['reports'],
-    $fileData['adviser_form'],
-    $fileData['certification'],
-    $fileData['financial'],
-    $fileData['activity_plan'],
-    $created_at
-);
-
-if ($stmt->execute()) {
-    // echo "<h3>✅ Proposal submitted successfully!</h3>";
-} else {
-    echo "<h3 style='color:red;'>❌ Failed to submit proposal: " . $conn->error . "</h3>";
-}
 
 $conn->close();
 
@@ -611,16 +613,28 @@ tr:nth-child(even) {
   color: black;
 }
 
- .upload-box {
-            background: #fff;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .upload-title {
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
+.upload-box {
+  background-color: #f8f9fa;
+  border: 2px dashed #ced4da;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 1rem;
+}
+
+.file-input {
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 14px;
+  background-color: #ffffff;
+  border: 1px solid #ced4da;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.file-input:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
 
 </style>
 </head>
@@ -655,7 +669,8 @@ tr:nth-child(even) {
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
     <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
-    <li id="ApprovalTab"><i class="fa fa-check-circle"></i> Approval</li>
+   <li id="ApprovalTab"><i class="fa-solid fa-file-signature"></i> <span class="menu-text">Approval</span></li>
+
   </ul>
 </aside>
 
@@ -710,10 +725,99 @@ tr:nth-child(even) {
 <div id="requirementContent" class="content" style="display:none;">
     <h1>Requirements Section</h1>
     <p>Requirements details will go here.</p>
+
+<?php
+// Error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// MySQL Connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "eventplanner";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Sample session data
+$current_level = "CCS President"; // Adjust as needed
+$search_department = "%CCS%";     // You can change this dynamically too
+
+// Prepare and execute query
+$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND department LIKE ?");
+if (!$stmt) {
+    die("Query Error: " . $conn->error);
+}
+$stmt->bind_param("ss", $current_level, $search_department);
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Check and display results
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        echo '<div class="card p-4 mb-4 shadow-sm">';
+        // echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+        echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+        // echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+        // echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+        // echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+        echo '<h5 class="mt-4">Requirements</h5>';
+        echo '<div class="row g-3">';
+
+        $requirements = [
+            "Letter Attachment" => "letter_attachment",
+            "Adviser Commitment Form" => "adviser_form",
+            "Constitution and By-laws" => "constitution",
+            "Certification from Responsive Dean" => "certification",
+            "Accomplishment Reports" => "reports",
+            "Financial Report" => "financial",
+            "Plan of Activities" => "activity_plan"
+        ];
+
+        $requirementDirectories = [
+            "letter_attachment" => "../dashboard/uploads/",
+            "adviser_form" => "../dashboard/uploads/",
+            "constitution" => "../dashboard/uploads/",
+            "certification" => "../dashboard/uploads/",
+            "reports" => "../dashboard/uploads/",
+            "financial" => "../dashboard/uploads/",
+            "activity_plan" => "../dashboard/uploads/"
+        ];
+
+        foreach ($requirements as $label => $field) {
+            echo '<div class="col-md-4">';
+            echo '<div class="border rounded p-3 bg-light h-100">';
+            echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+            echo '<strong>' . $label . '</strong><br>';
+
+            if (!empty($row[$field])) {
+                $directory = $requirementDirectories[$field] ?? '../proposal/';
+                $file_path = $directory . htmlspecialchars($row[$field]);
+                echo '<a href="' . $file_path . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+            } else {
+                echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+            }
+
+            echo '</div></div>';
+        }
+
+        echo '</div></div>'; // end row and card
+    }
+} else {
+    echo '<div class="alert alert-info text-center">No requirements found for SBO President (department: CCS).</div>';
+}
+
+$conn->close();
+?>
+
+    
 </div>
 
 
-
+<!-- file upload -->
 <?php
 
 $files = isset($files) && is_array($files) ? $files : [];
@@ -721,7 +825,8 @@ $files = isset($files) && is_array($files) ? $files : [];
 
 <div id="approvalContent" class="content" style="display:none;">
    <div class="row">
-    <form action="ccssbopresident_dashboard.php" method="POST" enctype="multipart/form-data">
+   <form id="uploadForm" action="ccssbopresident_dashboard.php" method="POST" enctype="multipart/form-data">
+
     <?php
     $files = [
         'letter_attachment',
@@ -734,16 +839,18 @@ $files = isset($files) && is_array($files) ? $files : [];
     ];
     ?>
 
-    <?php foreach ($files as $field): ?>
-        <div class="mb-3">
-            <label class="form-label"><?= ucfirst(str_replace('_', ' ', $field)) ?> <span class="text-danger">*</span></label>
-            <input type="file" name="<?= $field ?>" class="form-control" accept=".pdf,.doc,.docx" required>
-        </div>
+ <?php foreach ($files as $field): ?>
+  <div class="col-md-5 mb-4">
+    <label class="form-label fw-semibold text-dark">
+      <i class="fa-solid fa-file me-2 text-primary"></i>
+      <?= ucfirst(str_replace('_', ' ', $field)) ?> <span class="text-danger">*</span>
+    </label>
+    <input type="file" name="<?= $field ?>" class="form-control file-input w-100" accept=".pdf,.doc,.docx" required>
+  </div>
+<?php endforeach; ?>
 
-        
-    <?php endforeach; ?>
 
-<button type="submit" name="upload_btn" class="btn btn-primary">Upload Files</button>
+<button type="submit" id="uploadBtn" class="btn btn-primary" disabled>Upload Files</button>
 
 </form>
 
@@ -754,15 +861,11 @@ $files = isset($files) && is_array($files) ? $files : [];
 
 <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-success">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="approvedModalLabel">✅ Approved</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-    
-      <div class="modal-footer">
-        <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
-      </div>
+    <div class="modal-content text-center p-4">
+      <img src="../img/chik.png" alt="Approved" class="mx-auto mb-3" style="width: 120px; height: 120px;">
+      <h4 class="mb-2 text-success fw-bold">APPROVED</h4>
+      <p class="text-muted">Your submission has been approved successfully.</p>
+      <button type="button" class="btn btn-success mt-3" data-bs-dismiss="modal">OK</button>
     </div>
   </div>
 </div>
@@ -790,12 +893,18 @@ function toggleMobileNav() {
     const requirementContent = document.getElementById('requirementContent');
         const approvaltContent = document.getElementById('approvalContent');
 
-    function clearActive() {
-        dashboardTab.classList.remove('active');
-        proposalTab.classList.remove('active');
-        requirementTab.classList.remove('active');
-        approvalTab.classList.remove('active');
-    }
+  function clearActive() {
+    dashboardTab.classList.remove('active');
+    proposalTab.classList.remove('active');
+    requirementTab.classList.remove('active');
+    approvalTab.classList.remove('active');
+
+    dashboardContent.style.display = 'none';
+    proposalContent.style.display = 'none';
+    requirementContent.style.display = 'none';
+    approvalContent.style.display = 'none'; // ✅ siguraduhin kasama ito
+}
+
 
     dashboardTab.addEventListener('click', () => {
         clearActive();
@@ -821,18 +930,57 @@ function toggleMobileNav() {
         requirementContent.style.display = 'block';
     });
 
-      approvalTab.addEventListener('click', () => {
-        clearActive();
-        requirementTab.classList.add('active');
-        dashboardContent.style.display = 'none';
-        proposalContent.style.display = 'none';
-        approvalContent.style.display = 'block';
-    });
+     approvalTab.addEventListener('click', () => {
+    clearActive();
+    approvalTab.classList.add('active'); // ← ✅ TAMA: ito ang dapat i-highlight
+    dashboardContent.style.display = 'none';
+    proposalContent.style.display = 'none';
+    requirementContent.style.display = 'none';
+    approvalContent.style.display = 'block';
+});
+
         document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("calendarFrame").src = "../proposal/calendar.php";
     });
 
-    
+    document.addEventListener('DOMContentLoaded', () => {
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileInputs = document.querySelectorAll('.file-input');
+  const uploadForm = document.getElementById('uploadForm');
+  let allowSubmit = false;
+
+  const checkFilesFilled = () => {
+    let allFilled = true;
+    fileInputs.forEach(input => {
+      if (!input.value) {
+        allFilled = false;
+      }
+    });
+    uploadBtn.disabled = !allFilled;
+  };
+
+  fileInputs.forEach(input => {
+    input.addEventListener('change', checkFilesFilled);
+  });
+
+  uploadForm.addEventListener('submit', (e) => {
+    if (!allowSubmit) {
+      e.preventDefault();
+      console.log("Intercepted form submission to show modal.");
+
+      const myModal = new bootstrap.Modal(document.getElementById('myModal'));
+      myModal.show();
+
+      document.getElementById('myModal').addEventListener('hidden.bs.modal', () => {
+        allowSubmit = true;
+        uploadForm.submit(); // submit only once
+      }, { once: true }); // prevent multiple triggers
+    }
+  });
+});
+
+
+
 </script>
 </body>
 </html>
