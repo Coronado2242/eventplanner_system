@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
       if ($action === 'approve') {
         $status = 'Pending';
-        $new_level = 'CCS Auditor';
+        $new_level = 'CCS President';
         $viewed = 0;
     
         $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=?, viewed=? WHERE id=?");
@@ -68,9 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     }
 }
 
-$current_level = 'CCS Vice';
+$current_level = 'CCS SBOVice';
 $search_department = '%CCS%';
-$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending'  AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -121,7 +121,7 @@ $result = $stmt->get_result();
   <ul>
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
-    <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+    <!-- <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li> -->
   </ul>
 </aside>
 
@@ -138,20 +138,39 @@ $result = $stmt->get_result();
   <table>
     <thead>
       <tr>
-        <th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+        <th>Department</th>
+        <th>Event Type</th>
+        <th>Start Date</th>
+        <th>End Date</th>
+        <th>Venue</th>
+        <th>Attatchment</th>
+        <th>Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
     <?php if ($result && $result->num_rows > 0): ?>
       <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
-            <td><?= htmlspecialchars($row['id']) ?></td>
             <td><?= htmlspecialchars($row['department']) ?></td>
-            <td><?= htmlspecialchars($row['event_type']) ?></td>
+            <td><?= htmlspecialchars($row['activity_name']) ?></td>
             <td><?= htmlspecialchars($row['start_date']) ?></td>
             <td><?= htmlspecialchars($row['end_date']) ?></td>
             <td><?= htmlspecialchars($row['venue']) ?></td>
+          <td>
+  <?php if (!empty($row['budget_file'])): ?>
+    <a href="../proposal/uploads/<?= urlencode($row['budget_file']) ?>" 
+   target="_blank" 
+   class="btn btn-primary btn-sm d-inline-flex align-items-center">
+   <i class="fa fa-file-alt me-2"></i> View Budget File
+</a>
+
+  <?php else: ?>
+    No File
+  <?php endif; ?>
+</td>
             <td><?= htmlspecialchars($row['status']) ?></td>
+
             <td>
                 <form method="POST" action="" style="display:inline;">
     <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
@@ -168,7 +187,7 @@ $result = $stmt->get_result();
         </tr>
       <?php endwhile; ?>
     <?php else: ?>
-      <tr><td colspan="8" class="text-center">No proposals found for SBO Vice President.</td></tr>
+      <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
     <?php endif; ?>
     </tbody>
 </table>
