@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
 $current_level = 'CCS Treasurer';
 $search_department = '%CCS%';
-$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending'  AND department LIKE ?");
+$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -121,7 +121,7 @@ $result = $stmt->get_result();
   <ul>
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
-    <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+    <!-- <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li> -->
   </ul>
 </aside>
 

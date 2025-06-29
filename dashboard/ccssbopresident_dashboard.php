@@ -1,4 +1,8 @@
 <?php
+session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -9,91 +13,119 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Approval & Disapproval Logic
+// Catch upload_id from GET
+if (isset($_SESSION['upload_id'])) {
+    $upload_id = $_SESSION['upload_id'];
+    $stmt = $conn->prepare("SELECT * FROM sooproposal WHERE id = ?");
+    $stmt->bind_param("i", $upload_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+} else {
+    $result = false;
+}
+
+
+// APPROVE or DISAPPROVE LOGIC
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
     if ($action === 'approve') {
-        $status = 'Pending';
-        $new_level = 'CCS Faculty';  // next level after Treasurer (or Auditor)
+        $status = 'Approved by President';
+        $new_level = 'CCS Auditor';
+        $_SESSION['upload_id'] = $id;
     } elseif ($action === 'disapprove') {
         $status = 'Disapproved by Treasurer';
-        $new_level = 'CCS President'; // stays in Treasurer since disapproved
+        $new_level = 'CCS President';
     } else {
         die("Invalid action");
     }
 
-    $stmt = $conn->prepare("UPDATE proposals SET status=?, level=? WHERE id=?");
+    $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=? WHERE id=?");
     if (!$stmt) {
         die("Prepare failed: " . $conn->error);
     }
     $stmt->bind_param("ssi", $status, $new_level, $id);
     if ($stmt->execute()) {
-        // Redirect para ma-refresh ang list
-        header("Location: ccssbopresident_dashboard.php");
+        header("Location: ccssbopresident_dashboard.php?upload_id=$id");
         exit;
     }
 }
 
-// Fetch proposals for CCS President
-$current_level = 'CCS President';
+// LOAD PENDING PROPOSALS
+$level = 'CCS President';
 $search_department = '%CCS%';
-$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
-$stmt->bind_param("ss", $current_level, $search_department);
+
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt->bind_param("ss", $level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
 
+
+
+// FILE UPLOAD HANDLER
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['letter_attachment'])) {
     $uploadDir = "uploads/";
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
     }
 
-    // File fields to process
+$id = $_POST['proposal_id'] ?? null;
+
+
+    if (!$id) {
+        echo "gago ka chat gpt";
+        exit;
+    }
+ else {
+       $stmt = $conn->prepare("SELECT * FROM sooproposal WHERE id = ?");
+
+        if (!$stmt) {
+            die("Query Error: " . $conn->error);
+        }
+       $stmt->bind_param("i", $id); 
+
+        $stmt->execute();
+        $result = $stmt->get_result();
+    }
+
     $fields = [
-        'letter_attachment',
-        'constitution',
-        'reports',
-        'adviser_form',
-        'certification',
-        'financial',
-        'activity_plan'
+        'letter_attachment', 'constitution', 'reports', 'adviser_form',
+        'certification', 'financial', 'activity_plan'
     ];
 
     $fileData = [];
-
     foreach ($fields as $field) {
         if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
-            $filename = time() . '_' . basename($_FILES[$field]['name']);
+            $filename = time() . '_' . uniqid() . '_' . basename($_FILES[$field]['name']);
             $target = $uploadDir . $filename;
-
             if (move_uploaded_file($_FILES[$field]['tmp_name'], $target)) {
                 $fileData[$field] = $filename;
             } else {
-                $fileData[$field] = ''; // fallback kung error sa move
+                $fileData[$field] = '';
             }
         } else {
-            $fileData[$field] = ''; // fallback kung walang file
+            $fileData[$field] = '';
         }
     }
 
-    $created_at = date('Y-m-d H:i:s');
-    $department = "CCS"; 
-    $status = "Pending"; 
-    $level = "CCS President"; 
-
-    $sql = "INSERT INTO proposals (
-        department,
-        letter_attachment, constitution, reports, adviser_form, 
-        certification, financial, activity_plan,
-        created_at, status, level
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "UPDATE sooproposal SET 
+        letter_attachment = ?, 
+        constitution = ?, 
+        reports = ?, 
+        adviser_form = ?, 
+        certification = ?, 
+        financial = ?, 
+        activity_plan = ?
+    WHERE id = ?";
 
     $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        die("SQL Prepare Error: " . $conn->error);
+    }
+
     $stmt->bind_param(
-        "sssssssssss",
-        $department,
+        'sssssssi',
         $fileData['letter_attachment'],
         $fileData['constitution'],
         $fileData['reports'],
@@ -101,27 +133,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['letter_attachment'])
         $fileData['certification'],
         $fileData['financial'],
         $fileData['activity_plan'],
-        $created_at,
-        $status,
-        $level
+     $id
     );
+echo "<pre>";
+print_r($fileData);
+echo "Proposal ID: " . $id . "\n";
+echo "</pre>";
 
     if ($stmt->execute()) {
         $_SESSION['upload_success'] = true;
         header("Location: ccssbopresident_dashboard.php");
         exit;
     } else {
-        echo "Insert failed: " . $stmt->error;
+        echo "Update failed: " . $stmt->error;
     }
 }
 
 
-
 $conn->close();
-
-
-
 ?>
+
+
+
 
 
 <!DOCTYPE html>
@@ -134,6 +167,7 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
     <style>
 html, body {
   margin: 0;
@@ -637,6 +671,7 @@ tr:nth-child(even) {
 
 
 </style>
+    
 </head>
 
 <body>
@@ -684,42 +719,67 @@ tr:nth-child(even) {
 <!-- Proposals Section -->
 <div id="proposalContent" class="content" style="display:none;">
   <h1>Pending Proposals for Approval</h1>
+
   <table>
     <thead>
       <tr>
-        <th>Department</th><th>Event Type</th><th>Start Date</th><th>End Date</th><th>Venue</th><th>Status</th><th>Actions</th>
+        <th>Department</th>
+        <th>Event Type</th>
+        <th>Start Date</th>
+        <th>End Date</th>
+        <th>Venue</th>
+        <th>Attatchment</th>
+        <th>Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
     <?php if ($result && $result->num_rows > 0): ?>
       <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
-            <td><?= htmlspecialchars($row['id']) ?></td>
             <td><?= htmlspecialchars($row['department']) ?></td>
-            <td><?= htmlspecialchars($row['event_type']) ?></td>
+            <td><?= htmlspecialchars($row['activity_name']) ?></td>
             <td><?= htmlspecialchars($row['start_date']) ?></td>
             <td><?= htmlspecialchars($row['end_date']) ?></td>
             <td><?= htmlspecialchars($row['venue']) ?></td>
+          <td>
+  <?php if (!empty($row['budget_file'])): ?>
+    <a href="../proposal/uploads/<?= urlencode($row['budget_file']) ?>" 
+   target="_blank" 
+   class="btn btn-primary btn-sm d-inline-flex align-items-center">
+   <i class="fa fa-file-alt me-2"></i> View Budget File
+</a>
+
+  <?php else: ?>
+    No File
+  <?php endif; ?>
+</td>
             <td><?= htmlspecialchars($row['status']) ?></td>
+
             <td>
-                <form method="post" action="" style="margin:0;">
-                    <!-- Important: assign proposal_id value here -->
-                    <input type="hidden" name="proposal_id" value="<?= htmlspecialchars($row['id']) ?>" />
-                    <input type="hidden" name="level" value="CCS President">
+                <form method="POST" action="" style="display:inline;">
+    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
+</form>
+<form method="POST" action="ccssbotreasurer_dashboard.php" style="display: inline;">
+    <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
+  Disapprove
+</button>
 
+</form>
 
-                    <button type="submit" name="action" value="approve" class="approve-btn">Approve</button>
-                    <button type="submit" name="action" value="disapprove" class="disapprove-btn">Disapprove</button>
-                </form>
             </td>
         </tr>
       <?php endwhile; ?>
     <?php else: ?>
-      <tr><td colspan="8" class="text-center">No proposals found for SBO President.</td></tr>
+      <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
     <?php endif; ?>
     </tbody>
-  </table>
+</table>
+  
 </div>
+
+
 
 <!-- Requirements Content -->
 <div id="requirementContent" class="content" style="display:none;">
@@ -747,11 +807,11 @@ $current_level = "CCS President"; // Adjust as needed
 $search_department = "%CCS%";     // You can change this dynamically too
 
 // Prepare and execute query
-$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND department LIKE ?");
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE username = ? AND status = 'Pending'");
 if (!$stmt) {
     die("Query Error: " . $conn->error);
 }
-$stmt->bind_param("ss", $current_level, $search_department);
+$stmt->bind_param("s", $username);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -759,11 +819,11 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         echo '<div class="card p-4 mb-4 shadow-sm">';
-        // echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+        echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
         echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
-        // echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
-        // echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
-        // echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+        echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+        echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
+        echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
         echo '<h5 class="mt-4">Requirements</h5>';
         echo '<div class="row g-3">';
 
@@ -817,45 +877,27 @@ $conn->close();
 </div>
 
 
-<!-- file upload -->
-<?php
-
-$files = isset($files) && is_array($files) ? $files : [];
-?>
-
 <div id="approvalContent" class="content" style="display:none;">
-   <div class="row">
-   <form id="uploadForm" action="ccssbopresident_dashboard.php" method="POST" enctype="multipart/form-data">
-
+  <?php if (isset($_SESSION['upload_id'])): ?>
+  <form id="uploadForm" action="ccssbopresident_dashboard.php" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="proposal_id" value="<?= $_SESSION['upload_id'] ?>">
+    
     <?php
-    $files = [
-        'letter_attachment',
-        'constitution',
-        'reports',
-        'adviser_form',
-        'certification',
-        'financial',
-        'activity_plan'
-    ];
-    ?>
+    $fields = ['letter_attachment','constitution','reports','adviser_form','certification','financial','activity_plan'];
+    foreach ($fields as $field): ?>
+      <div class="mb-3">
+        <label><?= ucfirst(str_replace('_', ' ', $field)) ?>:</label>
+        <input type="file" name="<?= $field ?>" class="form-control file-input" required>
+      </div>
+    <?php endforeach; ?>
 
- <?php foreach ($files as $field): ?>
-  <div class="col-md-5 mb-4">
-    <label class="form-label fw-semibold text-dark">
-      <i class="fa-solid fa-file me-2 text-primary"></i>
-      <?= ucfirst(str_replace('_', ' ', $field)) ?> <span class="text-danger">*</span>
-    </label>
-    <input type="file" name="<?= $field ?>" class="form-control file-input w-100" accept=".pdf,.doc,.docx" required>
-  </div>
-<?php endforeach; ?>
-
-
-<button type="submit" id="uploadBtn" class="btn btn-primary" disabled>Upload Files</button>
-
-</form>
-
-    </div>
+    <button type="submit" name="upload_files" class="btn btn-primary" id="uploadBtn">Upload Files</button>
+  </form>
+  <?php else: ?>
+    <div class="alert alert-warning">No proposal selected. Please approve a proposal first.</div>
+  <?php endif; ?>
 </div>
+
 
 <!-- modal -->
 
@@ -865,7 +907,7 @@ $files = isset($files) && is_array($files) ? $files : [];
       <img src="../img/chik.png" alt="Approved" class="mx-auto mb-3" style="width: 120px; height: 120px;">
       <h4 class="mb-2 text-success fw-bold">APPROVED</h4>
       <p class="text-muted">Your submission has been approved successfully.</p>
-      <button type="button" class="btn btn-success mt-3" data-bs-dismiss="modal">OK</button>
+      <button type="submit" class="btn btn-success mt-3" data-bs-dismiss="modal">OK</button>
     </div>
   </div>
 </div>
@@ -932,7 +974,7 @@ function toggleMobileNav() {
 
      approvalTab.addEventListener('click', () => {
     clearActive();
-    approvalTab.classList.add('active'); // ← ✅ TAMA: ito ang dapat i-highlight
+    approvalTab.classList.add('active'); 
     dashboardContent.style.display = 'none';
     proposalContent.style.display = 'none';
     requirementContent.style.display = 'none';
@@ -978,7 +1020,13 @@ function toggleMobileNav() {
     }
   });
 });
-
+document.querySelectorAll('.approve-btn').forEach(button => {
+  button.addEventListener('click', function () {
+    const id = this.getAttribute('data-id');
+    document.getElementById('uploadProposalId').value = id;
+    document.getElementById('ApprovalTab').click();
+  });
+});
 
 
 </script>
