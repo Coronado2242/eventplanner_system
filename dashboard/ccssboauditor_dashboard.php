@@ -197,7 +197,13 @@ $result = $stmt->get_result();
             <td>
                 <form method="POST" action="" style="display:inline;">
     <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
+        <button type="button"
+  class="btn btn-success approve-btn"
+  data-id="<?= $row['id'] ?>"
+  data-bs-toggle="modal"
+  data-bs-target="#approveModal">
+  Approve
+</button>
 </form>
 <form method="POST" action="ccssbotreasurer_dashboard.php" style="display: inline;">
     <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
@@ -229,10 +235,9 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         echo '<div class="card p-4 mb-4 shadow-sm">';
-        echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
+        echo '<h3 class="mb-3">' . htmlspecialchars($row['activity_name']) . '</h3>';
         echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
         echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
-        echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
         echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
         echo '<h5 class="mt-4">Requirements</h5>';
         echo '<div class="row g-3">';
@@ -244,18 +249,18 @@ if ($result->num_rows > 0) {
             "Certification from Responsive Dean/Associate Dean" => "certification",
             "Accomplishment reports" => "reports",
             "Financial Report" => "financial",
-            "Plan of Activities" => "activity_plan",
+            "Plan of Activities" => "POA_file",
             "Budget Plan" => "budget_file"
         ];
 
         $requirementDirectories = [
-            "letter_attachment" => "../proposal/",
-            "adviser_form" => "../proposal/",
-            "constitution" => "../proposal/",
-            "certification" => "../proposal/",
-            "reports" => "../proposal/",
-            "financial" => "../proposal/",
-            "activity_plan" => "../proposal/",
+            "letter_attachment" => "../dashboard/uploads/",
+            "adviser_form" => "../dashboard/uploads/",
+            "constitution" => "../dashboard/uploads/",
+            "certification" => "../dashboard/uploads/",
+            "reports" => "../dashboard/uploads/",
+            "financial" => "../dashboard/uploads/",
+            "POA_file" => "../proposal/uploads/",
             "budget_file" => "../proposal/uploads/"
         ];
 

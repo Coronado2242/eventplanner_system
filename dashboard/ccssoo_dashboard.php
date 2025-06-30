@@ -483,7 +483,7 @@ if (!$result) {
       <?php
 
       $username = $_SESSION['username'] ?? '';
-      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed'";
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND level = 'Completed'";
       $stmt = $conn->prepare($query);
       $stmt->bind_param("s", $username);
       $stmt->execute();

@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
     
         // Redirect with success flag
-        header("Location: ccssbotreasurer_dashboard.php?approved=1");
+        header("Location: ccssbovice_dashboard.php?approved=1");
         exit;
         } elseif ($action === 'disapprove') {
         $reasons = $_POST['reasons'] ?? [];
@@ -63,12 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-        header("Location: ccssbotreasurer_dashboard.php");
+        header("Location: ccssbovice_dashboard.php");
         exit;
     }
 }
 
-$current_level = 'CCS SBOVice';
+$current_level = 'CCS Vice';
 $search_department = '%CCS%';
 $stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted'  AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
@@ -121,7 +121,7 @@ $result = $stmt->get_result();
   <ul>
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
-    <!-- <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li> -->
+    <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
   </ul>
 </aside>
 
@@ -174,9 +174,16 @@ $result = $stmt->get_result();
             <td>
                 <form method="POST" action="" style="display:inline;">
     <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
+    <button type="button"
+  class="btn btn-success approve-btn"
+  data-id="<?= $row['id'] ?>"
+  data-bs-toggle="modal"
+  data-bs-target="#approveModal">
+  Approve
+</button>
+
 </form>
-<form method="POST" action="ccssbotreasurer_dashboard.php" style="display: inline;">
+<form method="POST" action="ccssbovice_dashboard.php" style="display: inline;">
     <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
   Disapprove
 </button>
@@ -191,82 +198,115 @@ $result = $stmt->get_result();
     <?php endif; ?>
     </tbody>
 </table>
-
-</body>
-</html>
+</div>
+<!-- Requirements Content -->
+<div id="requirementContent" class="content" style="display:none;">
+    <h1>Requirements Section</h1>
+    <p>Requirements details.</p>
 
 <?php
-$conn->close();
-?>
-<!-- Requirements Content -->
-<div id="requirementContent" style="display:none;">
-    <main class="content">
-        <h1 style="margin-bottom: 0;">Requirements</h1>
+// Error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-        <?php
-        $host = "localhost";
-        $user = "root";
-        $pass = "";
-        $db   = "eventplanner";
+// MySQL Connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "eventplanner";
 
-        $conn = mysqli_connect($host, $user, $pass, $db);
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
-        if (!$conn) {
-            die("Connection failed: " . mysqli_connect_error());
-        }
+// Sample session data
+$level = 'CCS Vice';
+$search_department = '%CCS%';
 
- $sql = "SELECT * FROM sooproposal WHERE budget IS NULL AND department = 'CCS' AND status != 'Disapproved'";
-$result = mysqli_query($conn, $sql);
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
+$stmt->bind_param("ss", $level, $search_department);
+$stmt->execute();
+$result = $stmt->get_result();
 
-        while ($row = mysqli_fetch_assoc($result)) {
-            echo '<div style="border: 1px solid #ccc; border-radius: 10px; padding: 20px; max-width: 900px; position: relative; margin-bottom: 20px;">';
-            echo '<h2 style="margin-top: 0;">' . htmlspecialchars($row['event_type']) . '</h2>';
 
-            echo '<div style="display: flex; flex-wrap: wrap; gap: 40px;">';
-            echo '<div><strong>Date</strong><br>' . date("M d Y", strtotime($row['start_date'])) . ' - ' . date("M d Y", strtotime($row['end_date'])) . '</div>';
-            echo '<div><strong>Time</strong><br><span style="color: gray;">' . htmlspecialchars($row['time']) . '</span></div>';
-            echo '<div><strong>Venue</strong><br><span style="color: gray;">' . htmlspecialchars($row['venue']) . '</span></div>';
-            echo '<div><strong>Department</strong><br>' . htmlspecialchars($row['department']) . '</div>';
-            echo '</div>';
+// Check and display results
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        echo '<div class="card p-4 mb-4 shadow-sm">';
+        echo '<h3 class="mb-3">' . htmlspecialchars($row['activity_name']) . '</h3>';
+        echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+        echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+        echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+        echo '<h5 class="mt-4">Requirements</h5>';
+        echo '<div class="row g-3">';
 
-            // Attachments Section
-            echo '<h3 style="margin-top: 20px;">Requirements</h3>';
-            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
+        $requirements = [
+            "Plan of Activities" => "POA_file",
+            "Budget Plan" => "budget_file"
+        ];
 
-            $requirements = [
-                "Letter Attachment" => "letter_attachment",
-                "Adviser Commitment form" => "adviser_form",
-                "Constitution and by-laws of the Org." => "constitution",
-                "Certification from Responsive Dean/Associate Dean" => "certification",
-                "Accomplishment reports" => "reports",
-                "Financial Report" => "financial",
-                "Plan of Activities" => "plan",
-                "Budget Plan" => "budget"
-            ];
+        $requirementDirectories = [
+            "POA_file" => "../proposal/",
+            "budget_file" => "../proposal/uploads/"
+        ];
 
-            foreach ($requirements as $label => $field) {
-                echo '<div style="background: #f1f1f1; padding: 10px; border-radius: 10px;">';
-                echo '<small style="color: red;">Requirement*</small><br>';
-                echo '<strong>' . $label . '</strong><br>';
-                if (!empty($row[$field])) {
-                    echo '<a href="../proposal/' . htmlspecialchars($row[$field]) . '" target="_blank" style="display: inline-block; margin-top: 5px; background-color: #004080; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;">View Attachment</a>';
-                } else {
-                    echo '<span style="color: gray; display: inline-block; margin-top: 5px;">No Attachment</span>';
-                }
-                echo '</div>';
+        foreach ($requirements as $label => $field) {
+            echo '<div class="col-md-4">';
+            echo '<div class="border rounded p-3 bg-light h-100">';
+            echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+            echo '<strong>' . $label . '</strong><br>';
+
+            if (!empty($row[$field])) {
+                $directory = $requirementDirectories[$field] ?? '../proposal/';
+                $file_path = $directory . htmlspecialchars($row[$field]);
+                echo '<a href="' . $file_path . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+            } else {
+                echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
             }
 
-            echo '</div>';
-            echo '</div>';
+            echo '</div></div>';
         }
-        ?>
-    </main>
+
+        echo '</div></div>'; // end row and card
+    }
+} else {
+    echo '<div class="alert alert-info text-center">No requirements found.</div>';
+}
+
+$conn->close();
+?>
+
+</div>
+
+<!-- Approve Confirmation Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="POST" action="ccssbovice_dashboard.php">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="approveModalLabel">Confirm Approval</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" name="proposal_id" id="approve_proposal_id">
+          <input type="hidden" name="action" value="approve">
+          Are you sure you want to approve this proposal?
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success w-100">Yes, Approve</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- Disapprove Remarks Modal -->
 <div class="modal fade" id="disapproveModal" tabindex="-1" aria-labelledby="disapproveModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-   <form method="POST" action="ccssbotreasurer_dashboard.php">
+   <form method="POST" action="ccssbovice_dashboard.php">
 
       <div class="modal-content">
         <!-- Header -->
@@ -380,6 +420,7 @@ document.querySelectorAll('.approve-btn').forEach(button => {
     document.getElementById('approve_proposal_id').value = proposalId;
   });
 });
+
 
 
   // Check for ?approved=1 in URL

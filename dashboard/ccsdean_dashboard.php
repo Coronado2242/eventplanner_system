@@ -173,7 +173,7 @@ $venue_result = $venue_stmt->get_result();
     <li onclick="toggleSubMenu('venueSubMenu')"><i class="fa fa-folder-plus" ></i> Venue Approval <i class="fa fa-caret-down" ></i></li>
     <ul id="venueSubMenu" class="submenu" style="display:none;">
     <li id="venueTab"> Venue</li>
-    <li id="venuerequirementTab"> Requirements</li>
+    <li id="vrequirementTab"> Requirements</li>
     </ul>
   </ul>
 </aside>
@@ -202,8 +202,8 @@ $venue_result = $venue_stmt->get_result();
       </tr>
     </thead>
     <tbody>
-    <?php if ($result && $result->num_rows > 0): ?>
-      <?php while ($row = $result->fetch_assoc()): ?>
+    <?php if ($proposal_result && $proposal_result->num_rows > 0): ?>
+      <?php while ($row = $proposal_result->fetch_assoc()): ?>
         <tr>
             <td><?= htmlspecialchars($row['department']) ?></td>
             <td><?= htmlspecialchars($row['activity_name']) ?></td>
@@ -225,10 +225,18 @@ $venue_result = $venue_stmt->get_result();
             <td><?= htmlspecialchars($row['status']) ?></td>
 
             <td>
-                <form method="POST" action="" style="display:inline;">
-    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-    <button type="submit" name="action" value="approve" class="action-btn approve-btn">Approve</button>
+<form method="POST" action="" style="display:inline;">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <input type="hidden" name="type" value="proposal">
+      <button type="button"
+  class="btn btn-success approve-btn"
+  data-id="<?= $row['id'] ?>"
+  data-bs-toggle="modal"
+  data-bs-target="#approveModal">
+  Approve
+</button>
 </form>
+
 <form method="POST" action="ccssbotreasurer_dashboard.php" style="display: inline;">
     <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
   Disapprove
@@ -251,67 +259,71 @@ $venue_result = $venue_stmt->get_result();
 <div id="requirementContent" class="content" style="display:none;">
   <h1>Requirements</h1>
   <?php
-$stmt = $conn->prepare("SELECT * FROM proposals WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
-$stmt->bind_param("ss", $current_level, $search_department);
-$stmt->execute();
-$result = $stmt->get_result();
+  // ✅ FIX: Use $proposal_level instead of $current_level
+  $stmt = $conn->prepare("
+    SELECT * FROM sooproposal 
+    WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?
+  ");
+  $stmt->bind_param("ss", $proposal_level, $search_department);
+  $stmt->execute();
+  $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        echo '<div class="card p-4 mb-4 shadow-sm">';
-        echo '<h3 class="mb-3">' . htmlspecialchars($row['event_type']) . '</h3>';
-        echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
-        echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
-        echo '<p><strong>Time:</strong> ' . htmlspecialchars($row['time']) . '</p>';
-        echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
-        echo '<h5 class="mt-4">Requirements</h5>';
-        echo '<div class="row g-3">';
+  if ($result->num_rows > 0) {
+      while ($row = $result->fetch_assoc()) {
+          echo '<div class="card p-4 mb-4 shadow-sm">';
+          echo '<h3 class="mb-3">' . htmlspecialchars($row['activity_name']) . '</h3>';
+          echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+          echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+          echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+          echo '<h5 class="mt-4">Requirements</h5>';
+          echo '<div class="row g-3">';
 
-        $requirements = [
-            "Letter Attachment" => "letter_attachment",
-            "Adviser Commitment form" => "adviser_form",
-            "Constitution ang by-laws of the Org." => "constitution",
-            "Certification from Responsive Dean/Associate Dean" => "certification",
-            "Accomplishment reports" => "reports",
-            "Financial Report" => "financial",
-            "Plan of Activities" => "activity_plan",
-            "Budget Plan" => "budget_file"
-        ];
+          $requirements = [
+              "Letter Attachment" => "letter_attachment",
+              "Adviser Commitment form" => "adviser_form",
+              "Constitution and By-laws of the Org." => "constitution",
+              "Certification from Responsive Dean/Associate Dean" => "certification",
+              "Accomplishment reports" => "reports",
+              "Financial Report" => "financial",
+              "Plan of Activities" => "POA_file",
+              "Budget Plan" => "budget_file"
+          ];
 
-        $requirementDirectories = [
-            "letter_attachment" => "../proposal/",
-            "adviser_form" => "../proposal/",
-            "constitution" => "../proposal/",
-            "certification" => "../proposal/",
-            "reports" => "../proposal/",
-            "financial" => "../proposal/",
-            "activity_plan" => "../proposal/",
-            "budget_file" => "../proposal/uploads/"
-        ];
+          $requirementDirectories = [
+              "letter_attachment" => "../dashboard/uploads/",
+              "adviser_form" => "../dashboard/uploads/",
+              "constitution" => "../dashboard/uploads/",
+              "certification" => "../dashboard/uploads/",
+              "reports" => "../dashboard/uploads/",
+              "financial" => "../dashboard/uploads/",
+              "POA_file" => "../proposal/uploads/",
+              "budget_file" => "../proposal/uploads/"
+          ];
 
-        foreach ($requirements as $label => $field) {
-            echo '<div class="col-md-4">';
-            echo '<div class="border rounded p-3 bg-light h-100">';
-            echo '<small class="text-danger fw-bold">Requirement*</small><br>';
-            echo '<strong>' . $label . '</strong><br>';
+          foreach ($requirements as $label => $field) {
+              echo '<div class="col-md-4">';
+              echo '<div class="border rounded p-3 bg-light h-100">';
+              echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+              echo '<strong>' . $label . '</strong><br>';
 
-            if (!empty($row[$field])) {
-                $directory = $requirementDirectories[$field] ?? '../proposal/';
-                echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
-            } else {
-                echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
-            }
+              if (!empty($row[$field])) {
+                  $directory = $requirementDirectories[$field] ?? '../proposal/';
+                  echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+              } else {
+                  echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+              }
 
-            echo '</div></div>';
-        }
+              echo '</div></div>';
+          }
 
-        echo '</div></div>';
-    }
-} else {
-    echo '<div class="alert alert-info text-center">No requirements found for Dean.</div>';
-}
-?>
+          echo '</div></div>';
+      }
+  } else {
+      echo '<div class="alert alert-info text-center">No requirements found for Dean.</div>';
+  }
+  ?>
 </div>
+
 
 <!-- Venue Approval -->
 <div id="venueContent" class="content" style="display:none;">
@@ -336,6 +348,64 @@ if ($result->num_rows > 0) {
       <?php endif; ?>
     </tbody>
   </table>
+</div>
+
+<!-- Venue Requirements Section -->
+<div id="vrequirementContent" class="content" style="display:none;">
+  <h1>Venue Requirements</h1>
+  <?php
+  // ✅ NEW query for venue requirements
+  $venue_req_stmt = $conn->prepare("
+    SELECT * FROM sooproposal 
+    WHERE level=? AND status='Pending' AND submit='submitted' 
+      AND department LIKE ? AND LOWER(venue) = 'gym'
+  ");
+  $venue_req_stmt->bind_param("ss", $venue_level, $search_department);
+  $venue_req_stmt->execute();
+  $venue_result = $venue_req_stmt->get_result();
+
+  if ($venue_result->num_rows > 0) {
+    while ($row = $venue_result->fetch_assoc()) {
+      echo '<div class="card p-4 mb-4 shadow-sm">';
+      echo '<h3 class="mb-3">' . htmlspecialchars($row['activity_name']) . '</h3>';
+      echo '<p><strong>Department:</strong> ' . htmlspecialchars($row['department']) . '</p>';
+      echo '<p><strong>Date:</strong> ' . date("F d, Y", strtotime($row['start_date'])) . ' - ' . date("F d, Y", strtotime($row['end_date'])) . '</p>';
+      echo '<p><strong>Venue:</strong> ' . htmlspecialchars($row['venue']) . '</p>';
+      echo '<h5 class="mt-4">Requirements</h5>';
+      echo '<div class="row g-3">';
+
+      $requirements = [
+        "Plan of Activities" => "POA_file",
+        "Budget Plan" => "budget_file"
+      ];
+
+      $requirementDirectories = [
+        "POA_file" => "../proposal/",
+        "budget_file" => "../proposal/uploads/"
+      ];
+
+      foreach ($requirements as $label => $field) {
+        echo '<div class="col-md-4">';
+        echo '<div class="border rounded p-3 bg-light h-100">';
+        echo '<small class="text-danger fw-bold">Requirement*</small><br>';
+        echo '<strong>' . $label . '</strong><br>';
+
+        if (!empty($row[$field])) {
+          $directory = $requirementDirectories[$field] ?? '../proposal/';
+          echo '<a href="' . $directory . htmlspecialchars($row[$field]) . '" target="_blank" class="btn btn-primary btn-sm mt-2">View Attachment</a>';
+        } else {
+          echo '<span class="text-muted mt-2 d-block">No Attachment</span>';
+        }
+
+        echo '</div></div>';
+      }
+
+      echo '</div></div>';
+    }
+  } else {
+    echo '<div class="alert alert-info text-center">No requirements found for Venue.</div>';
+  }
+  ?>
 </div>
 
 
@@ -458,7 +528,8 @@ function switchTab(tab) {
     dashboard: "dashboardContent",
     proposal: "proposalContent",
     requirement: "requirementContent",
-    venue: "venueContent"
+    venue: "venueContent",
+    vrequirement: "vrequirementContent" // Add this line
   };
 
   for (const key in sections) {
@@ -469,6 +540,7 @@ function switchTab(tab) {
     if (tabElement) tabElement.classList.toggle('active', key === tab);
   }
 }
+
 
 function setupModalButtons() {
   document.querySelectorAll('.approve-btn').forEach(button => {
@@ -510,7 +582,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 
   // Set tab click listeners
-  const tabIds = ["dashboard", "proposal", "requirement", "venue"];
+  const tabIds = ["dashboard", "proposal", "requirement", "venue", "vrequirement"];
   tabIds.forEach(tab => {
     const tabElement = document.getElementById(tab + "Tab");
     if (tabElement) {
