@@ -40,14 +40,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       font-family: Arial, sans-serif;
       background: transparent;
     }
-    #calendar {
-      max-width: 800px;
-      margin: 50px auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
     .legend {
       text-align: center;
       margin-top: 10px;
@@ -116,7 +108,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 
 <h2 style="text-align:center;"></h2>
 
-<div id='calendar'></div>
+<!-- WRAPPED LAYOUT WITH SIDEBAR -->
+<div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px;">
+  <!-- Sidebar Summary -->
+  <div id="calendarSummary" style="width: 250px; padding: 20px; background: #f5f5f5; border-radius: 10px; font-family: Arial;">
+    <h4>📅 Summary</h4>
+    <div><strong>Today:</strong> <span id="countToday">0</span></div>
+    <div><strong>Pending:</strong> <span id="countPending">0</span></div>
+    <div><strong>Approved:</strong> <span id="countApproved">0</span></div>
+    <div><strong>Total Events:</strong> <span id="countTotal">0</span></div>
+    <hr>
+    <h5>🧭 Departments:</h5>
+    <div id="departmentLegend"></div>
+  </div>
+
+  <!-- Calendar -->
+  <div id='calendar'></div>
+</div>
 
 <div class="legend">
   <span style="color:green;">● Completed</span>
@@ -134,6 +142,29 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 </div>
 
 <script>
+let activeDepartmentFilter = null;
+
+const departmentColors = {
+  'CCS': '#4CAF50',
+  'COE': '#2196F3',
+  'CA': '#FF9800',
+  'CCJE': '#9C27B0',
+  'CBBA': '#E91E63',
+  'CFND': '#00BCD4',
+  'CHMT': '#795548',
+  'CTE': '#3F51B5',
+  'CAS': '#8BC34A'
+};
+
+function filterByDepartment(dep) {
+  if (activeDepartmentFilter === dep) {
+    activeDepartmentFilter = null;
+  } else {
+    activeDepartmentFilter = dep;
+  }
+  loadProposals();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -157,27 +188,58 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(events => {
         clearUnderlines();
 
+        let countToday = 0;
+        let countPending = 0;
+        let countApproved = 0;
+        let countTotal = 0;
+        let departmentsInUse = {};
+        let departmentSummary = {};
+
+        const todayStr = today.toISOString().slice(0, 10);
+
         events.forEach(event => {
+          if (activeDepartmentFilter && event.department !== activeDepartmentFilter) return;
+
           const start = new Date(event.start);
           const end = new Date(event.end);
-          end.setDate(end.getDate() - 1); // Adjust because +1 day in PHP
+          end.setDate(end.getDate() - 1);
+
+          const dep = event.department;
+          const status = event.status;
+
+          if (!departmentsInUse[dep]) departmentsInUse[dep] = true;
+          if (!departmentSummary[dep]) {
+            departmentSummary[dep] = { pending: 0, approved: 0, today: 0 };
+          }
+
+          countTotal++;
+
+          if (status === 'pending') {
+            countPending++;
+            departmentSummary[dep].pending++;
+          } else if (status === 'completed') {
+            countApproved++;
+            departmentSummary[dep].approved++;
+          }
+
+          if (start <= today && end >= today) {
+            countToday++;
+            departmentSummary[dep].today++;
+          }
 
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            const dateStr = d.toISOString().slice(0, 10);
-            if (!dateEvents[dateStr]) {
-              dateEvents[dateStr] = [];
-            }
-            dateEvents[dateStr].push(event);
+            const ds = d.toISOString().slice(0, 10);
+            if (!dateEvents[ds]) dateEvents[ds] = [];
+            dateEvents[ds].push(event);
 
-            const cell = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
+            const cell = document.querySelector(`.fc-daygrid-day[data-date="${ds}"]`);
             if (cell) {
-              // Check if ended
               if (end < today) {
                 cell.classList.add('fc-day-ended-underline');
               } else {
-                if (event.status === 'pending') {
+                if (status === 'pending') {
                   cell.classList.add('fc-day-pending-underline');
-                } else if (event.status === 'completed') {
+                } else if (status === 'completed') {
                   cell.classList.add('fc-day-approved-underline');
                 }
               }
@@ -186,7 +248,37 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
 
-        // Show modal on cell click
+        document.getElementById('countToday').textContent = countToday;
+        document.getElementById('countPending').textContent = countPending;
+        document.getElementById('countApproved').textContent = countApproved;
+        document.getElementById('countTotal').textContent = countTotal;
+
+        const legendContainer = document.getElementById('departmentLegend');
+        legendContainer.innerHTML = '';
+
+        Object.keys(departmentSummary).forEach(dep => {
+          const color = departmentColors[dep] || '#000';
+          const data = departmentSummary[dep];
+          const isSelected = activeDepartmentFilter === dep;
+
+          const item = document.createElement('div');
+          item.style.marginBottom = '6px';
+          item.style.cursor = 'pointer';
+          item.style.border = isSelected ? '2px solid #333' : 'none';
+          item.style.borderRadius = '8px';
+          item.style.padding = '5px';
+          item.setAttribute('onclick', `filterByDepartment('${dep}')`);
+
+          item.innerHTML = `
+            <span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:50%;margin-right:5px;"></span>
+            <strong>${dep}</strong><br>
+            <span style="margin-left: 18px;">🟢 ${data.approved} Approved</span><br>
+            <span style="margin-left: 18px;">🟠 ${data.pending} Pending</span><br>
+            <span style="margin-left: 18px;">📅 ${data.today} Today</span>
+          `;
+          legendContainer.appendChild(item);
+        });
+
         document.querySelectorAll('.fc-daygrid-day').forEach(cell => {
           const date = cell.getAttribute('data-date');
           if (dateEvents[date]) {
@@ -198,14 +290,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
               proposals.forEach(p => {
                 let color = 'orange';
-                if (p.status === 'completed') {
-                  color = 'green';
-                }
+                if (p.status === 'completed') color = 'green';
+
                 const endDate = new Date(p.end);
                 endDate.setDate(endDate.getDate() - 1);
-                if (endDate < today) {
-                  color = 'red';
-                }
+                if (endDate < today) color = 'red';
 
                 html += `
                   <div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
