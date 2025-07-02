@@ -1,27 +1,25 @@
 <?php
 session_start();
-
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 
 if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
   $sql = "SELECT id, department, activity_name, start_date, end_date, status FROM sooproposal";
   $result = $conn->query($sql);
-
   $events = [];
 
   while ($row = $result->fetch_assoc()) {
-      $status = strtolower(trim($row['status']));
-      if (strpos($status, 'disapproved') === 0) continue; // skip all types of disapproved
+    $status = strtolower(trim($row['status']));
+    if (strpos($status, 'disapproved') === 0) continue;
 
-      $events[] = [
-          'id' => $row['id'],
-          'title' => $row['activity_name'],
-          'start' => $row['start_date'],
-          'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')),
-          'status' => $status,
-          'department' => $row['department'],
-          'event_type' => $row['activity_name']
-      ];
+    $events[] = [
+      'id' => $row['id'],
+      'title' => $row['activity_name'],
+      'start' => $row['start_date'],
+      'end' => date('Y-m-d', strtotime($row['end_date'] . ' +1 day')),
+      'status' => $status,
+      'department' => $row['department'],
+      'event_type' => $row['activity_name']
+    ];
   }
 
   echo json_encode($events);
@@ -38,31 +36,51 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: transparent;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      padding: 30px;
+    }
+    #calendar {
+      max-width: 800px;
+      flex-grow: 1;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .sidebar {
+      width: 260px;
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .summary-box {
+      background: #fff;
+      border-radius: 6px;
+      padding: 10px 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .summary-title {
+      font-weight: bold;
+      margin-bottom: 5px;
     }
     .legend {
       text-align: center;
-      margin-top: 10px;
+      margin: 20px auto 10px;
+      font-size: 14px;
     }
     .legend span {
-      margin: 0 15px;
+      margin: 0 10px;
       font-weight: bold;
     }
-
-    .fc-day-pending-underline .fc-daygrid-day-number {
-      border-bottom: 3px solid orange;
-      padding-bottom: 2px;
-    }
-    .fc-day-approved-underline .fc-daygrid-day-number {
-      border-bottom: 3px solid green;
-      padding-bottom: 2px;
-    }
-    .fc-day-ended-underline .fc-daygrid-day-number {
-      border-bottom: 3px solid red;
-      padding-bottom: 2px;
-    }
-
-    /* Modal Styles */
     .modal {
       display: none;
       position: fixed;
@@ -74,7 +92,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       overflow: auto;
       background-color: rgba(0,0,0,0.4);
     }
-
     .modal-content {
       background-color: #fff;
       margin: 10% auto;
@@ -84,11 +101,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       max-width: 600px;
       position: relative;
     }
-
-    .modal-content h2 {
-      margin-top: 0;
-    }
-
     .modal-content .close {
       position: absolute;
       top: 10px;
@@ -98,41 +110,43 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       font-weight: bold;
       cursor: pointer;
     }
-
     .modal-content .close:hover {
       color: black;
     }
   </style>
 </head>
 <body>
-
-<h2 style="text-align:center;"></h2>
-
-<!-- WRAPPED LAYOUT WITH SIDEBAR -->
-<div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px;">
-  <!-- Sidebar Summary -->
-  <div id="calendarSummary" style="width: 250px; padding: 20px; background: #f5f5f5; border-radius: 10px; font-family: Arial;">
-    <h4>📅 Summary</h4>
-    <div><strong>Today:</strong> <span id="countToday">0</span></div>
-    <div><strong>Pending:</strong> <span id="countPending">0</span></div>
-    <div><strong>Approved:</strong> <span id="countApproved">0</span></div>
-    <div><strong>Total Events:</strong> <span id="countTotal">0</span></div>
+<div class="container">
+  <div class="sidebar">
+    <div class="summary-box">
+      <div class="summary-title">📅 Today</div>
+      <div><span id="countToday">0</span> new today</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-title">🟢 Up Coming</div>
+      <div><span id="countUpcoming">0</span> this week</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-title">🟠 Pending</div>
+      <div><span id="countPending">0</span> total</div>
+    </div>
     <hr>
-    <h5>🧭 Departments:</h5>
-    <div id="departmentLegend"></div>
+    <div class="summary-title">🏢 Departments:</div>
+    <div id="departmentLegendSidebar"></div>
   </div>
-
-  <!-- Calendar -->
-  <div id='calendar'></div>
+  <div id="calendar"></div>
 </div>
 
+<!-- LEGEND SA BABA -->
 <div class="legend">
-  <span style="color:green;">● Completed</span>
-  <span style="color:orange;">● Pending</span>
-  <span style="color:red;">● Ended</span>
+  <span style="color: green;">● Available Schedule</span>
+  <span style="color: red;">● Not Available</span>
+  <span style="color: orange;">● Pending</span>
+  <span style="color: blue;">● Today</span>
 </div>
 
-<!-- Modal -->
+<!-- WALA NA DEPARTMENT LEGEND SA BABA -->
+
 <div id="eventModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="document.getElementById('eventModal').style.display='none'">&times;</span>
@@ -142,28 +156,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 </div>
 
 <script>
-let activeDepartmentFilter = null;
-
 const departmentColors = {
-  'CCS': '#4CAF50',
-  'COE': '#2196F3',
-  'CA': '#FF9800',
-  'CCJE': '#9C27B0',
-  'CBBA': '#E91E63',
-  'CFND': '#00BCD4',
-  'CHMT': '#795548',
-  'CTE': '#3F51B5',
-  'CAS': '#8BC34A'
+  "CCS": "#3498db", "COE": "#27ae60", "CA": "#e67e22",
+  "CCJE": "#8e44ad", "CBBA": "#c0392b", "CFND": "#f39c12",
+  "CHMT": "#1abc9c", "CTE": "#e84393", "CAS": "#2c3e50"
 };
-
-function filterByDepartment(dep) {
-  if (activeDepartmentFilter === dep) {
-    activeDepartmentFilter = null;
-  } else {
-    activeDepartmentFilter = dep;
-  }
-  loadProposals();
-}
 
 document.addEventListener('DOMContentLoaded', function () {
   const calendarEl = document.getElementById('calendar');
@@ -182,102 +179,58 @@ document.addEventListener('DOMContentLoaded', function () {
     const dateEvents = {};
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
 
     fetch('calendar.php?action=fetch&_=' + new Date().getTime())
       .then(res => res.json())
       .then(events => {
-        clearUnderlines();
+        document.querySelectorAll('.fc-daygrid-day-number').forEach(el => {
+          el.style.borderBottom = '';
+        });
 
         let countToday = 0;
         let countPending = 0;
-        let countApproved = 0;
-        let countTotal = 0;
-        let departmentsInUse = {};
-        let departmentSummary = {};
-
-        const todayStr = today.toISOString().slice(0, 10);
+        let countUpcoming = 0;
 
         events.forEach(event => {
-          if (activeDepartmentFilter && event.department !== activeDepartmentFilter) return;
-
           const start = new Date(event.start);
           const end = new Date(event.end);
           end.setDate(end.getDate() - 1);
 
-          const dep = event.department;
-          const status = event.status;
-
-          if (!departmentsInUse[dep]) departmentsInUse[dep] = true;
-          if (!departmentSummary[dep]) {
-            departmentSummary[dep] = { pending: 0, approved: 0, today: 0 };
-          }
-
-          countTotal++;
-
-          if (status === 'pending') {
-            countPending++;
-            departmentSummary[dep].pending++;
-          } else if (status === 'completed') {
-            countApproved++;
-            departmentSummary[dep].approved++;
-          }
-
-          if (start <= today && end >= today) {
-            countToday++;
-            departmentSummary[dep].today++;
-          }
+          if (event.status === 'pending') countPending++;
+          if (start <= today && end >= today) countToday++;
+          if (start >= startOfWeek && start <= endOfWeek && event.status === 'completed') countUpcoming++;
 
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            const ds = d.toISOString().slice(0, 10);
-            if (!dateEvents[ds]) dateEvents[ds] = [];
-            dateEvents[ds].push(event);
-
-            const cell = document.querySelector(`.fc-daygrid-day[data-date="${ds}"]`);
+            const dStr = d.toISOString().slice(0, 10);
+            const cell = document.querySelector(`.fc-daygrid-day[data-date="${dStr}"]`);
             if (cell) {
-              if (end < today) {
-                cell.classList.add('fc-day-ended-underline');
-              } else {
-                if (status === 'pending') {
-                  cell.classList.add('fc-day-pending-underline');
-                } else if (status === 'completed') {
-                  cell.classList.add('fc-day-approved-underline');
+              const deptColor = departmentColors[event.department] || "#999";
+              const number = cell.querySelector('.fc-daygrid-day-number');
+              if (number) {
+                if (event.status === 'pending') {
+                  number.style.borderBottom = "3px solid orange";
+                } else if (dStr === today.toISOString().slice(0, 10)) {
+                  number.style.borderBottom = "3px solid blue";
+                } else {
+                  number.style.borderBottom = `3px solid ${deptColor}`;
                 }
+                number.style.paddingBottom = '2px';
               }
               cell.style.cursor = 'pointer';
             }
+
+            if (!dateEvents[dStr]) dateEvents[dStr] = [];
+            dateEvents[dStr].push(event);
           }
         });
 
         document.getElementById('countToday').textContent = countToday;
         document.getElementById('countPending').textContent = countPending;
-        document.getElementById('countApproved').textContent = countApproved;
-        document.getElementById('countTotal').textContent = countTotal;
-
-        const legendContainer = document.getElementById('departmentLegend');
-        legendContainer.innerHTML = '';
-
-        Object.keys(departmentSummary).forEach(dep => {
-          const color = departmentColors[dep] || '#000';
-          const data = departmentSummary[dep];
-          const isSelected = activeDepartmentFilter === dep;
-
-          const item = document.createElement('div');
-          item.style.marginBottom = '6px';
-          item.style.cursor = 'pointer';
-          item.style.border = isSelected ? '2px solid #333' : 'none';
-          item.style.borderRadius = '8px';
-          item.style.padding = '5px';
-          item.setAttribute('onclick', `filterByDepartment('${dep}')`);
-
-          item.innerHTML = `
-            <span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:50%;margin-right:5px;"></span>
-            <strong>${dep}</strong><br>
-            <span style="margin-left: 18px;">🟢 ${data.approved} Approved</span><br>
-            <span style="margin-left: 18px;">🟠 ${data.pending} Pending</span><br>
-            <span style="margin-left: 18px;">📅 ${data.today} Today</span>
-          `;
-          legendContainer.appendChild(item);
-        });
+        document.getElementById('countUpcoming').textContent = countUpcoming;
 
         document.querySelectorAll('.fc-daygrid-day').forEach(cell => {
           const date = cell.getAttribute('data-date');
@@ -287,26 +240,18 @@ document.addEventListener('DOMContentLoaded', function () {
               const modalBody = document.getElementById('modalBody');
               const modalDate = document.getElementById('modalDate');
               let html = '';
-
               proposals.forEach(p => {
-                let color = 'orange';
-                if (p.status === 'completed') color = 'green';
-
-                const endDate = new Date(p.end);
-                endDate.setDate(endDate.getDate() - 1);
-                if (endDate < today) color = 'red';
-
+                const deptColor = departmentColors[p.department] || '#000';
                 html += `
                   <div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                    <strong>Department:</strong> ${p.department}<br>
+                    <strong>Department:</strong> ${p.department} <span style="color:${deptColor};">●</span><br>
                     <strong>Activity:</strong> ${p.event_type}<br>
                     <strong>Start Date:</strong> ${p.start}<br>
                     <strong>End Date:</strong> ${p.end}<br>
-                    <strong>Status:</strong> <span style="color:${color};">${p.status}${endDate < today ? ' (Ended)' : ''}</span>
+                    <strong>Status:</strong> ${p.status}
                   </div>
                 `;
               });
-
               modalDate.textContent = date;
               modalBody.innerHTML = html;
               document.getElementById('eventModal').style.display = 'block';
@@ -315,18 +260,16 @@ document.addEventListener('DOMContentLoaded', function () {
             cell.onclick = null;
           }
         });
-      })
-      .catch(err => console.error('Fetch error:', err));
-  }
 
-  function clearUnderlines() {
-    document.querySelectorAll('.fc-day-pending-underline, .fc-day-approved-underline, .fc-day-ended-underline').forEach(el => {
-      el.classList.remove('fc-day-pending-underline', 'fc-day-approved-underline', 'fc-day-ended-underline');
-      el.style.cursor = '';
-    });
+        // Sidebar department legend only
+        const sidebar = document.getElementById('departmentLegendSidebar');
+        sidebar.innerHTML = '';
+        Object.entries(departmentColors).forEach(([dept, color]) => {
+          sidebar.innerHTML += `<div><span style="color:${color};">●</span> ${dept}</div>`;
+        });
+      });
   }
 });
 </script>
-
 </body>
 </html>
