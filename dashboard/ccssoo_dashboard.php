@@ -352,7 +352,7 @@ if (!$result) {
       <tbody>
       <?php
       $username = $_SESSION['username'] ?? '';
-      $query = "SELECT * FROM sooproposal WHERE username = ?";
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Pending'";
       $stmt = $conn->prepare($query);
       $stmt->bind_param("s", $username);
       $stmt->execute();
@@ -549,7 +549,7 @@ if (!$result) {
       <tbody>
 <?php
 $username = $_SESSION['username'] ?? '';
-$query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed'";
+$query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed' AND (financialstatus IS NULL OR financialstatus != 'Submitted')";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("s", $username);
 $stmt->execute();
@@ -590,26 +590,17 @@ while ($row = $result->fetch_assoc()):
   </td>
 
   <td>
-    <!-- Upload Receipt Form -->
-    <form action="upload_receipt.php" method="post" enctype="multipart/form-data" style="margin-bottom:5px;">
-      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-      <div class="input-group input-group-sm mb-1">
-        <input 
-          type="file"
-          name="receipt_file"
-          class="form-control form-control-sm receipt-input"
-          data-proposal-id="<?= $row['id'] ?>"
-          required>
-      </div>
-      <div id="upload-status-<?= $row['id'] ?>" class="small text-muted"></div>
-    </form>
+  <!-- Single form with file + submit -->
+  <form action="upload_receipt.php" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <input type="hidden" name="return_page" value="ccssoo_dashboard.php">
+  <div class="input-group input-group-sm mb-2">
+    <input type="file" name="receipt_file" class="form-control form-control-sm" required>
+  </div>
+  <button type="submit" class="btn btn-success btn-sm w-100">Submit</button>
+</form>
 
-    <!-- Submit Button Form -->
-    <form action="submit_proposal.php" method="post">
-      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-      <button type="submit" class="btn btn-success btn-sm w-100">Submit</button>
-    </form>
-  </td>
+</td>
 </tr>
 <?php endwhile; ?>
       </tbody>
