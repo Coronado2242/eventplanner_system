@@ -17,7 +17,7 @@ if ($conn->connect_error) {
 $proposal_level = 'CCS Dean';
 $venue_level = 'Venues'; 
 
-// === Handle Approve/Disapprove for Proposals (excluding Gym venue) ===
+// === Handle Approve/Disapprove for Proposals (excluding voag venue) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && isset($_POST['type']) && $_POST['type'] === 'proposal') {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     }
 }
 
-// === Handle Approve/Disapprove for Venue (Gym only) ===
+// === Handle Approve/Disapprove for Venue (voag only) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && isset($_POST['type']) && $_POST['type'] === 'venue') {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
@@ -109,15 +109,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     }
 }
 
-// === Fetch Proposals for Approval (excluding Gym venue) ===
+// === Fetch Proposals for Approval (excluding voag venue) ===
 $search_department = '%CCS%';
 $stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $proposal_level, $search_department);
 $stmt->execute();
 $proposal_result = $stmt->get_result();
 
-// === Fetch Venue Requests for Gym ===
-$venue_stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ? AND LOWER(venue) = 'gym'");
+// === Fetch Venue Requests for voag ===
+$venue_stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ? AND LOWER(venue) = 'voag'");
 $venue_stmt->bind_param("ss", $venue_level, $search_department);
 $venue_stmt->execute();
 $venue_result = $venue_stmt->get_result();
@@ -358,7 +358,7 @@ $venue_result = $venue_stmt->get_result();
   $venue_req_stmt = $conn->prepare("
     SELECT * FROM sooproposal 
     WHERE level=? AND status='Pending' AND submit='submitted' 
-      AND department LIKE ? AND LOWER(venue) = 'gym'
+      AND department LIKE ? AND LOWER(venue) = 'voag'
   ");
   $venue_req_stmt->bind_param("ss", $venue_level, $search_department);
   $venue_req_stmt->execute();

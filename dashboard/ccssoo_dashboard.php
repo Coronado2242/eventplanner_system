@@ -200,16 +200,28 @@ if (!$result) {
 <aside class="sidebar">
   <ul>
     <li onclick="switchTab('dashboardContent')"><i class="fa fa-home"></i> Dashboard</li>
-    <li onclick="toggleSubMenu('createEventSubMenu')"><i class="fa fa-folder-plus"></i> Create Event <i class="fa fa-caret-down"></i></li>
+
+    <li onclick="toggleSubMenu('createEventSubMenu')">
+      <i class="fa fa-folder-plus"></i> Create Event
+      <i class="fa fa-caret-down"></i>
+    </li>
     <ul id="createEventSubMenu" class="submenu">
       <li onclick="switchTab('createEventContent')">Create Event Form</li>
       <li onclick="switchTab('eventSummaryContent')">Summary Requirements</li>
       <li onclick="switchTab('eventPendingContent')">Request Pending</li>
       <li onclick="switchTab('eventCompletedContent')">Completed</li>
     </ul>
-    <li onclick="switchTab('financialReportContent')">Financial Report</li>
+
+    <li onclick="toggleSubMenu('financialReportSubMenu')">
+      <i class="fa fa-chart-bar"></i> Financial Report
+      <i class="fa fa-caret-down"></i>
+    </li>
+    <ul id="financialReportSubMenu" class="submenu">
+      <li onclick="switchTab('financialReportContent')">View Report</li>
+    </ul>
   </ul>
 </aside>
+
 
 <main>
   <div id="dashboardContent" class="content active">
@@ -521,11 +533,92 @@ if (!$result) {
   </div>
 </div>
 
-  <div id="financialReportContent" class="content">
-    <h2>Financial Report</h2>
-    <p>Financial report functionality here...</p>
+<div id="financialReportContent" class="content">
+  <h2>Financial Report</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Plan Of Activities</th>
+          <th>Budget Plan</th>
+          <th>Budget Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+<?php
+$username = $_SESSION['username'] ?? '';
+$query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed'";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$today = date("Y-m-d");
+
+while ($row = $result->fetch_assoc()):
+    $poa = $row['POA_file'];
+    $budget = $row['budget_file'];
+    $end_date = $row['end_date'];
+    $budget_amount = $row['budget'] ?? '0.00';
+?>
+<tr>
+  <td><?= htmlspecialchars($row['activity_name']) ?></td>
+  <td>
+    <?php if ($poa): ?>
+      <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+        <i class="fa fa-file-pdf"></i> View
+      </a>
+    <?php else: ?>
+      <span class="badge bg-secondary">Not Generated</span>
+    <?php endif; ?>
+  </td>
+  <td>
+    <?php if ($budget): ?>
+      <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+        <i class="fa fa-file-pdf"></i> View
+      </a>
+    <?php else: ?>
+      <span class="badge bg-secondary">Not Generated</span>
+    <?php endif; ?>
+  </td>
+  <td>
+    <span class="badge bg-info text-dark">
+      ₱<?= number_format($budget_amount, 2) ?>
+    </span>
+  </td>
+
+  <td>
+    <!-- Upload Receipt Form -->
+    <form action="upload_receipt.php" method="post" enctype="multipart/form-data" style="margin-bottom:5px;">
+      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+      <div class="input-group input-group-sm mb-1">
+        <input 
+          type="file"
+          name="receipt_file"
+          class="form-control form-control-sm receipt-input"
+          data-proposal-id="<?= $row['id'] ?>"
+          required>
+      </div>
+      <div id="upload-status-<?= $row['id'] ?>" class="small text-muted"></div>
+    </form>
+
+    <!-- Submit Button Form -->
+    <form action="submit_proposal.php" method="post">
+      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+      <button type="submit" class="btn btn-success btn-sm w-100">Submit</button>
+    </form>
+  </td>
+</tr>
+<?php endwhile; ?>
+      </tbody>
+    </table>
   </div>
+</div>
+
 </main>
+
 <script>
 function addRow() {
   const tbody = document.getElementById("budgetTableBody");
@@ -686,8 +779,43 @@ function openModal(action, proposalId) {
   modal.show();
 }
 
+
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Select all file inputs
+  const inputs = document.querySelectorAll('.receipt-input');
+
+  inputs.forEach(input => {
+    input.addEventListener('change', function() {
+      const proposalId = this.dataset.proposalId;
+      const file = this.files[0];
+      if (!file) return;
+
+      const statusDiv = document.getElementById('upload-status-' + proposalId);
+      statusDiv.textContent = 'Uploading...';
+
+      const formData = new FormData();
+      formData.append('proposal_id', proposalId);
+      formData.append('receipt_file', file);
+
+      fetch('upload_receipt.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(result => {
+        statusDiv.textContent = 'Uploaded successfully!';
+      })
+      .catch(error => {
+        console.error(error);
+        statusDiv.textContent = 'Upload failed.';
+      });
+    });
+  });
+});
+</script>
 
 <?php
 require_once('fpdf/fpdf.php');

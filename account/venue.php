@@ -23,15 +23,30 @@ if ($result) {
 }
 
 foreach ($tablesWithVenue as $table) {
-    // Check if the table has a 'role' column
+    // Check which columns exist
     $roleCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'role'");
     $hasRole = ($roleCheck && $roleCheck->num_rows > 0);
 
-    // Build the query based on role availability
-    $sql = $hasRole
-        ? "SELECT DISTINCT venue, role FROM `$table` WHERE venue IS NOT NULL AND venue != ''"
-        : "SELECT DISTINCT venue FROM `$table` WHERE venue IS NOT NULL AND venue != ''";
+    $fullnameCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'fullname'");
+    $hasFullname = ($fullnameCheck && $fullnameCheck->num_rows > 0);
 
+    $emailCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'email'");
+    $hasEmail = ($emailCheck && $emailCheck->num_rows > 0);
+
+    // Build SELECT
+    $selectFields = "DISTINCT venue";
+    if ($hasRole) $selectFields .= ", role";
+    if ($hasFullname) $selectFields .= ", fullname";
+    if ($hasEmail) $selectFields .= ", email";
+
+    $whereClause = "venue IS NOT NULL AND venue != ''";
+    $firstLoginCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'firstlogin'");
+    $hasFirstLogin = ($firstLoginCheck && $firstLoginCheck->num_rows > 0);
+    if ($hasFirstLogin) {
+        $whereClause .= " AND firstlogin = 'no'";
+    }
+
+    $sql = "SELECT $selectFields FROM `$table` WHERE $whereClause";
     $res = $conn->query($sql);
     if ($res && $res->num_rows > 0) {
         while ($r = $res->fetch_assoc()) {
@@ -39,14 +54,15 @@ foreach ($tablesWithVenue as $table) {
             $venueOptions[$venueKey] = [
                 'venue' => $venueKey,
                 'role' => $hasRole ? ($r['role'] ?? '') : '',
+                'fullname' => $hasFullname ? ($r['fullname'] ?? '') : '',
+                'email' => $hasEmail ? ($r['email'] ?? '') : '',
                 'table' => $table
             ];
         }
     }
 }
 
-
-ksort($venueOptions); // optional: sort alphabetically
+ksort($venueOptions);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -58,7 +74,6 @@ ksort($venueOptions); // optional: sort alphabetically
     * {
       box-sizing: border-box;
     }
-
     body {
       margin: 0;
       font-family: Arial, sans-serif;
@@ -66,7 +81,6 @@ ksort($venueOptions); // optional: sort alphabetically
       flex-direction: row;
       height: 100vh;
     }
-
     .left-panel {
       background: linear-gradient(to right, #0b0b3b, #3a3a52);
       color: white;
@@ -78,7 +92,6 @@ ksort($venueOptions); // optional: sort alphabetically
       text-align: center;
       padding: 2rem;
     }
-
     .left-panel img {
       width: 200px;
       height: 200px;
@@ -87,15 +100,12 @@ ksort($venueOptions); // optional: sort alphabetically
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       margin-bottom: 2rem;
     }
-
     .left-panel h1 {
       font-weight: bold;
     }
-
     .left-panel h1 span {
       color: #1e4dd8;
     }
-
     .signup-form-container {
       background: #ffffff;
       flex: 1;
@@ -105,18 +115,15 @@ ksort($venueOptions); // optional: sort alphabetically
       padding: 2rem;
       position: relative;
     }
-
     .form-box {
       width: 100%;
       max-width: 400px;
     }
-
     .form-box h2 {
       text-align: center;
       margin-bottom: 20px;
       font-weight: bold;
     }
-
     form input, form select {
       width: 100%;
       padding: 12px 15px;
@@ -125,7 +132,6 @@ ksort($venueOptions); // optional: sort alphabetically
       border-radius: 10px;
       font-size: 16px;
     }
-
     .signup-button {
       width: 100%;
       background-color: #004080;
@@ -138,11 +144,9 @@ ksort($venueOptions); // optional: sort alphabetically
       cursor: pointer;
       transition: background-color 0.3s;
     }
-
     .signup-button:hover {
       background-color: #003366;
     }
-
     .close-button {
       position: absolute;
       top: 20px;
@@ -151,31 +155,25 @@ ksort($venueOptions); // optional: sort alphabetically
       text-decoration: none;
       color: black;
     }
-
     @media (max-width: 768px) {
       body {
         flex-direction: column;
         height: auto;
       }
-
       .left-panel {
         padding: 1.5rem;
       }
-
       .left-panel img {
         width: 150px;
         height: 150px;
       }
-
       .signup-form-container {
         padding: 1.5rem;
       }
-
       .form-box {
         max-width: 100%;
         padding: 0 1rem;
       }
-
       .close-button {
         top: 10px;
         right: 20px;
@@ -200,15 +198,9 @@ ksort($venueOptions); // optional: sort alphabetically
       <p class="error" style="color:red;"><?php echo htmlspecialchars($_GET['error']); ?></p>
     <?php endif; ?>
 
-    <?php if (isset($_GET['success'])): ?>
-      <script>
-        alert("Venue added successfully!");
-      </script>
-    <?php endif; ?>
-
     <form method="POST" action="process_venue.php">
       <input type="text" id="organizer" name="organization" placeholder="Organizer" readonly required>
-      <input type="email" name="email" placeholder="Email" required>
+      <input type="email" id="emailField" name="email" placeholder="Email" readonly required>
 
       <select name="venue" id="venueSelect" required>
         <option value="">* Select Venue *</option>
@@ -216,6 +208,8 @@ ksort($venueOptions); // optional: sort alphabetically
           <option 
             value="<?= htmlspecialchars($venueData['venue']) ?>" 
             data-role="<?= htmlspecialchars($venueData['role']) ?>" 
+            data-fullname="<?= htmlspecialchars($venueData['fullname']) ?>"
+            data-email="<?= htmlspecialchars($venueData['email']) ?>"
             data-table="<?= htmlspecialchars($venueData['table']) ?>"
           >
             <?= htmlspecialchars($venueData['venue']) ?>
@@ -238,8 +232,10 @@ ksort($venueOptions); // optional: sort alphabetically
 <script>
 document.getElementById('venueSelect').addEventListener('change', function () {
   const selectedOption = this.options[this.selectedIndex];
-  const role = selectedOption.getAttribute('data-role');
-  document.getElementById('organizer').value = role || '';
+  const fullname = selectedOption.getAttribute('data-fullname');
+  const email = selectedOption.getAttribute('data-email');
+  document.getElementById('organizer').value = fullname || '';
+  document.getElementById('emailField').value = email || '';
 });
 </script>
 
