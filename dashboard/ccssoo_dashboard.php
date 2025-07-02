@@ -218,6 +218,7 @@ if (!$result) {
     </li>
     <ul id="financialReportSubMenu" class="submenu">
       <li onclick="switchTab('financialReportContent')">View Report</li>
+      <li onclick="switchTab('eventFinancialPendingContent')">Pending Report</li>
     </ul>
   </ul>
 </aside>
@@ -547,24 +548,106 @@ if (!$result) {
         </tr>
       </thead>
       <tbody>
+      <?php
+      $username = $_SESSION['username'] ?? '';
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed' AND (financialstatus IS NULL OR financialstatus != 'Submitted')";
+      $stmt = $conn->prepare($query);
+      $stmt->bind_param("s", $username);
+      $stmt->execute();
+      $result = $stmt->get_result();
+
+      $today = date("Y-m-d");
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+          $end_date = $row['end_date'];
+          $budget_amount = $row['budget'] ?? '0.00';
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <span class="badge bg-info text-dark">
+            ₱<?= number_format($budget_amount, 2) ?>
+          </span>
+        </td>
+
+        <td>
+        <!-- Single form with file + submit -->
+        <form action="upload_receipt.php" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+        <input type="hidden" name="return_page" value="ccssoo_dashboard.php">
+        <div class="input-group input-group-sm mb-2">
+          <input type="file" name="receipt_file" class="form-control form-control-sm" required>
+        </div>
+        <button type="submit" class="btn btn-success btn-sm w-100">Submit</button>
+      </form>
+
+      </td>
+      </tr>
+      <?php endwhile; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<div id="eventFinancialPendingContent" class="content">
+  <h2 class="mb-3 fw-bold">Pending Report</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Status</th>
+          <th>POA File</th>
+          <th>Budget Plan</th>
+        </tr>
+      </thead>
+      <tbody>
 <?php
 $username = $_SESSION['username'] ?? '';
-$query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed' AND (financialstatus IS NULL OR financialstatus != 'Submitted')";
+$query = "SELECT * FROM sooproposal WHERE username = ? AND financialstatus = 'Submitted'";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("s", $username);
 $stmt->execute();
 $result = $stmt->get_result();
 
-$today = date("Y-m-d");
-
 while ($row = $result->fetch_assoc()):
     $poa = $row['POA_file'];
     $budget = $row['budget_file'];
-    $end_date = $row['end_date'];
-    $budget_amount = $row['budget'] ?? '0.00';
 ?>
 <tr>
   <td><?= htmlspecialchars($row['activity_name']) ?></td>
+    <td>
+    <?php
+    $approvedBy = $row['level'];
+    $words = explode(' ', $approvedBy);
+    $lastWord = end($words);
+    ?>
+    <span class="badge bg-primary">
+      Approving by <?= htmlspecialchars($lastWord) ?>
+    </span>
+  </td>
+
   <td>
     <?php if ($poa): ?>
       <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
@@ -583,31 +666,13 @@ while ($row = $result->fetch_assoc()):
       <span class="badge bg-secondary">Not Generated</span>
     <?php endif; ?>
   </td>
-  <td>
-    <span class="badge bg-info text-dark">
-      ₱<?= number_format($budget_amount, 2) ?>
-    </span>
-  </td>
-
-  <td>
-  <!-- Single form with file + submit -->
-  <form action="upload_receipt.php" method="post" enctype="multipart/form-data">
-  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-  <input type="hidden" name="return_page" value="ccssoo_dashboard.php">
-  <div class="input-group input-group-sm mb-2">
-    <input type="file" name="receipt_file" class="form-control form-control-sm" required>
-  </div>
-  <button type="submit" class="btn btn-success btn-sm w-100">Submit</button>
-</form>
-
-</td>
 </tr>
 <?php endwhile; ?>
-      </tbody>
+</tbody>
+
     </table>
   </div>
 </div>
-
 </main>
 
 <script>
