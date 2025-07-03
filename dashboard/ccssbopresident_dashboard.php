@@ -775,7 +775,6 @@ tr:nth-child(even) {
 <!-- Requirements Content -->
 <div id="requirementContent" class="content" style="display:none;">
     <h1>Requirements Section</h1>
-    <p>Requirements details will go here.</p>
 
 <?php
 // Error reporting

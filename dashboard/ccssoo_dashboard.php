@@ -273,9 +273,25 @@ if (!$result) {
             <input type="text" class="form-control" name="description" id="description">
             </div>
             <div class="col-md-6">
-            <label class="form-label">Venue:</label>
-            <input type="text" class="form-control" name="venue">
+              <label class="form-label">Venue:</label>
+              <select name="venue" class="form-control" required>
+                <option value="">-- Select a Venue --</option>
+                <?php
+                $venueQuery = "SELECT id, venue FROM venue_db";
+                $venueResult = $conn->query($venueQuery);
+
+                if ($venueResult && $venueResult->num_rows > 0) {
+                  while ($venueRow = $venueResult->fetch_assoc()) {
+                    $venueName = htmlspecialchars($venueRow['venue']);
+                    echo "<option value=\"$venueName\">$venueName</option>";
+                  }
+                } else {
+                  echo "<option disabled>No venues found</option>";
+                }
+                ?>
+              </select>
             </div>
+
         </div>
 
         <div class="row mb-4">
@@ -544,13 +560,13 @@ if (!$result) {
           <th>Plan Of Activities</th>
           <th>Budget Plan</th>
           <th>Budget Amount</th>
-          <th>Actions</th>
+          <th>Receipt</th>
         </tr>
       </thead>
       <tbody>
       <?php
       $username = $_SESSION['username'] ?? '';
-      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Completed' AND (financialstatus IS NULL OR financialstatus != 'Submitted')";
+      $query = "SELECT * FROM sooproposal WHERE username = ? AND level = 'Completed' AND (financialstatus IS NULL OR financialstatus != 'Submitted')";
       $stmt = $conn->prepare($query);
       $stmt->bind_param("s", $username);
       $stmt->execute();
