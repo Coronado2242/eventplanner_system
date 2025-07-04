@@ -6,6 +6,17 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$logoSrc = "img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "account/" . htmlspecialchars($row['filepath']); 
+    }
+}
+
 $notifCount = 0;
 $notifHTML = '';
 
@@ -423,7 +434,9 @@ h1 {
 <body>
 
     <header class="navbar">
-        <div class="logo"><img src="img/lspulogo.jpg">Event<span style="color:blue;">Sync</span></div>
+        <div class="logo">
+        <img src="<?php echo $logoSrc; ?>" alt="Logo" style="height:49px; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
+        Event<span style="color:blue;">Sync</span></div>
         <nav>
             <ul>
                 <li><a href="index.php">Home</a></li>

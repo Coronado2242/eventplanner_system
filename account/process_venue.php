@@ -20,7 +20,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $conn->real_escape_string($_POST['email']);
     $venue = $conn->real_escape_string($_POST['venue']);
 
-    // Prepare and execute the insert query
+    // Check if the venue already exists
+    $check_query = "SELECT id FROM venue_db WHERE venue = ?";
+    $check_stmt = $conn->prepare($check_query);
+    $check_stmt->bind_param("s", $venue);
+    $check_stmt->execute();
+    $check_stmt->store_result();
+
+    if ($check_stmt->num_rows > 0) {
+        // Venue exists, redirect with error
+        $check_stmt->close();
+        $conn->close();
+        header("Location: venue.php?error=" . urlencode("Venue already exists."));
+        exit();
+    }
+    $check_stmt->close();
+
+    // Insert the new venue
     $insert_query = "INSERT INTO venue_db (organizer, email, venue) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($insert_query);
     $stmt->bind_param("sss", $organizer, $email, $venue);
@@ -33,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $stmt->close();
         $conn->close();
-        header("Location: venue.php?error=" . urlencode("Error adding venue"));
+        header("Location: venue.php?error=" . urlencode("Error adding venue."));
         exit();
     }
 }

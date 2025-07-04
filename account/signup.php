@@ -1,4 +1,20 @@
-<?php session_start(); ?>
+<?php session_start(); 
+$conn = new mysqli("localhost", "root", "", "eventplanner");
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$logoSrc = "img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "" . htmlspecialchars($row['filepath']); 
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -149,10 +165,9 @@
 <body>
 
 <div class="left-panel">
-  <img src="../img/lspulogo.jpg" alt="University Logo">
+  <img src="<?php echo $logoSrc; ?>" alt="Logo" style="border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
   <h1>EVENT <span>SYNC</span></h1>
 </div>
-
 <div class="signup-form-container">
   <a href="login.php" class="close-button">&times;</a>
   <div class="form-box">

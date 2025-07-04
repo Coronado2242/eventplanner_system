@@ -4,6 +4,22 @@ if (!isset($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit();
 }
+
+$conn = new mysqli("localhost", "root", "", "eventplanner");
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$logoSrc = "img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "" . htmlspecialchars($row['filepath']); 
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -162,12 +178,69 @@ body {
     .editBtn:hover { background: #006600; }
     .deleteBtn { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
     .deleteBtn:hover { background: #b02a37; }
+
+    #logoModal {
+  display: none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  min-width: 300px;
+  z-index: 1000;
+}
+#logoModal input[type="file"],
+#logoModal input[type="text"] {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+#logoModal button {
+  margin-left: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#logoModal button[type="submit"] {
+  background: #17a2b8;
+  color: white;
+}
+#logoModal button[type="button"] {
+  background: #dc3545;
+  color: white;
+}
+#currentLogo {
+  text-align: center;
+}
+
+#currentLogo img {
+  max-width: 90%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  margin-bottom: 10px;
+  transition: transform 0.3s ease;
+}
+#currentLogo img:hover {
+  transform: scale(1.02);
+}
+#currentLogo p {
+  font-size: 16px;
+  color: #333;
+}
+
   </style>
 </head>
 <body>
 
   <header class="topbar">
-    <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">EVENT ADMIN PORTAL</div>
+  <div class="logo">
+    <img src="<?php echo $logoSrc; ?>" alt="Logo" style="height:49px; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
+    Event<span style="color:blue;">Sync</span>&nbsp;ADMIN PORTAL</div>
     <nav>
       <a href="../index.php">Home</a>
       <a href="../aboutus.php">About Us</a>
@@ -195,6 +268,7 @@ body {
       <li>Budget Analytics</li>
       <li id="venueTab">Venue</li>
       <li id="activitiesTab">Activities</li>   
+      <li id="logoTab">Logo Management</li>
     </ul>
   </aside>
 
@@ -212,11 +286,17 @@ body {
       <a href="signup.php" class="add-user-btn">+ Add Department</a>
       <a href="solo_signup.php" class="add-user-btn" style="background-color: #007bff;">+ Add Solo Account</a><br><br>
       <table id="userTable">
-        <thead>
-          <tr>
-            <th>Full Name</th><th>Username</th><th>Email</th><th>Password</th><th>Role</th><th>Date/Time Created</th>
-          </tr>
-        </thead>
+      <thead>
+        <tr>
+          <th>Full Name</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Password</th>
+          <th>Role</th>
+          <th>Date/Time Created</th>
+          <th>Action</th>
+        </tr>
+      </thead>
         <tbody></tbody>
       </table>
     </main>
@@ -274,7 +354,31 @@ body {
   </main>
 </div>
 
+<div id="logoContent" style="display:none">
+  <main class="content">
+    <h1>Logo Management</h1>
+    <div>
+    <button class="add-user-btn" style="background-color:#17a2b8;" onclick="openLogoModal()">Change Logo</button></div><br><br><br><br>
+    <div id="currentLogo" style="margin-bottom:20px;">
+    </div>
+  </div>
+  </main>
+</div>
 
+
+<div class="modal-overlay" id="logoModalOverlay" onclick="closeLogoModal()"></div>
+<div id="logoModal">
+  <h3>Upload New Logo</h3>
+  <form id="logoUploadForm" enctype="multipart/form-data">
+    <label>Select Logo Image:</label>
+    <input type="file" name="logo" accept="image/*" required>
+    <br>
+    <div style="text-align: right; margin-top: 10px;">
+      <button type="submit">Upload</button>
+      <button type="button" onclick="closeLogoModal()">Cancel</button>
+    </div>
+  </form>
+</div>
 
 
   <div class="modal-overlay" id="modalOverlay" onclick="closeEditModal()"></div>
@@ -295,6 +399,7 @@ body {
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("calendarFrame").src = "../proposal/calendar.php";
+    loadLogo();
 
     function toggleDropdown() {
       const menu = document.getElementById("dropdownMenu");
@@ -310,22 +415,31 @@ body {
 
     // Tab helpers
     function deactivateAllTabs() {
-      ["dashboardTab", "userManagementTab", "venueTab", "activitiesTab"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('active');
-      });
-      ["dashboardContent", "userManagementContent", "venueContent", "activitiesContent"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = "none";
-      });
-    }
+  ["dashboardTab", "userManagementTab", "venueTab", "activitiesTab", "logoTab"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  ["dashboardContent", "userManagementContent", "venueContent", "activitiesContent", "logoContent"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+}
+
+
 
     document.getElementById("dashboardTab").addEventListener("click", () => {
       deactivateAllTabs();
       document.getElementById("dashboardTab").classList.add('active');
       document.getElementById("dashboardContent").style.display = 'block';
     });
-
+    const logoTab = document.getElementById("logoTab");
+  if (logoTab) {
+    logoTab.addEventListener("click", () => {
+      deactivateAllTabs();
+      logoTab.classList.add('active');
+      document.getElementById("logoContent").style.display = "block";
+    });
+  }
     document.getElementById("userManagementTab").addEventListener("click", () => {
       deactivateAllTabs();
       document.getElementById("userManagementTab").classList.add('active');
@@ -341,12 +455,21 @@ body {
           });
           Object.keys(grouped).forEach(dept => {
             const header = document.createElement("tr");
-            header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
+            header.innerHTML = `<th colspan="7" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
             tbody.append(header);
             grouped[dept].forEach(u => {
               const row = document.createElement("tr");
               row.innerHTML = `
-                <td>${u.fullname}</td><td>${u.username}</td><td>${u.email}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
+                <td>${u.fullname}</td>
+                <td>${u.username}</td>
+                <td>${u.email}</td>
+                <td>${u.password}</td>
+                <td>${u.role}</td>
+                <td>${u.created_at}</td>
+                <td>
+                  <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
+                  <button class="deleteBtn" onclick="resetPassword('${u.id}', '${u.username}')">Reset to Default</button>
+                </td>
               `;
               tbody.append(row);
             });
@@ -357,15 +480,25 @@ body {
             .then(r => r.json())
             .then(soloUsers => {
               const header = document.createElement("tr");
-              header.innerHTML = `<th colspan="6" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
+              header.innerHTML = `<th colspan="7" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
               tbody.append(header);
               soloUsers.forEach(u => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                  <td>${u.fullname || '-'}</td><td>${u.username}</td><td>${u.email || '-'}</td><td>${u.password}</td><td>${u.role}</td><td>${u.created_at}</td>
+                  <td>${u.fullname || '-'}</td>
+                  <td>${u.username}</td>
+                  <td>${u.email || '-'}</td>
+                  <td>${u.password}</td>
+                  <td>${u.role}</td>
+                  <td>${u.created_at}</td>
+                  <td>
+                    <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
+                    <button class="deleteBtn" onclick="resetPassword('${u.id}', '${u.username}')">Reset to Default</button>
+                  </td>
                 `;
                 tbody.append(row);
               });
+
             });
         })
         .catch(e => console.error(e));
@@ -388,6 +521,8 @@ body {
       });
     }
 
+
+    
     // Venue Modal Logic
     window.editVenue = (id, org, email, venue) => {
       document.getElementById("editVenueId").value = id;
@@ -454,6 +589,86 @@ body {
     // Initial load
     loadVenues();
   });
+  window.openLogoModal = () => {
+  document.getElementById("logoModalOverlay").style.display = "block";
+  document.getElementById("logoModal").style.display = "block";
+};
+
+window.closeLogoModal = () => {
+  document.getElementById("logoModalOverlay").style.display = "none";
+  document.getElementById("logoModal").style.display = "none";
+};
+
+// Handle the form submission
+document.getElementById("logoUploadForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+
+  fetch("update_logo.php", {
+    method: "POST",
+    body: formData
+  })
+  .then(r => r.text())
+  .then(msg => {
+    alert(msg);
+    closeLogoModal();
+    loadLogo();
+  })
+  .catch(e => console.error(e));
+});
+
+window.loadLogo = () => {
+  fetch("get_logo.php")
+    .then(r => r.json())
+    .then(logo => {
+      const container = document.getElementById("currentLogo");
+      if (logo) {
+        container.innerHTML = `
+          <img src="${logo.filepath}" alt="Current Logo">
+          <p><strong>File:</strong> ${logo.filename}</p>
+          <p><strong>Date:</strong> ${logo.date_uploaded}</p>
+        `;
+      } else {
+        container.innerHTML = "<p>No logo available.</p>";
+      }
+    })
+    .catch(e => console.error(e));
+};
+
+logoTab.addEventListener("click", () => {
+  deactivateAllTabs();
+  logoTab.classList.add('active');
+  document.getElementById("logoContent").style.display = "block";
+  loadLogo();
+});
+
+window.changePassword = (id, username) => {
+  const newPassword = prompt(`Enter new password for ${username}:`);
+  if (newPassword) {
+    fetch('change_password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, newPassword })
+    })
+    .then(r => r.text())
+    .then(msg => alert(msg))
+    .catch(e => console.error(e));
+  }
+};
+
+window.resetPassword = (id, username) => {
+  if (confirm(`Reset password for ${username} to default?`)) {
+    fetch('reset_password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    })
+    .then(r => r.text())
+    .then(msg => alert(msg))
+    .catch(e => console.error(e));
+  }
+};
+
 </script>
 </body>
 </html>

@@ -1,6 +1,16 @@
 <?php
 session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
+$logoSrc = "img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "" . htmlspecialchars($row['filepath']); 
+    }
+}
 
 $venueOptions = [];
 
@@ -23,7 +33,6 @@ if ($result) {
 }
 
 foreach ($tablesWithVenue as $table) {
-    // Check which columns exist
     $roleCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'role'");
     $hasRole = ($roleCheck && $roleCheck->num_rows > 0);
 
@@ -33,8 +42,7 @@ foreach ($tablesWithVenue as $table) {
     $emailCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'email'");
     $hasEmail = ($emailCheck && $emailCheck->num_rows > 0);
 
-    // Build SELECT
-    $selectFields = "DISTINCT venue";
+    $selectFields = "venue";
     if ($hasRole) $selectFields .= ", role";
     if ($hasFullname) $selectFields .= ", fullname";
     if ($hasEmail) $selectFields .= ", email";
@@ -48,22 +56,26 @@ foreach ($tablesWithVenue as $table) {
 
     $sql = "SELECT $selectFields FROM `$table` WHERE $whereClause";
     $res = $conn->query($sql);
+
     if ($res && $res->num_rows > 0) {
         while ($r = $res->fetch_assoc()) {
             $venueKey = $r['venue'];
-            $venueOptions[$venueKey] = [
-                'venue' => $venueKey,
-                'role' => $hasRole ? ($r['role'] ?? '') : '',
-                'fullname' => $hasFullname ? ($r['fullname'] ?? '') : '',
-                'email' => $hasEmail ? ($r['email'] ?? '') : '',
-                'table' => $table
-            ];
+            if (!isset($venueOptions[$venueKey])) {
+                $venueOptions[$venueKey] = [
+                    'venue' => $venueKey,
+                    'role' => $hasRole ? ($r['role'] ?? '') : '',
+                    'fullname' => $hasFullname ? ($r['fullname'] ?? '') : '',
+                    'email' => $hasEmail ? ($r['email'] ?? '') : '',
+                    'table' => $table
+                ];
+            }
         }
     }
 }
 
 ksort($venueOptions);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -185,7 +197,7 @@ ksort($venueOptions);
 <body>
 
 <div class="left-panel">
-  <img src="../img/lspulogo.jpg" alt="University Logo">
+  <img src="<?php echo $logoSrc; ?>" alt="Logo" style="border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
   <h1>EVENT <span>SYNC</span></h1>
 </div>
 
