@@ -232,6 +232,7 @@ if (!$result) {
     <ul id="financialReportSubMenu" class="submenu">
       <li onclick="switchTab('financialReportContent')">View Report</li>
       <li onclick="switchTab('eventFinancialPendingContent')">Pending Report</li>
+      <li onclick="switchTab('completedFinancialContent')">Completed</li>
     </ul>
   </ul>
 </aside>
