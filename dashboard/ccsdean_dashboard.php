@@ -174,6 +174,7 @@ $venue_result = $venue_stmt->get_result();
     <ul id="venueSubMenu" class="submenu" style="display:none;">
     <li id="venueTab"> Venue</li>
     <li id="vrequirementTab"> Requirements</li>
+    <li id="financialTab"><i class="fa fa-check-circle"></i> Financial Report</li>
     </ul>
   </ul>
 </aside>
@@ -507,6 +508,81 @@ $venue_result = $venue_stmt->get_result();
   </div>
 </div>
 
+<div id="financialReportContent" class="content" style="display:none;">
+  <h2>Financial Report (For Approval)</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Plan Of Activities</th>
+          <th>Budget Plan</th>
+          <th>Budget Amount</th>
+          <th>Receipt</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $result = $conn->query($query);
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+          $receipt = $row['receipt_file'];
+          $budget_amount = $row['budget'] ?? '0.00';
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <span class="badge bg-info text-dark">
+            ₱<?= number_format($budget_amount, 2) ?>
+          </span>
+        </td>
+        <td>
+          <?php if ($receipt): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($receipt) ?>" target="_blank" class="badge bg-info text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Uploaded</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <form action="approve_receipt.php" method="post">
+            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+            <div class="d-grid gap-1">
+              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+      <?php endwhile; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <script>
 function toggleDropdown() {
   const menu = document.getElementById('dropdownMenu');
@@ -529,7 +605,8 @@ function switchTab(tab) {
     proposal: "proposalContent",
     requirement: "requirementContent",
     venue: "venueContent",
-    vrequirement: "vrequirementContent" // Add this line
+    vrequirement: "vrequirementContent",
+    financial: "financialReportContent"  // ✅ include financial here
   };
 
   for (const key in sections) {
@@ -540,7 +617,6 @@ function switchTab(tab) {
     if (tabElement) tabElement.classList.toggle('active', key === tab);
   }
 }
-
 
 function setupModalButtons() {
   document.querySelectorAll('.approve-btn').forEach(button => {
@@ -562,27 +638,26 @@ function setupModalButtons() {
   });
 }
 
-
 function checkURLParams() {
   const urlParams = new URLSearchParams(window.location.search);
 
   const tab = urlParams.get('tab');
-  if (tab && ['dashboard', 'proposal', 'requirement', 'venue'].includes(tab)) {
+  if (tab && ['dashboard', 'proposal', 'requirement', 'venue', 'financial'].includes(tab)) {
     switchTab(tab);
-    window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 
   if (urlParams.get('approved') === '1') {
     alert("✅ Proposal approved successfully!");
-    window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("calendarFrame").src = "../proposal/calendar.php";
 
-  // Set tab click listeners
-  const tabIds = ["dashboard", "proposal", "requirement", "venue", "vrequirement"];
+  // ✅ Add all tabs here including financial
+  const tabIds = ["dashboard", "proposal", "requirement", "venue", "vrequirement", "financial"];
   tabIds.forEach(tab => {
     const tabElement = document.getElementById(tab + "Tab");
     if (tabElement) {
@@ -590,10 +665,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Setup modals and check URL
   setupModalButtons();
   checkURLParams();
 });
+
 </script>
 
 </body>

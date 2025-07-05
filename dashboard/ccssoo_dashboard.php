@@ -691,6 +691,55 @@ while ($row = $result->fetch_assoc()):
 </div>
 </main>
 
+<?php
+// Fetch all completed financial reports (approved by OSAS)
+$sql = "SELECT * FROM sooproposal WHERE level='Completed' AND status='Approved' ORDER BY end_date DESC";
+$result = $conn->query($sql);
+?>
+
+<div id="completedFinancialContent" class="content">
+  <h2>Completed Financial Reports</h2>
+
+  <?php if ($result->num_rows > 0): ?>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped table-hover text-center align-middle shadow-sm rounded">
+        <thead class="table-success">
+          <tr>
+            <th>Event Name</th>
+            <th>Department</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php while ($row = $result->fetch_assoc()): ?>
+            <tr>
+              <td><?= htmlspecialchars($row['activity_name']) ?></td>
+              <td><?= htmlspecialchars($row['department']) ?></td>
+              <td><?= htmlspecialchars($row['start_date']) ?></td>
+              <td><?= htmlspecialchars($row['end_date']) ?></td>
+              <td><span class="badge bg-success">Completed</span></td>
+              <td>
+                <form method="POST" action="soo.php" style="display:inline;">
+                  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+                  <button type="submit" name="mark_viewed" class="btn btn-sm btn-outline-primary">
+                    Mark as Read
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php else: ?>
+    <p class="text-muted">No completed financial reports yet.</p>
+  <?php endif; ?>
+</div>
+
+
 <script>
 function addRow() {
   const tbody = document.getElementById("budgetTableBody");

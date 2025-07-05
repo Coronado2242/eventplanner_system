@@ -122,6 +122,7 @@ $result = $stmt->get_result();
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
     <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+    <li id="financialTab"><i class="fa fa-check-circle"></i> Financial Report</li>
   </ul>
 </aside>
 
@@ -130,6 +131,82 @@ $result = $stmt->get_result();
     <h1>Welcome to the CCS SBO Vice President Dashboard</h1>
     <p>This is your overview page.</p>
     <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+</div>
+
+
+<div id="financialReportContent" class="content" style="display:none;">
+  <h2>Financial Report (For Approval)</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Plan Of Activities</th>
+          <th>Budget Plan</th>
+          <th>Budget Amount</th>
+          <th>Receipt</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $result = $conn->query($query);
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+          $receipt = $row['receipt_file'];
+          $budget_amount = $row['budget'] ?? '0.00';
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <span class="badge bg-info text-dark">
+            ₱<?= number_format($budget_amount, 2) ?>
+          </span>
+        </td>
+        <td>
+          <?php if ($receipt): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($receipt) ?>" target="_blank" class="badge bg-info text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Uploaded</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <form action="approve_receipt.php" method="post">
+            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+            <div class="d-grid gap-1">
+              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+      <?php endwhile; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Proposals Section -->
@@ -390,7 +467,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
   document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
-  document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
+   document.getElementById("financialTab").addEventListener("click", () => switchTab("financial"));
 
   document.querySelectorAll('.disapprove-btn').forEach(button => {
     button.addEventListener('click', function () {
@@ -404,7 +481,8 @@ function switchTab(tab) {
   const sections = {
     dashboard: "dashboardContent",
     proposal: "proposalContent",
-    requirement: "requirementContent"
+    requirement: "requirementContent",
+       financial: "financialReportContent"
   };
 
   for (const key in sections) {

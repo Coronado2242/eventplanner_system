@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
-        if ($action === 'approve') {
+    if ($action === 'approve') {
         $status = 'Approved';
         $new_level = 'Completed';
         $viewed = 0;
@@ -28,11 +28,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         
         $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-    
-        // Redirect with success flag
-        header("Location: osas.php?approved=1");
+
+        // CHECK if this is financial approval based on extra POST variable or context
+        if (isset($_POST['financial_approval']) && $_POST['financial_approval'] == '1') {
+            $_SESSION['financial_done'] = true;
+            header("Location: osas.php?tab=financial");
+        } else {
+            // Normal proposal approval
+            header("Location: osas.php?approved=1");
+        }
         exit;
-        } elseif ($action === 'disapprove') {
+    } elseif ($action === 'disapprove') {
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
 
@@ -53,21 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
         $final_remarks = implode("; ", $remarks);
-
-        // Debug: Check session username
         $disapproved_by = $_SESSION['username'] ?? 'Unknown';
         if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
             die("Error: Disapproved by user is not set in session.");
         }
 
         $stmt = $conn->prepare("UPDATE sooproposal SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
-        if(!$stmt){
-            die("Prepare failed: " . $conn->error);
-        }
+        if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
-        if(!$stmt->execute()){
-            die("Execute failed: " . $stmt->error);
-        }
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
 
         header("Location: ccsfaculty_dashboard.php");
         exit;
@@ -85,13 +85,25 @@ $result = $stmt->get_result();
 ?>
 
 <!-- Flash Messages -->
-<?php if(isset($_SESSION['success'])): ?>
-<div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+<?php if (isset($_SESSION['success'])): ?>
+    <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
 <?php endif; ?>
 
-<?php if(isset($_SESSION['error'])): ?>
-<div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+<?php if (isset($_SESSION['error'])): ?>
+    <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
 <?php endif; ?>
+
+<!-- Modal Trigger Script for Financial -->
+<?php if (isset($_SESSION['financial_done'])): ?>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const financialModal = new bootstrap.Modal(document.getElementById('financialModal'));
+        financialModal.show();
+    });
+</script>
+<?php unset($_SESSION['financial_done']); ?>
+<?php endif; ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -134,6 +146,7 @@ $result = $stmt->get_result();
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
     <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+    <li id="financialTab"><i class="fa fa-check-circle"></i> Financial Report</li>
   </ul>
 </aside>
 
@@ -277,6 +290,81 @@ if ($result->num_rows > 0) {
     echo '<div class="alert alert-info text-center">No requirements found for OSAS.</div>';
 }
 ?>
+</div>
+
+<div id="financialReportContent" class="content" style="display:none;">
+  <h2>Financial Report (For Approval)</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Plan Of Activities</th>
+          <th>Budget Plan</th>
+          <th>Budget Amount</th>
+          <th>Receipt</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $result = $conn->query($query);
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+          $receipt = $row['receipt_file'];
+          $budget_amount = $row['budget'] ?? '0.00';
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <span class="badge bg-info text-dark">
+            ₱<?= number_format($budget_amount, 2) ?>
+          </span>
+        </td>
+        <td>
+          <?php if ($receipt): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($receipt) ?>" target="_blank" class="badge bg-info text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Uploaded</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <form action="approve_receipt.php" method="post">
+            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+            <div class="d-grid gap-1">
+              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+      <?php endwhile; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Approve Confirmation Modal -->
@@ -441,6 +529,22 @@ if ($result->num_rows > 0) {
   </div>
 </div>
 
+<!-- Financial Done Modal -->
+<div class="modal fade" id="financialDoneModal" tabindex="-1" aria-labelledby="financialDoneModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="financialDoneModalLabel">Financial Report Approved</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="fs-5">The financial report has been successfully approved and marked as <strong>Completed</strong>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <script>
 function toggleDropdown() {
   const menu = document.getElementById('dropdownMenu');
@@ -458,6 +562,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
   document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
   document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
+ document.getElementById("financialTab").addEventListener("click", () => switchTab("financial"));
 
   document.querySelectorAll('.disapprove-btn').forEach(button => {
     button.addEventListener('click', function () {
@@ -471,7 +576,8 @@ function switchTab(tab) {
   const sections = {
     dashboard: "dashboardContent",
     proposal: "proposalContent",
-    requirement: "requirementContent"
+    requirement: "requirementContent",
+       financial: "financialReportContent"
   };
 
   for (const key in sections) {
@@ -539,7 +645,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+ const urlParams = new URLSearchParams(window.location.search);
+  const showModal = urlParams.get('modal') === 'financial_done';
 
+  if (showModal) {
+    const modal = new bootstrap.Modal(document.getElementById('financialDoneModal'));
+    modal.show();
+
+    // Remove the ?modal=financial_done from the URL after showing
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/(&|\?)modal=financial_done/, ''));
+  }
  
 </script>
 </body>

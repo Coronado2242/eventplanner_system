@@ -3,36 +3,30 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "eventplanner";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Approval & Disapproval Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
-        if ($action === 'approve') {
+    if ($action === 'approve_proposal') {
+        // Normal proposal approval
         $status = 'Pending';
         $new_level = 'CCS Dean';
         $viewed = 0;
 
         $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=?, viewed=? WHERE id=?");
-        if (!$stmt) die("Prepare failed: " . $conn->error);
-
         $stmt->bind_param("ssii", $status, $new_level, $viewed, $id);
-        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
-    
-        // Redirect with success flag
+        $stmt->execute();
+
         header("Location: ccssboauditor_dashboard.php?approved=1");
         exit;
-        } elseif ($action === 'disapprove') {
+
+    } elseif ($action === 'disapprove_proposal') {
+        // Normal proposal disapproval
         $reasons = $_POST['reasons'] ?? [];
         $remarks = [];
 
@@ -53,36 +47,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
         $final_remarks = implode("; ", $remarks);
-
-        // Debug: Check session username
         $disapproved_by = $_SESSION['username'] ?? 'Unknown';
-        if (empty($disapproved_by) || $disapproved_by === 'Unknown') {
-            die("Error: Disapproved by user is not set in session.");
-        }
 
         $stmt = $conn->prepare("UPDATE sooproposal SET status='Disapproved', remarks=?, disapproved_by=?, level='' WHERE id=?");
-        if(!$stmt){
-            die("Prepare failed: " . $conn->error);
-        }
         $stmt->bind_param("ssi", $final_remarks, $disapproved_by, $id);
-        if(!$stmt->execute()){
-            die("Execute failed: " . $stmt->error);
-        }
+        $stmt->execute();
 
         header("Location: ccssboauditor_dashboard.php");
+        exit;
+
+    } elseif ($action === 'approve_financial') {
+        // Auditor approves financial
+        $financialstatus = 'Approved by Auditor';
+        $new_level = 'CCS Treasurer';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ?, submit = NULL WHERE id = ?");
+        $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
+        $stmt->execute();
+
+        header("Location: ccssboauditor_dashboard.php?financial_approved=1");
+        exit;
+
+    } elseif ($action === 'disapprove_financial') {
+        // Auditor disapproves financial
+        $financialstatus = 'Disapproved by Auditor';
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
+        $stmt->bind_param("si", $financialstatus, $id);
+        $stmt->execute();
+
+        header("Location: ccssboauditor_dashboard.php?financial_disapproved=1");
         exit;
     }
 }
 
-// Fetch proposals
+// FETCH proposals for approval by CCS Auditor
 $current_level = 'CCS Auditor';
 $search_department = '%CCS%';
 
-$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted'  AND department LIKE ?");
+$stmt = $conn->prepare("SELECT * FROM sooproposal WHERE level=? AND status='Pending' AND submit='submitted' AND department LIKE ?");
 $stmt->bind_param("ss", $current_level, $search_department);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
+
 
 <!-- Flash Messages -->
 <?php if(isset($_SESSION['success'])): ?>
@@ -145,6 +152,7 @@ $result = $stmt->get_result();
     <li id="dashboardTab" class="active"><i class="fa fa-home"></i> Dashboard</li>
     <li id="proposalTab"><i class="fa fa-file-alt"></i> Proposals</li>
     <li id="requirementTab"><i class="fa fa-check-circle"></i> Requirements</li>
+    <li id="financialTab"><i class="fa fa-check-circle"></i> Financial Report</li>
   </ul>
 </aside>
 
@@ -456,6 +464,84 @@ if ($result->num_rows > 0) {
 </div>
 
 
+<div id="financialReportContent" class="content" style="display:none;">
+  <h2>Financial Report (For Approval)</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
+      <thead class="table-success text-dark">
+        <tr>
+          <th>Activity Name</th>
+          <th>Plan Of Activities</th>
+          <th>Budget Plan</th>
+          <th>Budget Amount</th>
+          <th>Receipt</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $result = $conn->query($query);
+
+      while ($row = $result->fetch_assoc()):
+          $poa = $row['POA_file'];
+          $budget = $row['budget_file'];
+          $receipt = $row['receipt_file'];
+          $budget_amount = $row['budget'] ?? '0.00';
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($row['activity_name']) ?></td>
+        <td>
+          <?php if ($poa): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($poa) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <?php if ($budget): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($budget) ?>" target="_blank" class="badge bg-success text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Generated</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <span class="badge bg-info text-dark">
+            ₱<?= number_format($budget_amount, 2) ?>
+          </span>
+        </td>
+        <td>
+          <?php if ($receipt): ?>
+            <a href="../proposal/uploads/<?= htmlspecialchars($receipt) ?>" target="_blank" class="badge bg-info text-decoration-none">
+              <i class="fa fa-file-pdf"></i> View
+            </a>
+          <?php else: ?>
+            <span class="badge bg-secondary">Not Uploaded</span>
+          <?php endif; ?>
+        </td>
+        <td>
+          <form action="approve_receipt.php" method="post">
+            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+            <div class="d-grid gap-1">
+              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+      <?php endwhile; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
+
 <script>
 function toggleDropdown() {
   const menu = document.getElementById('dropdownMenu');
@@ -473,6 +559,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
   document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
   document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
+   document.getElementById("financialTab").addEventListener("click", () => switchTab("financial"));
 
   document.querySelectorAll('.disapprove-btn').forEach(button => {
     button.addEventListener('click', function () {
@@ -486,7 +573,8 @@ function switchTab(tab) {
   const sections = {
     dashboard: "dashboardContent",
     proposal: "proposalContent",
-    requirement: "requirementContent"
+    requirement: "requirementContent",
+       financial: "financialReportContent"
   };
 
   for (const key in sections) {
