@@ -10,7 +10,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$logoSrc = "img/lspulogo.jpg"; // fallback
+$logoSrc = "../img/lspulogo.jpg"; // fallback
 
 $sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
 $result = $conn->query($sql);

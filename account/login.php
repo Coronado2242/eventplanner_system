@@ -10,6 +10,22 @@ if (isset($_SESSION['admin_logged_in'])) {
     header('Location: osas_dashboard.php');
     exit();
 }
+
+$conn = new mysqli("localhost", "root", "", "eventplanner");
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$logoSrc = "../img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "" . htmlspecialchars($row['filepath']); 
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -197,8 +213,7 @@ if (isset($_SESSION['admin_logged_in'])) {
 <body>
 
   <div class="left-section">
-  <img src="../img/lspulogo.jpg" alt="University Logo"
-  style="width: 200px; height: 200px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); object-fit: cover;">
+  <img src="<?php echo $logoSrc; ?>" alt="Logo" style="border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
     <h1>EVENT <span style="color:#0d6efd;">SYNC</span></h1>
   </div>
 

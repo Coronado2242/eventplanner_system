@@ -8,6 +8,17 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$logoSrc = "../img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "../account/" . htmlspecialchars($row['filepath']); 
+    }
+}
+
 // SAVE PLAN OF ACTIVITIES
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
     $activity_name = $_POST['activity_name'];
@@ -179,7 +190,9 @@ if (!$result) {
 <body>
 
 <header class="topbar">
-  <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS SBO SOO PORTAL</div>
+  <div class="logo">
+    <img src="<?php echo $logoSrc; ?>" alt="Logo" style="height:49px; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
+    Event<span style="color:blue;">Sync</span>&nbsp;CCS SBO SOO PORTAL</div>
   <nav id="mainNav">
     <a href="../index.php">Home</a>
     <a href="../aboutus.php">About Us</a>

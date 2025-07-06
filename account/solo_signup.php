@@ -183,11 +183,6 @@ if ($result && $row = $result->fetch_assoc()) {
         <option value="">*Please Select Venue*</option>
         <option value="Gym">Gym</option>
         <option value="Research Hall">Research Hall</option>
-        <option value="AVR">AVR</option>
-        <option value="Conference Room">Conference Room</option>
-        <option value="Library">Library</option>
-        <option value="Quadrangle">Quadrangle</option>
-        <option value="Audio Room">Audio Room</option>
     </select>
 
     <div class="terms">

@@ -13,6 +13,17 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$logoSrc = "../img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "../account/" . htmlspecialchars($row['filepath']); 
+    }
+}
+
 // Catch upload_id from GET
 if (isset($_SESSION['upload_id'])) {
     $upload_id = $_SESSION['upload_id'];
@@ -668,7 +679,9 @@ tr:nth-child(even) {
 
 <body>
 <header class="topbar">
-  <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS SBO PRESIDENT PORTAL</div>
+  <div class="logo">
+    <img src="<?php echo $logoSrc; ?>" alt="Logo" style="height:49px; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
+    Event<span style="color:blue;">Sync</span>&nbsp;CCS SBO PRESIDENT PORTAL</div>
   <div class="hamburger" onclick="toggleMobileNav()">☰</div>
   <nav id="mainNav">
     <a href="../index.php">Home</a>

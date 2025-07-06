@@ -13,6 +13,17 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+$logoSrc = "../img/lspulogo.jpg"; // fallback
+
+$sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
+$result = $conn->query($sql);
+
+if ($result && $row = $result->fetch_assoc()) {
+    if (!empty($row['filepath'])) {
+        $logoSrc = "../account/" . htmlspecialchars($row['filepath']); 
+    }
+}
+
 // === Separate levels for Proposal and Venue ===
 $proposal_level = 'CCS Dean';
 $venue_level = 'Venues'; 
@@ -139,7 +150,9 @@ $venue_result = $venue_stmt->get_result();
 
 <body>
 <header class="topbar">
-  <div class="logo"><img src="../img/lspulogo.jpg" alt="Logo">CCS DEAN PORTAL</div>
+  <div class="logo">
+    <img src="<?php echo $logoSrc; ?>" alt="Logo" style="height:49px; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
+    Event<span style="color:blue;">Sync</span>&nbsp;CCS DEAN PORTAL</div>
   <div class="hamburger" onclick="toggleMobileNav()">☰</div>
   <nav id="mainNav">
     <a href="../index.php">Home</a>
@@ -174,8 +187,8 @@ $venue_result = $venue_stmt->get_result();
     <ul id="venueSubMenu" class="submenu" style="display:none;">
     <li id="venueTab"> Venue</li>
     <li id="vrequirementTab"> Requirements</li>
-    <li id="financialTab"><i class="fa fa-check-circle"></i> Financial Report</li>
     </ul>
+    <li id="financialTab"><i class="fa fa-check-circle"></i> Financial Report</li>
   </ul>
 </aside>
 

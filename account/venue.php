@@ -1,7 +1,7 @@
 <?php
 session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
-$logoSrc = "img/lspulogo.jpg"; // fallback
+$logoSrc = "../img/lspulogo.jpg"; // fallback
 
 $sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
 $result = $conn->query($sql);
