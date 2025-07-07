@@ -32,7 +32,6 @@ if ($result && $row = $result->fetch_assoc()) {
   <style>
 html {
   height: 100%;
-  background: url('../img/homebg2.jpg') no-repeat center center fixed;
   background-size: cover;
 }
 
@@ -105,8 +104,7 @@ body {
     }
     .content {
       margin-left: 240px;
-      padding: 20px;
-      margin-top: 60px;
+      margin-right: 20px;
     }
 
     table {
@@ -276,7 +274,7 @@ body {
     <main class="content">
       <h1>Dashboard</h1>
       <p>Welcome back! Here's what's happening today.</p>
-      <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+      <iframe id="calendarFrame" style="width:100%; height:1000px; border:none;"></iframe>
     </main>
   </div>
 

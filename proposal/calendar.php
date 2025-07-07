@@ -33,11 +33,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css' rel='stylesheet' />
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js'></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    .container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding: 30px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0;  overflow: hidden;}
+    .container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding-top: 30px; }
     #calendar { max-width: 800px; flex-grow: 1; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .sidebar { width: 260px; padding: 20px; }
-    .summary-box { background: #fff; border-radius: 6px; padding: 10px 15px; margin-bottom: 15px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .summary-box { background: #fff; border-radius: 6px; padding: 25px 30px; margin-bottom: 15px; box-shadow: 0 0 5px rgba(0,0,0,0.1); font-size: 1.2em;}
+    #departmentLegendSidebar {display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px;}
     .summary-title { font-weight: bold; margin-bottom: 5px; }
     .legend { text-align: center; margin: 20px auto 10px; font-size: 14px; }
     .legend span { margin: 0 10px; font-weight: bold; }
@@ -60,12 +61,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       <div><span id="countUpcoming">0</span> this week</div>
     </div>
     <div class="summary-box">
-      <div class="summary-title">🟠 Pending</div>
+      <div class="summary-title">🟠 Pending Events</div>
       <div><span id="countPending">0</span> total</div>
     </div>
-    <br><br>
+    <br>
     <div class="summary-box">
-      <div class="summary-title">🏢 Departments:</div>
+      <div class="summary-title">🏢 Departments:</div><br>
       <div id="departmentLegendSidebar"></div>
     </div>
   </div>
