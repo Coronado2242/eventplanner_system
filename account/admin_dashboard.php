@@ -287,16 +287,15 @@ body {
       <a href="solo_signup.php" class="add-user-btn" style="background-color: #007bff;">+ Add Solo Account</a><br><br>
       <table id="userTable">
       <thead>
-        <tr>
-          <th>Full Name</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Password</th>
-          <th>Role</th>
-          <th>Date/Time Created</th>
-          <th>Action</th>
-        </tr>
-      </thead>
+          <tr>
+            <th>Full Name</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Role</th>
+            <th>Date/Time Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </main>
@@ -309,7 +308,7 @@ body {
       <table id="venueTable">
         <thead>
           <tr>
-            <th>Organizer</th><th>Email</th><th>Venue</th><th>Actions</th>
+            <th>Organizer</th><th>Capacity</th><th>Venue</th><th>Actions</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -380,22 +379,6 @@ body {
   </form>
 </div>
 
-
-  <div class="modal-overlay" id="modalOverlay" onclick="closeEditModal()"></div>
-  <div id="editModal">
-    <h3>Edit Venue</h3>
-    <input type="hidden" id="editVenueId">
-    <label>Organizer:</label>
-    <input type="text" id="editOrganizer">
-    <label>Email:</label>
-    <input type="email" id="editEmail">
-    <label>Venue:</label>
-    <input type="text" id="editVenue">
-    <div style="text-align: right;">
-      <button onclick="saveVenueEdit()">Save</button>
-      <button onclick="closeEditModal()">Cancel</button>
-    </div>
-  </div>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("calendarFrame").src = "../proposal/calendar.php";
@@ -462,8 +445,7 @@ body {
               row.innerHTML = `
                 <td>${u.fullname}</td>
                 <td>${u.username}</td>
-                <td>${u.email}</td>
-                <td>${u.password}</td>
+                <td>${"*".repeat(8)}</td>
                 <td>${u.role}</td>
                 <td>${u.created_at}</td>
                 <td>
@@ -487,8 +469,7 @@ body {
                 row.innerHTML = `
                   <td>${u.fullname || '-'}</td>
                   <td>${u.username}</td>
-                  <td>${u.email || '-'}</td>
-                  <td>${u.password}</td>
+                  <td>${"*".repeat(8)}</td>
                   <td>${u.role}</td>
                   <td>${u.created_at}</td>
                   <td>
@@ -521,40 +502,6 @@ body {
       });
     }
 
-
-    
-    // Venue Modal Logic
-    window.editVenue = (id, org, email, venue) => {
-      document.getElementById("editVenueId").value = id;
-      document.getElementById("editOrganizer").value = org;
-      document.getElementById("editEmail").value = email;
-      document.getElementById("editVenue").value = venue;
-      document.getElementById("modalOverlay").style.display = 'block';
-      document.getElementById("editModal").style.display = 'block';
-    }
-
-    window.closeEditModal = () => {
-      document.getElementById("modalOverlay").style.display = 'none';
-      document.getElementById("editModal").style.display = 'none';
-    }
-
-    window.saveVenueEdit = () => {
-      const data = {
-        id: document.getElementById("editVenueId").value,
-        organizer: document.getElementById("editOrganizer").value,
-        email: document.getElementById("editEmail").value,
-        venue: document.getElementById("editVenue").value,
-      };
-      fetch('edit_venue.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
-        .then(r => r.text())
-        .then(msg => { alert(msg); closeEditModal(); loadVenues(); })
-        .catch(e => console.error(e));
-    }
-
     window.loadVenues = () => {
       fetch("get_venues.php")
         .then(r => r.json())
@@ -565,10 +512,9 @@ body {
             const tr = document.createElement("tr");
             tr.innerHTML = `
               <td>${v.organizer}</td>
-              <td>${v.email}</td>
+              <td>${v.capacity}</td>
               <td>${v.venue}</td>
               <td>
-                <button class="editBtn" onclick="editVenue('${v.id}','${v.organizer}','${v.email}','${v.venue}')">Edit</button>
                 <button class="deleteBtn" onclick="deleteVenue('${v.id}')">Delete</button>
               </td>
             `;
@@ -579,12 +525,16 @@ body {
 
     window.deleteVenue = (id) => {
       if (confirm("Delete this venue?")) {
-        fetch(`delete_user.php?id=${id}`)
+        fetch(`delete_venue.php?id=${id}`)
           .then(r => r.text())
-          .then(msg => { alert(msg); loadVenues(); })
+          .then(msg => { 
+            alert(msg); 
+            loadVenues(); 
+          })
           .catch(e => console.error(e));
       }
     };
+
 
     // Initial load
     loadVenues();

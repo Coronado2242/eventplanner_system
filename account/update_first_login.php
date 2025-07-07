@@ -9,10 +9,11 @@ if (!isset($_SESSION['user_logged_in'], $_SESSION['user_id'], $_SESSION['departm
 
 $userId = $_SESSION['user_id'];
 $table = $_SESSION['department_table'];
+
 $newUsername = trim($_POST['username']);
 $fullname = trim($_POST['fullname']);
 $email = trim($_POST['email']);
-$newPassword = trim($_POST['password']);
+$newPassword = trim($_POST['password']);  
 
 $stmt = $conn->prepare("UPDATE `$table` SET username = ?, fullname = ?, password = ?, email = ?, firstlogin = 'no' WHERE id = ?");
 $stmt->bind_param("ssssi", $newUsername, $fullname, $newPassword, $email, $userId);
@@ -20,14 +21,7 @@ $stmt->bind_param("ssssi", $newUsername, $fullname, $newPassword, $email, $userI
 if ($stmt->execute()) {
     $_SESSION['username'] = $newUsername;
 
-    // Redirect to dashboard
-    $role = strtolower($_SESSION['role']);
-    if (substr($role, -3) === 'soo') {
-        header("Location: /eventplanner_system/index.php");
-    } else {
-        $dashboard = "/eventplanner_system/dashboard/{$role}_dashboard.php";
-        header("Location: $dashboard");
-    }
+    header("Location: first_login_update.php?updated=1");
     exit();
 } else {
     echo "Update failed: " . $stmt->error;

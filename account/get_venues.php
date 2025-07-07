@@ -4,7 +4,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$query = "SELECT id, organizer, email, venue FROM venue_db";
+$query = "SELECT id, organizer, capacity, venue FROM venue_db";
 $result = $conn->query($query);
 
 $venues = [];

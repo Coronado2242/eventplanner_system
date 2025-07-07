@@ -17,7 +17,7 @@ if ($conn->connect_error) {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Get and sanitize user inputs
     $organizer = $conn->real_escape_string($_POST['organization']);
-    $email = $conn->real_escape_string($_POST['email']);
+    $capacity = intval($_POST['capacity']); // ensure numeric
     $venue = $conn->real_escape_string($_POST['venue']);
 
     // Check if the venue already exists
@@ -37,9 +37,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $check_stmt->close();
 
     // Insert the new venue
-    $insert_query = "INSERT INTO venue_db (organizer, email, venue) VALUES (?, ?, ?)";
+    $insert_query = "INSERT INTO venue_db (organizer, capacity, venue) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($insert_query);
-    $stmt->bind_param("sss", $organizer, $email, $venue);
+    $stmt->bind_param("sis", $organizer, $capacity, $venue);
 
     if ($stmt->execute()) {
         $stmt->close();

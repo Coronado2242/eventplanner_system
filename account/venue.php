@@ -39,13 +39,13 @@ foreach ($tablesWithVenue as $table) {
     $fullnameCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'fullname'");
     $hasFullname = ($fullnameCheck && $fullnameCheck->num_rows > 0);
 
-    $emailCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'email'");
-    $hasEmail = ($emailCheck && $emailCheck->num_rows > 0);
+    $capacityCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'capacity'");
+    $hasCapacity = ($capacityCheck && $capacityCheck->num_rows > 0);
 
     $selectFields = "venue";
     if ($hasRole) $selectFields .= ", role";
     if ($hasFullname) $selectFields .= ", fullname";
-    if ($hasEmail) $selectFields .= ", email";
+    if ($hasCapacity) $selectFields .= ", capacity";
 
     $whereClause = "venue IS NOT NULL AND venue != ''";
     $firstLoginCheck = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'firstlogin'");
@@ -65,7 +65,7 @@ foreach ($tablesWithVenue as $table) {
                     'venue' => $venueKey,
                     'role' => $hasRole ? ($r['role'] ?? '') : '',
                     'fullname' => $hasFullname ? ($r['fullname'] ?? '') : '',
-                    'email' => $hasEmail ? ($r['email'] ?? '') : '',
+                    'capacity' => $hasCapacity ? ($r['capacity'] ?? '') : '',
                     'table' => $table
                 ];
             }
@@ -75,7 +75,6 @@ foreach ($tablesWithVenue as $table) {
 
 ksort($venueOptions);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -197,7 +196,7 @@ ksort($venueOptions);
 <body>
 
 <div class="left-panel">
-  <img src="<?php echo $logoSrc; ?>" alt="Logo" style="border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,0.3);">
+  <img src="<?php echo $logoSrc; ?>" alt="Logo">
   <h1>EVENT <span>SYNC</span></h1>
 </div>
 
@@ -211,9 +210,6 @@ ksort($venueOptions);
     <?php endif; ?>
 
     <form method="POST" action="process_venue.php">
-      <input type="text" id="organizer" name="organization" placeholder="Organizer" readonly required>
-      <input type="email" id="emailField" name="email" placeholder="Email" readonly required>
-
       <select name="venue" id="venueSelect" required>
         <option value="">* Select Venue *</option>
         <?php foreach ($venueOptions as $venueData): ?>
@@ -221,14 +217,15 @@ ksort($venueOptions);
             value="<?= htmlspecialchars($venueData['venue']) ?>" 
             data-role="<?= htmlspecialchars($venueData['role']) ?>" 
             data-fullname="<?= htmlspecialchars($venueData['fullname']) ?>"
-            data-email="<?= htmlspecialchars($venueData['email']) ?>"
+            data-capacity="<?= htmlspecialchars($venueData['capacity']) ?>"
             data-table="<?= htmlspecialchars($venueData['table']) ?>"
           >
             <?= htmlspecialchars($venueData['venue']) ?>
           </option>
         <?php endforeach; ?>
       </select>
-
+      <input type="text" id="organizer" name="organization" placeholder="Organizer" readonly required>
+      <input type="number" id="capacityField" name="capacity" placeholder="Capacity" required>
       <button type="submit" class="signup-button">ADD VENUE</button>
     </form>
   </div>
@@ -245,9 +242,9 @@ ksort($venueOptions);
 document.getElementById('venueSelect').addEventListener('change', function () {
   const selectedOption = this.options[this.selectedIndex];
   const fullname = selectedOption.getAttribute('data-fullname');
-  const email = selectedOption.getAttribute('data-email');
+  const capacity = selectedOption.getAttribute('data-capacity');
   document.getElementById('organizer').value = fullname || '';
-  document.getElementById('emailField').value = email || '';
+  document.getElementById('capacityField').value = capacity || '';
 });
 </script>
 
