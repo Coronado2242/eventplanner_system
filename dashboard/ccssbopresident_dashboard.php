@@ -1074,7 +1074,7 @@ function toggleMobileNav() {
 
     financialTab.addEventListener('click', () => {
         clearActive();
-        requirementTab.classList.add('active');
+        financialTab.classList.add('active');
         dashboardContent.style.display = 'none';
         proposalContent.style.display = 'none';
         requirementContent.style.display = 'none';

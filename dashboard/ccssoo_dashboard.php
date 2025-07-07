@@ -383,7 +383,7 @@ if (!$result) {
       <tbody>
       <?php
       $username = $_SESSION['username'] ?? '';
-      $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Pending'";
+      $query = "SELECT * FROM sooproposal WHERE username = ?";
       $stmt = $conn->prepare($query);
       $stmt->bind_param("s", $username);
       $stmt->execute();

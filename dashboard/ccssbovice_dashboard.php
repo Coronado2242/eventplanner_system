@@ -146,6 +146,73 @@ $result = $stmt->get_result();
     <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
 </div>
 
+<!-- Proposals Section -->
+<div id="proposalContent" class="content" style="display:none;">
+  <h1>Pending Proposals for Approval</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Department</th>
+        <th>Event Type</th>
+        <th>Start Date</th>
+        <th>End Date</th>
+        <th>Venue</th>
+        <th>Attatchment</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    <?php if ($result && $result->num_rows > 0): ?>
+      <?php while ($row = $result->fetch_assoc()): ?>
+        <tr>
+            <td><?= htmlspecialchars($row['department']) ?></td>
+            <td><?= htmlspecialchars($row['activity_name']) ?></td>
+            <td><?= htmlspecialchars($row['start_date']) ?></td>
+            <td><?= htmlspecialchars($row['end_date']) ?></td>
+            <td><?= htmlspecialchars($row['venue']) ?></td>
+          <td>
+  <?php if (!empty($row['budget_file'])): ?>
+    <a href="../proposal/uploads/<?= urlencode($row['budget_file']) ?>" 
+   target="_blank" 
+   class="btn btn-primary btn-sm d-inline-flex align-items-center">
+   <i class="fa fa-file-alt me-2"></i> View Budget File
+</a>
+
+  <?php else: ?>
+    No File
+  <?php endif; ?>
+</td>
+            <td><?= htmlspecialchars($row['status']) ?></td>
+
+            <td>
+                <form method="POST" action="" style="display:inline;">
+    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+    <button type="button"
+  class="btn btn-success approve-btn"
+  data-id="<?= $row['id'] ?>"
+  data-bs-toggle="modal"
+  data-bs-target="#approveModal">
+  Approve
+</button>
+
+</form>
+<form method="POST" action="ccssbovice_dashboard.php" style="display: inline;">
+    <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
+  Disapprove
+</button>
+
+</form>
+
+            </td>
+        </tr>
+      <?php endwhile; ?>
+    <?php else: ?>
+      <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
+    <?php endif; ?>
+    </tbody>
+</table>
+</div>
 
 <div id="financialReportContent" class="content" style="display:none;">
   <h2>Financial Report (For Approval)</h2>
@@ -222,73 +289,6 @@ $result = $stmt->get_result();
   </div>
 </div>
 
-<!-- Proposals Section -->
-<div id="proposalContent" class="content" style="display:none;">
-  <h1>Pending Proposals for Approval</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Department</th>
-        <th>Event Type</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Venue</th>
-        <th>Attatchment</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-    <?php if ($result && $result->num_rows > 0): ?>
-      <?php while ($row = $result->fetch_assoc()): ?>
-        <tr>
-            <td><?= htmlspecialchars($row['department']) ?></td>
-            <td><?= htmlspecialchars($row['activity_name']) ?></td>
-            <td><?= htmlspecialchars($row['start_date']) ?></td>
-            <td><?= htmlspecialchars($row['end_date']) ?></td>
-            <td><?= htmlspecialchars($row['venue']) ?></td>
-          <td>
-  <?php if (!empty($row['budget_file'])): ?>
-    <a href="../proposal/uploads/<?= urlencode($row['budget_file']) ?>" 
-   target="_blank" 
-   class="btn btn-primary btn-sm d-inline-flex align-items-center">
-   <i class="fa fa-file-alt me-2"></i> View Budget File
-</a>
-
-  <?php else: ?>
-    No File
-  <?php endif; ?>
-</td>
-            <td><?= htmlspecialchars($row['status']) ?></td>
-
-            <td>
-                <form method="POST" action="" style="display:inline;">
-    <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-    <button type="button"
-  class="btn btn-success approve-btn"
-  data-id="<?= $row['id'] ?>"
-  data-bs-toggle="modal"
-  data-bs-target="#approveModal">
-  Approve
-</button>
-
-</form>
-<form method="POST" action="ccssbovice_dashboard.php" style="display: inline;">
-    <button type="button" class="btn btn-danger disapprove-btn" data-id="<?= $row['id'] ?>" data-bs-toggle="modal" data-bs-target="#disapproveModal">
-  Disapprove
-</button>
-
-</form>
-
-            </td>
-        </tr>
-      <?php endwhile; ?>
-    <?php else: ?>
-      <tr><td colspan="8" class="text-center">No proposals found for SBO Treasurer.</td></tr>
-    <?php endif; ?>
-    </tbody>
-</table>
-</div>
 <!-- Requirements Content -->
 <div id="requirementContent" class="content" style="display:none;">
     <h1>Requirements Section</h1>
@@ -480,6 +480,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("dashboardTab").addEventListener("click", () => switchTab("dashboard"));
   document.getElementById("proposalTab").addEventListener("click", () => switchTab("proposal"));
+  document.getElementById("requirementTab").addEventListener("click", () => switchTab("requirement"));
    document.getElementById("financialTab").addEventListener("click", () => switchTab("financial"));
 
   document.querySelectorAll('.disapprove-btn').forEach(button => {
