@@ -122,7 +122,7 @@ $result = $stmt->get_result();
 
   <!-- Your other CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="../style/css_all.css">
+  <link rel="stylesheet" href="../style/sbotresure1.css">
 
   <!-- Popper.js and Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
@@ -173,7 +173,7 @@ $result = $stmt->get_result();
 <div id="dashboardContent" class="content">
   <h1>Welcome to the CCS Auditor Dashboard</h1>
   <p>This is your overview page.</p>
-  <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+  <iframe id="calendarFrame" style="width:100%; height:1000px; border:none;"></iframe>
 </div>
 
 <!-- Proposals Section -->

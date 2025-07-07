@@ -37,7 +37,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
     .container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding-top: 30px; }
     #calendar { max-width: 800px; flex-grow: 1; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .sidebar { width: 260px; padding: 20px; }
-    .summary-box { background: #fff; border-radius: 6px; padding: 25px 30px; margin-bottom: 15px; box-shadow: 0 0 5px rgba(0,0,0,0.1); font-size: 1.2em;}
+    .summary-box { background: #fff; border-radius: 6px; padding: 25px 30px; margin-bottom: 15px; box-shadow: 0 0 5px rgba(0,0,0,0.1); font-size: 1.1em;}
     #departmentLegendSidebar {display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px;}
     .summary-title { font-weight: bold; margin-bottom: 5px; }
     .legend { text-align: center; margin: 20px auto 10px; font-size: 14px; }
@@ -57,7 +57,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 <div class="container">
   <div class="sidebar">
     <div class="summary-box">
-      <div class="summary-title">🟢 Up Coming</div>
+      <div class="summary-title">🟢 Up Coming Events</div>
       <div><span id="countUpcoming">0</span> this week</div>
     </div>
     <div class="summary-box">
@@ -75,7 +75,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
 
 <div class="legend">
   <span style="color: green;">● Approved</span>
-  <span style="color: red;">● Ended</span>
+  <span style="color: red;">● End</span>
   <span style="color: orange;">● Pending</span>
 </div>
 

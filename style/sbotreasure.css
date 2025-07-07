@@ -12,7 +12,6 @@ html, body {
 }
 
 body {
-  background: url('../img/homebg2.jpg') no-repeat center center fixed;
   background-size: cover;
   position: relative;
 }

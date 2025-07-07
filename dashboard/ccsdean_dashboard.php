@@ -141,8 +141,8 @@ $venue_result = $venue_stmt->get_result();
   <meta charset="UTF-8" />
   <title>CCS Dean Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="../style/sbotreasure1.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="../style/sbotreasure.css">
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" crossorigin="anonymous"></script>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -196,7 +196,7 @@ $venue_result = $venue_stmt->get_result();
 <div id="dashboardContent" class="content">
   <h1>Welcome to the CCS Dean Dashboard</h1>
   <p>This is your overview page.</p>
-  <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+  <iframe id="calendarFrame" style="width:100%; height:1000px; border:none;"></iframe>
 </div>
 
 <!-- Proposals Section -->

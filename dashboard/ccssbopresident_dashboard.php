@@ -183,7 +183,6 @@ html, body {
 }
 
 body {
-  background: url('../img/homebg2.jpg') no-repeat center center fixed;
   background-size: cover;
   position: relative;
 }
@@ -271,8 +270,8 @@ body::before {
 
 .content {
     margin-left: 240px;
-    padding: 20px;
-    margin-top: 60px;
+    padding: 10px;
+    margin-right: 20px;
 }
 
 .cards {
@@ -718,7 +717,7 @@ tr:nth-child(even) {
 <div id="dashboardContent" class="content">
   <h1>Welcome to the CCS SBO President Dashboard</h1>
   <p>This is your overview page.</p>
-  <iframe id="calendarFrame" style="width:100%; height:600px; border:none;"></iframe>
+  <iframe id="calendarFrame" style="width:100%; height:1000px; border:none;"></iframe>
 </div>
 
 

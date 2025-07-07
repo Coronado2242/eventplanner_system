@@ -104,6 +104,7 @@ body {
     }
     .content {
       margin-left: 240px;
+      padding: 10px;
       margin-right: 20px;
     }
 

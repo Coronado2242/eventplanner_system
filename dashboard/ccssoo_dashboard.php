@@ -144,11 +144,11 @@ if (!$result) {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_orange.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <link rel="stylesheet" href="../style/sbotreasure.css">
+  <link rel="stylesheet" href="../style/sbotreasure1.css">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
-    .content { display: none; padding: 20px; }
+    .content { display: none; }
     .content.active { display: block; }
     .sidebar ul ul.submenu {
       list-style-type: none;
@@ -241,7 +241,7 @@ if (!$result) {
 <main>
   <div id="dashboardContent" class="content active">
     <h1>Welcome to the CCS SBO SOO Dashboard</h1>
-    <iframe src="../proposal/calendar.php" style="width:100%; height:600px; border:none;"></iframe>
+    <iframe src="../proposal/calendar.php" style="width:100%; height:1000px; border:none;"></iframe>
   </div>
 
   <div id="createEventContent" class="content">
