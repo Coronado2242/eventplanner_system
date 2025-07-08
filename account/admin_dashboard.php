@@ -231,6 +231,63 @@ body {
   font-size: 16px;
   color: #333;
 }
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 20px 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-content.success {
+  background-color: #e6ffed;
+  color: #155724;
+  border-left: 6px solid #28a745;
+}
+
+.modal-buttons {
+  margin-top: 15px;
+}
+
+.modal-buttons button {
+  padding: 8px 20px;
+  margin: 0 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+#confirmYes {
+  background-color: #dc3545;
+  color: white;
+}
+
+#confirmNo {
+  background-color: #6c757d;
+  color: white;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 
   </style>
 </head>
@@ -378,6 +435,29 @@ body {
   </form>
 </div>
 
+
+<!--  Confirm Modal -->
+<div id="confirmModal" class="modal">
+  <div class="modal-content">
+    <i class="fas fa-exclamation-triangle modal-icon confirm-icon"></i>
+    <p id="confirmText">Are you sure you want to delete this department?</p>
+    <div class="modal-buttons">
+      <button id="confirmYes">Yes</button>
+      <button id="confirmNo">No</button>
+    </div>
+  </div>
+</div>
+
+<!--  Success Modal -->
+<div id="successModal" class="modal">
+  <div class="modal-content success">
+    <i class="fas fa-check-circle modal-icon success-icon"></i>
+    <p id="successText">Department deleted successfully.</p>
+  </div>
+</div>
+
+
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("calendarFrame").src = "../proposal/calendar.php";
@@ -427,61 +507,80 @@ body {
       document.getElementById("userManagementTab").classList.add('active');
       document.getElementById("userManagementContent").style.display = 'block';
       fetch("get_users.php")
-        .then(r => r.json())
-        .then(users => {
-          const tbody = document.querySelector("#userTable tbody");
-          tbody.innerHTML = "";
-          const grouped = {};
-          users.forEach(u => {
-            (grouped[u.department] ??= []).push(u);
-          });
-          Object.keys(grouped).forEach(dept => {
-            const header = document.createElement("tr");
-            header.innerHTML = `<th colspan="7" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
-            tbody.append(header);
-            grouped[dept].forEach(u => {
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${u.fullname}</td>
-                <td>${u.username}</td>
-                <td>${"*".repeat(8)}</td>
-                <td>${u.role}</td>
-                <td>${u.created_at}</td>
-                <td>
-                  <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
-                  <button class="deleteBtn" onclick="resetPassword('${u.id}', '${u.username}')">Reset to Default</button>
-                </td>
-              `;
-              tbody.append(row);
-            });
-          });
+  .then(r => r.json())
+  .then(users => {
+    const tbody = document.querySelector("#userTable tbody");
+    tbody.innerHTML = "";
+    const grouped = {};
+    users.forEach(u => {
+      (grouped[u.department] ??= []).push(u);
+    });
+    Object.keys(grouped).forEach(dept => {
+      const header = document.createElement("tr");
+      header.innerHTML = `<th colspan="7" style="background:#004080;color:white;">${dept.toUpperCase()}</th>`;
+      tbody.append(header);
+      grouped[dept].forEach(u => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${u.fullname}</td>
+          <td>${u.username}</td>
+          <td>${"*".repeat(8)}</td>
+          <td>${u.role}</td>
+          <td>${u.created_at}</td>
+          <td>
+            <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
+          <button class="deleteBtn" onclick="resetPassword('${u.username}', '${u.username.split('_')[0].toLowerCase()}_department')">Reset to Default</button>
+
+
+          </td>
+        `;
+        tbody.append(row);
+      });
+
+      const deleteRow = document.createElement("tr");
+      deleteRow.setAttribute("data-dept", dept);
+      const deleteCell = document.createElement("td");
+      deleteCell.colSpan = 7;
+      deleteCell.style.textAlign = "right";
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "deleteBtn";
+      deleteBtn.textContent = `Delete Department`;
+      deleteBtn.onclick = () => {
+        deleteDepartment(dept);
+      };
+
+      deleteCell.appendChild(deleteBtn);
+      deleteRow.appendChild(deleteCell);
+      tbody.append(deleteRow);
+    });
 
           // Fetch and append solo accounts (from solo_accounts table)
-          fetch("get_solo_users.php")
-            .then(r => r.json())
-            .then(soloUsers => {
-              const header = document.createElement("tr");
-              header.innerHTML = `<th colspan="7" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
-              tbody.append(header);
-              soloUsers.forEach(u => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                  <td>${u.fullname || '-'}</td>
-                  <td>${u.username}</td>
-                  <td>${"*".repeat(8)}</td>
-                  <td>${u.role}</td>
-                  <td>${u.created_at}</td>
-                  <td>
-                    <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
-                    <button class="deleteBtn" onclick="resetPassword('${u.id}', '${u.username}')">Reset to Default</button>
-                  </td>
-                `;
-                tbody.append(row);
-              });
+         fetch("get_solo_users.php")
+      .then(r => r.json())
+      .then(soloUsers => {
+        const header = document.createElement("tr");
+        header.innerHTML = `<th colspan="7" style="background:#004080;color:white;">SOLO ACCOUNTS</th>`;
+        tbody.append(header);
+        soloUsers.forEach(u => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${u.fullname || '-'}</td>
+            <td>${u.username}</td>
+            <td>${"*".repeat(8)}</td>
+            <td>${u.role}</td>
+            <td>${u.created_at}</td>
+            <td>
+              <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
+              <button class="deleteBtn" onclick="resetPassword('${u.id}', '${u.username}')">Reset to Default</button>
 
-            });
-        })
-        .catch(e => console.error(e));
+            </td>
+          `;
+          tbody.append(row);
+        });
+      });
+  })
+  .catch(e => console.error(e));
     });
 
     document.getElementById("venueTab").addEventListener("click", () => {
@@ -605,18 +704,92 @@ window.changePassword = (id, username) => {
   }
 };
 
-window.resetPassword = (id, username) => {
+window.resetPassword = (username, table) => {
   if (confirm(`Reset password for ${username} to default?`)) {
-    fetch('reset_password.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("table", table);
+
+    fetch("reset_password.php", {
+      method: "POST",
+      body: formData
     })
-    .then(r => r.text())
-    .then(msg => alert(msg))
-    .catch(e => console.error(e));
+    .then(res => res.text())
+    .then(msg => {
+      alert(msg);
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Something went wrong.");
+    });
   }
 };
+
+
+
+
+
+
+function showSuccessModal(message = "Department deleted successfully.") {
+  document.getElementById("successText").innerText = message;
+  document.getElementById("successModal").classList.add("show");
+}
+
+function closeSuccessModal() {
+  document.getElementById("successModal").classList.remove("show");
+}
+
+
+let departmentToDelete = "";
+
+window.deleteDepartment = (department) => {
+  departmentToDelete = department;
+  document.getElementById("confirmText").textContent =
+    `Are you sure you want to delete "${department}" department?`;
+  document.getElementById("confirmModal").style.display = "block";
+};
+
+// Handle YES
+document.getElementById("confirmYes").onclick = () => {
+  document.getElementById("confirmModal").style.display = "none";
+
+  const formData = new FormData();
+  formData.append("department", departmentToDelete);
+
+  fetch("delete_department.php", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.text())
+  .then(msg => {
+    if (msg.startsWith("Success")) {
+      document.getElementById("successText").textContent = msg;
+      document.getElementById("successModal").style.display = "block";
+
+      setTimeout(() => {
+        document.getElementById("successModal").style.display = "none";
+        location.reload();
+      }, 2000);
+    } else {
+      alert(msg);
+    }
+  })
+  .catch(err => alert("Error: " + err));
+};
+
+// Handle NO
+document.getElementById("confirmNo").onclick = () => {
+  document.getElementById("confirmModal").style.display = "none";
+};
+
+
+
+
+
+
+
+
+
 
 </script>
 </body>

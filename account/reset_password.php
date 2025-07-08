@@ -9,48 +9,48 @@ if (!isset($_SESSION['admin_logged_in'])) {
 
 header('Content-Type: text/plain');
 
-// Decode JSON input
-$input = json_decode(file_get_contents('php://input'), true);
-
-if (!isset($input['id'], $input['table'])) {
+// Check required fields
+if (!isset($_POST['username']) || !isset($_POST['table'])) {
     http_response_code(400);
     echo "Missing parameters.";
     exit;
 }
 
-$id = intval($input['id']);
-$table = trim($input['table']);
+$username = trim($_POST['username']);
+$table = strtolower(trim($_POST['table']));
 $defaultPassword = "123456";
 
-// ✅ Allow only these tables
-$allowedTables = ['solo_accounts', 'ccs_department', 'cte_department'];
+// ✅ ALLOWED tables
+$allowedTables = ['solo_accounts', 'ccs_department', 'cte_department', 'cas_department'];
 
 if (!in_array($table, $allowedTables, true)) {
     http_response_code(400);
-    echo "Invalid table.";
+    echo "Invalid table: '$table'\nAllowed: " . implode(', ', $allowedTables);
     exit;
 }
 
-// Connect to DB
+// Connect to database
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) {
     http_response_code(500);
-    echo "Database connection failed.";
+    echo "Database connection failed: " . $conn->connect_error;
     exit;
 }
 
-$query = "UPDATE `$table` SET password = ? WHERE id = ?";
+// Update password by username
+$query = "UPDATE `$table` SET password = ? WHERE username = ?";
 $stmt = $conn->prepare($query);
+
 if (!$stmt) {
     http_response_code(500);
     echo "Prepare failed: " . $conn->error;
     exit;
 }
 
-$stmt->bind_param("si", $defaultPassword, $id);
+$stmt->bind_param("ss", $defaultPassword, $username);
 
 if ($stmt->execute()) {
-    echo "Password has been reset to default (123456).";
+    echo "Password for $username has been reset to default (123456).";
 } else {
     http_response_code(500);
     echo "Failed to reset password.";
