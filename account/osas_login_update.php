@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($stmt->execute()) {
         echo "<script>
                 alert('Password updated successfully!');
-                window.location.href = '../account/osas_dashboard.php';
+                window.location.href = '../dashboard/osas.php';
               </script>";
         exit();
     } else {

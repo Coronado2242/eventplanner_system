@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (end < today) status = 'ended';
 
           if (status === 'pending') countPending++;
-          if (start >= startOfWeek && start <= endOfWeek && status === 'completed') countUpcoming++;
+          if (start >= startOfWeek && start <= endOfWeek && status === 'approved') countUpcoming++;
 
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dStr = d.toISOString().slice(0, 10);
