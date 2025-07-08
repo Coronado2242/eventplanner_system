@@ -18,7 +18,7 @@ if (!isset($_POST['username']) || !isset($_POST['table'])) {
 
 $username = trim($_POST['username']);
 $table = strtolower(trim($_POST['table']));
-$defaultPassword = "123456";
+$defaultPassword = "user12345";
 
 // ✅ ALLOWED tables
 $allowedTables = ['solo_accounts', 'ccs_department', 'cte_department', 'cas_department'];
@@ -50,7 +50,7 @@ if (!$stmt) {
 $stmt->bind_param("ss", $defaultPassword, $username);
 
 if ($stmt->execute()) {
-    echo "Password for $username has been reset to default (123456).";
+    echo "Password for $username has been reset to default (user12345).";
 } else {
     http_response_code(500);
     echo "Failed to reset password.";

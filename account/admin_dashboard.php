@@ -528,8 +528,7 @@ body {
           <td>${u.role}</td>
           <td>${u.created_at}</td>
           <td>
-            <button class="editBtn" onclick="changePassword('${u.id}', '${u.username}')">Change Password</button>
-          <button class="deleteBtn" onclick="resetPassword('${u.username}', '${u.username.split('_')[0].toLowerCase()}_department')">Reset to Default</button>
+          <button class="deleteBtn" onclick="resetPassword('${u.username}', '${u.username.split('_')[0].toLowerCase()}_department')">Reset Password</button>
 
 
           </td>
