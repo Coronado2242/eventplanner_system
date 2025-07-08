@@ -1048,11 +1048,12 @@ if ($result->num_rows > 0) {
           <?php endif; ?>
         </td>
         <td>
-<form method="POST" action="ccssboauditor_dashboard.php">
+<form method="POST" action="ccssboauditor_dashboard.php" onsubmit="return confirmSubmit(this);">
   <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <input type="hidden" name="action" value="">
   <div class="d-grid gap-1">
-    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
-    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
+    <button type="button" class="btn btn-success btn-sm" onclick="setActionAndSubmit(this, 'approve_financial')">Approve</button>
+    <button type="button" class="btn btn-danger btn-sm" onclick="setActionAndSubmit(this, 'disapprove_financial')">Disapprove</button>
   </div>
 </form>
 
@@ -1174,6 +1175,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+    
+  function setActionAndSubmit(button, action) {
+    const form = button.closest('form');
+    form.querySelector('input[name="action"]').value = action;
+
+    let message = (action === 'approve_financial')
+      ? 'Are you sure you want to approve this financial report?'
+      : 'Are you sure you want to disapprove this financial report?';
+
+    if (confirm(message)) {
+      form.submit();
+    }
+  }
 
 
 </script>
