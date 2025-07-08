@@ -117,6 +117,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         $stmt->execute();
         header("Location: ccsdean_dashboard.php?tab=venue");
         exit;
+        
+    }
+}
+// === Handle Financial Approval (Dean) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && 
+    in_array($_POST['action'], ['approve_financial', 'disapprove_financial'])) {
+
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve_financial') {
+        $financialstatus = 'Submitted';
+        $new_level = 'Financial OSAS';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
+        $stmt->execute();
+
+        header("Location: ccsdean_dashboard.php?financial_approved=1&tab=financial");
+        exit;
+
+    } elseif ($action === 'disapprove_financial') {
+        $financialstatus = 'Disapproved by Dean';
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
+        $stmt->bind_param("si", $financialstatus, $id);
+        $stmt->execute();
+
+        header("Location: ccsdean_dashboard.php?financial_disapproved=1&tab=financial");
+        exit;
     }
 }
 
@@ -342,7 +371,7 @@ $venue_result = $venue_stmt->get_result();
 <!-- Venue Approval -->
 <div id="venueContent" class="content" style="display:none;">
   <h1>Pending Venue Requests</h1>
-  <table class="table table-bordered">
+  <table>
     <thead><tr><th>Department</th><th>Activity Name</th><th>Date</th><th>Venue</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
       <?php if ($venue_result && $venue_result->num_rows > 0): while ($row = $venue_result->fetch_assoc()): ?>
@@ -537,7 +566,7 @@ $venue_result = $venue_stmt->get_result();
       </thead>
       <tbody>
       <?php
-      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'CCS Financial Dean'";
       $result = $conn->query($query);
 
       while ($row = $result->fetch_assoc()):
@@ -581,13 +610,13 @@ $venue_result = $venue_stmt->get_result();
           <?php endif; ?>
         </td>
         <td>
-          <form action="approve_receipt.php" method="post">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <div class="d-grid gap-1">
-              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
-              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
-            </div>
-          </form>
+<form method="POST" action="ccsdean_dashboard.php">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <div class="d-grid gap-1">
+    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
+    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
+  </div>
+</form>
         </td>
       </tr>
       <?php endwhile; ?>

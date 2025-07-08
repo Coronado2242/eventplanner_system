@@ -381,23 +381,25 @@ if (!$result) {
         </tr>
       </thead>
       <tbody>
-      <?php
-      $username = $_SESSION['username'] ?? '';
-      $query = "SELECT * FROM sooproposal WHERE username = ?";
-      $stmt = $conn->prepare($query);
-      $stmt->bind_param("s", $username);
-      $stmt->execute();
-      $result = $stmt->get_result();
+<?php
+$username = $_SESSION['username'] ?? '';
+$query = "SELECT * FROM sooproposal WHERE username = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$result = $stmt->get_result();
 
-      while ($row = $result->fetch_assoc()):
-          $status = $row['status'] ?? '';
-          if ($status === 'Pending' || $status === 'Cancelled') continue; // skip if already processed
+while ($row = $result->fetch_assoc()):
+    $poa = $row['POA_file'] ?? '';
+    $budget = $row['budget_file'] ?? '';
+    $status = trim($row['status'] ?? '');
 
-          $start = date("M d, Y", strtotime($row['start_date']));
-          $end = date("M d, Y", strtotime($row['end_date']));
-          $poa = $row['POA_file'];
-          $budget = $row['budget_file'];
-      ?>
+    // Only show if both files exist AND status is empty (not submitted yet)
+    if (empty($poa) || empty($budget) || !empty($status)) continue;
+
+    $start = date("M d, Y", strtotime($row['start_date']));
+    $end = date("M d, Y", strtotime($row['end_date']));
+?>
       <tr>
         <td><?= htmlspecialchars($row['activity_name']) ?></td>
         <td><?= "$start to $end" ?></td>
@@ -707,7 +709,7 @@ while ($row = $result->fetch_assoc()):
 
 <?php
 // Fetch all completed financial reports (approved by OSAS)
-$sql = "SELECT * FROM sooproposal WHERE level='Completed' AND status='Approved' ORDER BY end_date DESC";
+$sql = "SELECT * FROM sooproposal WHERE level='Financial Completed' AND status='Approved' ORDER BY end_date DESC";
 $result = $conn->query($sql);
 ?>
 
@@ -724,7 +726,6 @@ $result = $conn->query($sql);
             <th>Start Date</th>
             <th>End Date</th>
             <th>Status</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -735,14 +736,7 @@ $result = $conn->query($sql);
               <td><?= htmlspecialchars($row['start_date']) ?></td>
               <td><?= htmlspecialchars($row['end_date']) ?></td>
               <td><span class="badge bg-success">Completed</span></td>
-              <td>
-                <form method="POST" action="soo.php" style="display:inline;">
-                  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-                  <button type="submit" name="mark_viewed" class="btn btn-sm btn-outline-primary">
-                    Mark as Read
-                  </button>
-                </form>
-              </td>
+
             </tr>
           <?php endwhile; ?>
         </tbody>

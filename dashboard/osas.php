@@ -73,7 +73,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         exit;
     }
 }
+// === Handle Financial Approval (Dean) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && 
+    in_array($_POST['action'], ['approve_financial', 'disapprove_financial'])) {
 
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve_financial') {
+        $financialstatus = 'Completed';
+        $new_level = 'Financial Completed';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
+        $stmt->execute();
+
+        header("Location: osas.php?financial_approved=1&tab=financial");
+        exit;
+
+    } elseif ($action === 'disapprove_financial') {
+        $financialstatus = 'Disapproved by Dean';
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
+        $stmt->bind_param("si", $financialstatus, $id);
+        $stmt->execute();
+
+        header("Location: osas.php?financial_disapproved=1&tab=financial");
+        exit;
+    }
+}
 // Fetch proposals
 $current_level = 'OSAS';
 $search_department = '%CCS%';
@@ -308,7 +335,7 @@ if ($result->num_rows > 0) {
       </thead>
       <tbody>
       <?php
-      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Financial OSAS'";
       $result = $conn->query($query);
 
       while ($row = $result->fetch_assoc()):
@@ -352,13 +379,13 @@ if ($result->num_rows > 0) {
           <?php endif; ?>
         </td>
         <td>
-          <form action="approve_receipt.php" method="post">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <div class="d-grid gap-1">
-              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
-              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
-            </div>
-          </form>
+<form method="POST" action="osas.php">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <div class="d-grid gap-1">
+    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
+    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
+  </div>
+</form>
         </td>
       </tr>
       <?php endwhile; ?>

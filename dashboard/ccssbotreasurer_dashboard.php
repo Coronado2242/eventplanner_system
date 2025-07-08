@@ -76,10 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
     } elseif ($action === 'approve_financial') {
         // Auditor approves financial
-        $financialstatus = 'Approved by Auditor';
-        $new_level = 'CCS Vice';
+        $financialstatus = 'Submitted';
+        $new_level = 'CCS Financial Vice';
 
-        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ?, submit = NULL WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
         $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
         $stmt->execute();
 
@@ -250,7 +250,7 @@ $result = $stmt->get_result();
       </thead>
       <tbody>
       <?php
-      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'CCS Financial Treasurer'";
       $result = $conn->query($query);
 
       while ($row = $result->fetch_assoc()):
@@ -294,13 +294,13 @@ $result = $stmt->get_result();
           <?php endif; ?>
         </td>
         <td>
-          <form action="approve_receipt.php" method="post">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <div class="d-grid gap-1">
-              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
-              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
-            </div>
-          </form>
+<form method="POST" action="ccssbotreasurer_dashboard.php">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <div class="d-grid gap-1">
+    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
+    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
+  </div>
+</form>
         </td>
       </tr>
       <?php endwhile; ?>

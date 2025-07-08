@@ -36,32 +36,87 @@ if (isset($_SESSION['upload_id'])) {
 }
 
 
-// APPROVE or DISAPPROVE LOGIC
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action'])) {
     $id = (int)$_POST['proposal_id'];
     $action = $_POST['action'];
 
+    // GENERAL APPROVAL / DISAPPROVAL (President)
     if ($action === 'approve') {
         $status = 'Pending';
         $new_level = 'CCS Auditor';
         $_SESSION['upload_id'] = $id;
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET status = ?, level = ? WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("ssi", $status, $new_level, $id);
+            if ($stmt->execute()) {
+                header("Location: ccssbopresident_dashboard.php?upload_id=$id&approved=1");
+                exit;
+            } else {
+                echo "Execute failed: " . $stmt->error;
+            }
+        } else {
+            echo "Prepare failed: " . $conn->error;
+        }
+
     } elseif ($action === 'disapprove') {
-        $status = 'Disapproved by Treasurer';
-        $new_level = 'CCS President';
-    } else {
-        die("Invalid action");
+        $status = 'Disapproved by President';
+        $new_level = 'Disapproved';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET status = ?, level = ? WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("ssi", $status, $new_level, $id);
+            if ($stmt->execute()) {
+                header("Location: ccssbopresident_dashboard.php?upload_id=$id&disapproved=1");
+                exit;
+            } else {
+                echo "Execute failed: " . $stmt->error;
+            }
+        } else {
+            echo "Prepare failed: " . $conn->error;
+        }
+
     }
 
-    $stmt = $conn->prepare("UPDATE sooproposal SET status=?, level=? WHERE id=?");
-    if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
-    }
-    $stmt->bind_param("ssi", $status, $new_level, $id);
-    if ($stmt->execute()) {
-        header("Location: ccssbopresident_dashboard.php?upload_id=$id");
-        exit;
+    // FINANCIAL APPROVAL / DISAPPROVAL (Auditor)
+    elseif ($action === 'approve_financial') {
+        $financialstatus = 'Submitted';
+        $new_level = 'CCS Financial Adviser';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
+            if ($stmt->execute()) {
+                header("Location: ccssbopresident_dashboard.php?financial_approved=1");
+                exit;
+            } else {
+                echo "Execute failed: " . $stmt->error;
+            }
+        } else {
+            echo "Prepare failed: " . $conn->error;
+        }
+
+    } elseif ($action === 'disapprove_financial') {
+        $financialstatus = 'Disapproved by Auditor';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("si", $financialstatus, $id);
+            if ($stmt->execute()) {
+                header("Location: ccssbopresident_dashboard.php?financial_disapproved=1");
+                exit;
+            } else {
+                echo "Execute failed: " . $stmt->error;
+            }
+        } else {
+            echo "Prepare failed: " . $conn->error;
+        }
+
+    } else {
+        echo "❌ Invalid action.";
     }
 }
+
 
 
 
@@ -819,7 +874,7 @@ if ($conn->connect_error) {
       </thead>
       <tbody>
       <?php
-      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'CCS Financial President'";
       $result = $conn->query($query);
 
       while ($row = $result->fetch_assoc()):
@@ -863,13 +918,13 @@ if ($conn->connect_error) {
           <?php endif; ?>
         </td>
         <td>
-          <form action="approve_receipt.php" method="post">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <div class="d-grid gap-1">
-              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
-              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
-            </div>
-          </form>
+<form method="POST" action="ccssbopresident_dashboard.php">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <div class="d-grid gap-1">
+    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
+    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
+  </div>
+</form>
         </td>
       </tr>
       <?php endwhile; ?>

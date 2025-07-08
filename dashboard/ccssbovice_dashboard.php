@@ -76,7 +76,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
         header("Location: ccssbovice_dashboard.php");
         exit;
+      }
+        elseif ($action === 'approve_financial') {
+        // Financial approval logic
+        $financialstatus = 'Submitted';
+        $new_level = 'CCS Financial President';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
+        if (!$stmt) die("Prepare failed: " . $conn->error);
+        $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
+
+        $_SESSION['success'] = "✅ Financial report approved.";
+        header("Location: ccssbovice_dashboard.php?tab=financial");
+        exit;
     }
+
+    elseif ($action === 'disapprove_financial') {
+        // Financial disapproval logic
+        $financialstatus = 'Disapproved by Vice';
+
+        $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
+        if (!$stmt) die("Prepare failed: " . $conn->error);
+        $stmt->bind_param("si", $financialstatus, $id);
+        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
+
+        $_SESSION['error'] = "❌ Financial report disapproved.";
+        header("Location: ccssbovice_dashboard.php?tab=financial");
+        exit;
+    }
+
+  
 }
 
 $current_level = 'CCS Vice';
@@ -230,7 +260,7 @@ $result = $stmt->get_result();
       </thead>
       <tbody>
       <?php
-      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'Completed'";
+      $query = "SELECT * FROM sooproposal WHERE submit = 'Submitted' AND level = 'CCS Financial Vice'";
       $result = $conn->query($query);
 
       while ($row = $result->fetch_assoc()):
@@ -274,13 +304,13 @@ $result = $stmt->get_result();
           <?php endif; ?>
         </td>
         <td>
-          <form action="approve_receipt.php" method="post">
-            <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
-            <div class="d-grid gap-1">
-              <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
-              <button type="submit" name="action" value="disapprove" class="btn btn-danger btn-sm">Disapprove</button>
-            </div>
-          </form>
+<form method="POST" action="ccssbovice_dashboard.php">
+  <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+  <div class="d-grid gap-1">
+    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
+    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
+  </div>
+</form>
         </td>
       </tr>
       <?php endwhile; ?>
