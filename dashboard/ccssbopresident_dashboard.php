@@ -77,47 +77,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         }
 
     }
+}
 
-    // FINANCIAL APPROVAL / DISAPPROVAL (Auditor)
-    elseif ($action === 'approve_financial') {
+// === Handle Financial Approval (Dean) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && 
+    in_array($_POST['action'], ['approve_financial', 'disapprove_financial'])) {
+
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve_financial') {
         $financialstatus = 'Submitted';
         $new_level = 'CCS Financial Adviser';
 
         $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
-        if ($stmt) {
-            $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
-            if ($stmt->execute()) {
-                header("Location: ccssbopresident_dashboard.php?financial_approved=1");
-                exit;
-            } else {
-                echo "Execute failed: " . $stmt->error;
-            }
-        } else {
-            echo "Prepare failed: " . $conn->error;
-        }
+        $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
+        $stmt->execute();
+
+        header("Location: ccssbopresident_dashboard.php?financial_approved=1&tab=financial");
+        exit;
 
     } elseif ($action === 'disapprove_financial') {
-        $financialstatus = 'Disapproved by Auditor';
-
+        $financialstatus = 'Disapproved by President';
         $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
-        if ($stmt) {
-            $stmt->bind_param("si", $financialstatus, $id);
-            if ($stmt->execute()) {
-                header("Location: ccssbopresident_dashboard.php?financial_disapproved=1");
-                exit;
-            } else {
-                echo "Execute failed: " . $stmt->error;
-            }
-        } else {
-            echo "Prepare failed: " . $conn->error;
-        }
+        $stmt->bind_param("si", $financialstatus, $id);
+        $stmt->execute();
 
-    } else {
-        echo "❌ Invalid action.";
+        header("Location: ccssbopresident_dashboard.php?financial_disapproved=1&tab=financial");
+        exit;
     }
 }
-
-
 
 
 // LOAD PENDING PROPOSALS

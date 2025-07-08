@@ -73,9 +73,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
 
         header("Location: ccssboauditor_dashboard.php");
         exit;
+    } 
+}
 
-    } elseif ($action === 'approve_financial') {
-        // Auditor approves financial
+// === Handle Financial Approval (Dean) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && 
+    in_array($_POST['action'], ['approve_financial', 'disapprove_financial'])) {
+
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve_financial') {
         $financialstatus = 'Submitted';
         $new_level = 'CCS Financial Vice';
 
@@ -83,17 +91,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
         $stmt->execute();
 
-        header("Location: ccssboauditor_dashboard.php?financial_approved=1");
+        header("Location: ccssbotreasurer_dashboard.php?financial_approved=1&tab=financial");
         exit;
 
     } elseif ($action === 'disapprove_financial') {
-        // Auditor disapproves financial
-        $financialstatus = 'Disapproved by Auditor';
+        $financialstatus = 'Disapproved by Treasurer';
         $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
         $stmt->bind_param("si", $financialstatus, $id);
         $stmt->execute();
 
-        header("Location: ccssboauditor_dashboard.php?financial_disapproved=1");
+        header("Location: ccssbotreasurer_dashboard.php?financial_disapproved=1&tab=financial");
         exit;
     }
 }

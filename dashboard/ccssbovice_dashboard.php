@@ -77,37 +77,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST
         header("Location: ccssbovice_dashboard.php");
         exit;
       }
-        elseif ($action === 'approve_financial') {
-        // Financial approval logic
+}
+
+// === Handle Financial Approval (Dean) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['proposal_id'], $_POST['action']) && 
+    in_array($_POST['action'], ['approve_financial', 'disapprove_financial'])) {
+
+    $id = (int)$_POST['proposal_id'];
+    $action = $_POST['action'];
+
+    if ($action === 'approve_financial') {
         $financialstatus = 'Submitted';
         $new_level = 'CCS Financial President';
 
         $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, level = ? WHERE id = ?");
-        if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("ssi", $financialstatus, $new_level, $id);
-        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
+        $stmt->execute();
 
-        $_SESSION['success'] = "✅ Financial report approved.";
-        header("Location: ccssbovice_dashboard.php?tab=financial");
+        header("Location: ccssbovice_dashboard.php?financial_approved=1&tab=financial");
         exit;
-    }
 
-    elseif ($action === 'disapprove_financial') {
-        // Financial disapproval logic
+    } elseif ($action === 'disapprove_financial') {
         $financialstatus = 'Disapproved by Vice';
-
         $stmt = $conn->prepare("UPDATE sooproposal SET financialstatus = ?, submit = NULL WHERE id = ?");
-        if (!$stmt) die("Prepare failed: " . $conn->error);
         $stmt->bind_param("si", $financialstatus, $id);
-        if (!$stmt->execute()) die("Execute failed: " . $stmt->error);
+        $stmt->execute();
 
-        $_SESSION['error'] = "❌ Financial report disapproved.";
-        header("Location: ccssbovice_dashboard.php?tab=financial");
+        header("Location: ccssbovice_dashboard.php?financial_disapproved=1&tab=financial");
         exit;
     }
-
-  
 }
+
 
 $current_level = 'CCS Vice';
 $search_department = '%CCS%';

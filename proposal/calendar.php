@@ -165,10 +165,12 @@ document.addEventListener('DOMContentLoaded', function () {
         Object.entries(groupedDates).forEach(([dateStr, items]) => {
           const first = items[0];
           const status = first.status;
-          const bgColor =
-            status === 'pending' ? 'orange' :
-            status === 'completed' ? 'green' :
-            status === 'ended' ? 'red' : 'gray';
+const bgColor =
+  status === 'pending' ? 'orange' :
+  status === 'approved' ? 'green' :
+  status === 'completed' ? 'green' :
+  status === 'ended' ? 'red' : 'gray';
+
 
           let title = first.title;
           if (items.length > 1) {
@@ -198,9 +200,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (cellNum) {
               let statusColor = 'transparent';
-              if (first.status === 'pending') statusColor = 'orange';
-              else if (first.status === 'completed') statusColor = 'green';
-              else if (first.status === 'ended') statusColor = 'red';
+if (first.status === 'pending') statusColor = 'orange';
+else if (first.status === 'approved' || first.status === 'completed') statusColor = 'green';
+else if (first.status === 'ended') statusColor = 'red';
+
               cellNum.style.setProperty('--status-color', statusColor);
             }
 
