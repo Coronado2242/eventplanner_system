@@ -910,9 +910,10 @@ if ($conn->connect_error) {
 <form method="POST" action="ccssbopresident_dashboard.php">
   <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
   <div class="d-grid gap-1">
-    <button type="submit" name="action" value="approve_financial" class="btn btn-success btn-sm">Approve</button>
-    <button type="submit" name="action" value="disapprove_financial" class="btn btn-danger btn-sm">Disapprove</button>
-  </div>
+  <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#financialApproveModal<?= $row['id'] ?>">Approve</button>
+  <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#financialDisapproveModal<?= $row['id'] ?>">Disapprove</button>
+</div>
+
 </form>
         </td>
       </tr>
@@ -921,6 +922,54 @@ if ($conn->connect_error) {
     </table>
   </div>
 </div>
+
+
+
+<div class="modal fade" id="financialApproveModal<?= $row['id'] ?>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="ccssboauditor_dashboard.php">
+      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+      <input type="hidden" name="action" value="approve_financial">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Financial Approval</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to <strong>approve</strong> this proposal financially?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Yes, Approve</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal fade" id="financialDisapproveModal<?= $row['id'] ?>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="ccssboauditor_dashboard.php">
+      <input type="hidden" name="proposal_id" value="<?= $row['id'] ?>">
+      <input type="hidden" name="action" value="disapprove_financial">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Financial Disapproval</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to <strong>disapprove</strong> this proposal financially?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, Disapprove</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 
 <!-- Requirements Content -->
