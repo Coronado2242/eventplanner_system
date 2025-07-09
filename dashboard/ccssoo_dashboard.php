@@ -43,32 +43,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
   
       // === START: Generate POA PDF ===
       require_once('fpdf/fpdf.php');
+
       $target_date = "$start_date to $end_date";
       $budget_display = 'Php ' . number_format(floatval($budget), 2);
-  
+      
       $poa_pdf = new FPDF();
       $poa_pdf->AddPage();
-      $poa_pdf->SetFont('Arial', 'B', 14);
-      $poa_pdf->Cell(0, 10, 'Plan of Activities', 0, 1, 'C');
+      
+      // University Logo
+      $poa_pdf->Image($logoSrc, 10, 10, 25);
+      $poa_pdf->SetFont('Arial', '', 10);
+      $poa_pdf->Cell(0, 5, 'Republic of the Philippines', 0, 1, 'C');
+      $poa_pdf->SetFont('Arial', 'B', 12);
+      $poa_pdf->Cell(0, 5, 'Laguna State Polytechnic University', 0, 1, 'C');
+      $poa_pdf->SetFont('Arial', '', 10);
+      $poa_pdf->Cell(0, 5, 'Province of Laguna', 0, 1, 'C');
+      
       $poa_pdf->Ln(5);
-  
+      
+      // Title
+      $poa_pdf->SetFont('Arial', 'B', 14);
+      $poa_pdf->Cell(0, 10, 'PLAN OF ACTIVITIES', 0, 1, 'C');
+      
+      $poa_pdf->SetFont('Arial', 'B', 11);
+      $poa_pdf->Cell(0, 7, 'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION', 0, 1, 'C');
+      
+      $poa_pdf->SetFont('Arial', '', 10);
+      $poa_pdf->Cell(0, 6, 'Name of Organization', 0, 1, 'C');
       $poa_pdf->SetFont('Arial', 'B', 10);
-      $poa_pdf->SetFillColor(220, 220, 220);
+      $poa_pdf->Cell(0, 6, '2ND SEMESTER A.Y. 2025-2026', 0, 1, 'C');
+      
+      $poa_pdf->Ln(5);
+      
+      // Table Headers
       $headers = ['OBJECTIVE', 'ACTIVITIES', 'BRIEF DESCRIPTION', 'PERSONS INVOLVED', 'TARGET DATE', 'BUDGET'];
       $widths = [30, 30, 40, 40, 30, 20];
-  
+      
+      $poa_pdf->SetFont('Arial', 'B', 9);
+      $poa_pdf->SetFillColor(230, 230, 230);
       foreach ($headers as $i => $header) {
-          $poa_pdf->Cell($widths[$i], 10, $header, 1, 0, 'C', true);
+          $poa_pdf->Cell($widths[$i], 8, $header, 1, 0, 'C', true);
       }
       $poa_pdf->Ln();
-  
-      $poa_pdf->SetFont('Arial', '', 9);
+      
+      // Row Data
       $rowData = [$objective, $activity_name, $description, $person_involved, $target_date, $budget_display];
-  
+      $poa_pdf->SetFont('Arial', '', 9);
+      
+      // Handle multi-line content
       $lineHeight = 5;
       $cellLines = [];
       $maxLines = 1;
-  
       foreach ($rowData as $i => $text) {
           $textWidth = $widths[$i] - 2;
           $words = explode(' ', $text);
@@ -83,28 +108,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
               }
           }
           $cellLines[$i] = $lines;
-          if ($lines > $maxLines) $maxLines = $lines;
+          $maxLines = max($maxLines, $lines);
       }
-  
+      
       $rowHeight = $lineHeight * $maxLines;
       $x = $poa_pdf->GetX();
       $y = $poa_pdf->GetY();
-  
+      
       for ($i = 0; $i < count($rowData); $i++) {
           $poa_pdf->SetXY($x, $y);
           $currentX = $x;
-          $currentY = $y;
-          $poa_pdf->Rect($currentX, $currentY, $widths[$i], $rowHeight);
+          $poa_pdf->Rect($currentX, $y, $widths[$i], $rowHeight);
           $poa_pdf->MultiCell($widths[$i], $lineHeight, $rowData[$i], 0);
           $x += $widths[$i];
       }
-  
+      
       $poa_pdf->SetY($y + $rowHeight);
-  
+      $poa_pdf->Ln(10);
+      
+      // Footer Signatures
+      $poa_pdf->SetFont('Arial', '', 9);
+      $poa_pdf->Cell(90, 6, 'Prepared by:', 0, 0);
+      $poa_pdf->Cell(90, 6, '', 0, 1);
+      $poa_pdf->Cell(90, 6, '_________________________', 0, 0, 'L');
+      $poa_pdf->Cell(90, 6, '_________________________', 0, 1, 'L');
+      $poa_pdf->Cell(90, 6, 'President, CCS SBO', 0, 0, 'L');
+      $poa_pdf->Cell(90, 6, 'Secretary, CCS SBO', 0, 1, 'L');
+      
+      $poa_pdf->Ln(5);
+      $poa_pdf->Cell(90, 6, 'Noted by:', 0, 1);
+      $poa_pdf->Cell(90, 6, '_________________________', 0, 0, 'L');
+      $poa_pdf->Cell(90, 6, '_________________________', 0, 1, 'L');
+      $poa_pdf->Cell(90, 6, 'Junior Adviser, CCS SBO', 0, 0, 'L');
+      $poa_pdf->Cell(90, 6, 'Senior Adviser, CCS SBO', 0, 1, 'L');
+      
+      $poa_pdf->Ln(5);
+      $poa_pdf->Cell(180, 6, '_________________________', 0, 1, 'C');
+      $poa_pdf->Cell(180, 6, 'Dean, College of Computer Studies', 0, 1, 'C');
+      
+      $poa_pdf->Ln(3);
+      $poa_pdf->Cell(180, 6, 'Recommending Approval:', 0, 1, 'C');
+      $poa_pdf->Cell(180, 6, '_________________________', 0, 1, 'C');
+      $poa_pdf->Cell(180, 6, 'Head, Student Organization and Activities Unit', 0, 1, 'C');
+      
+      $poa_pdf->Ln(3);
+      $poa_pdf->Cell(180, 6, 'Approved/Disapproved:', 0, 1, 'C');
+      $poa_pdf->Cell(180, 6, '_________________________', 0, 1, 'C');
+      $poa_pdf->Cell(180, 6, 'Director/Chairperson, Office of Student Affairs and Services', 0, 1, 'C');
+      
+      // Save PDF
       $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
       $poaFile = 'plan_of_activities_' . time() . '.pdf';
       $poaPath = $uploadDir . '/' . $poaFile;
       $poa_pdf->Output('F', $poaPath);
+      
   
       if (file_exists($poaPath)) {
           $conn->query("UPDATE sooproposal SET POA_file = '$poaFile' WHERE id = '$last_id'");
@@ -245,6 +302,28 @@ if (!$result) {
   </div>
 
   <div id="createEventContent" class="content">
+  <ul class="nav nav-tabs justify-content-center mb-4 custom-tabs" id="eventTabs">
+  <li class="nav-item">
+    <a class="nav-link active" onclick="switchTab('createEventContent')">
+      <i class="fa fa-clipboard-list me-2"></i> Create Event Form
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" onclick="switchTab('eventSummaryContent')">
+      <i class="fa fa-check-circle me-2"></i> Summary Requirements
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" onclick="switchTab('eventPendingContent')">
+      <i class="fa fa-clipboard-list me-2"></i> Request Pending
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" onclick="switchTab('eventCompletedContent')">
+      <i class="fa fa-check-circle me-2"></i> Completed
+    </a>
+  </li>
+</ul>
     <h2 class="text-center fw-bold mb-4">PLAN OF ACTIVITIES</h2>
         <form class="container" style="max-width: 900px;" method="POST" action="">
         <div class="row mb-3">
