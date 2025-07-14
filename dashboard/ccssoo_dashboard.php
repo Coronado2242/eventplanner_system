@@ -19,165 +19,149 @@ if ($result && $row = $result->fetch_assoc()) {
     }
 }
 
-// SAVE PLAN OF ACTIVITIES
+      
+  //SAVE PLAN OF ACTIVITIES
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
-    $activity_name = $_POST['activity_name'];
-    $date_range = $_POST['date_range']; // e.g., "06/21/2025 to 06/23/2025"
-    $dates = explode(" to ", $date_range);
-    $start_date = date('Y-m-d', strtotime($dates[0]));
-    $end_date = isset($dates[1]) ? date('Y-m-d', strtotime($dates[1])) : $start_date;
-    $objective = $_POST['objective'];
-    $budget = $_POST['budget'];
-    $description = $_POST['description'];
-    $venue = $_POST['venue'];
-    $person_involved = $_POST['person_involved'];
-    $department = $_SESSION['department'] ?? 'CCS'; // fallback
-    $username = $_SESSION['username'] ?? 'unknown';
 
-    $stmt = $conn->prepare("INSERT INTO sooproposal (department, activity_name, start_date, end_date, objective, budget, description, venue, person_involved, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssdssss", $department, $activity_name, $start_date, $end_date, $objective, $budget, $description, $venue, $person_involved, $username);
+    // a.  Collect form data
+    $activity_name   = $_POST['activity_name'];
+    $date_range      = $_POST['date_range'];          // "06/21/2025 to 06/23/2025"
+    [$d1,$d2]        = array_pad(explode(' to ',$date_range),2,$date_range);
+    $start_date      = date('Y-m-d', strtotime($d1));
+    $end_date        = $d2 ? date('Y-m-d', strtotime($d2)) : $start_date;
+    $objective       = $_POST['objective'];
+    $budget          = $_POST['budget'];
+    $description     = $_POST['description'];
+    $venue           = $_POST['venue'];
+    $person_involved = $_POST['person_involved'];
+
+    $department      = $_SESSION['department'] ?? 'CCS';
+    $username        = $_SESSION['username']   ?? 'unknown';
+
+    // b.  Insert to DB
+    $stmt = $conn->prepare(
+        "INSERT INTO sooproposal
+        (department, activity_name, start_date, end_date, objective, budget,
+         description, venue, person_involved, username)
+         VALUES (?,?,?,?,?,?,?,?,?,?)"
+    );
+    $stmt->bind_param(
+        "sssssdssss",
+        $department, $activity_name, $start_date, $end_date,
+        $objective,  $budget,        $description, $venue,
+        $person_involved, $username
+    );
 
     if ($stmt->execute()) {
-      $last_id = $stmt->insert_id;
-      $_SESSION['last_proposal_id'] = $last_id;
-  
-      // === START: Generate POA PDF ===
-      require_once('fpdf/fpdf.php');
 
-      $target_date = "$start_date to $end_date";
-      $budget_display = 'Php ' . number_format(floatval($budget), 2);
-      
-      $poa_pdf = new FPDF();
-      $poa_pdf->AddPage();
-      
-      // University Logo
-      $poa_pdf->Image($logoSrc, 10, 10, 25);
-      $poa_pdf->SetFont('Arial', '', 10);
-      $poa_pdf->Cell(0, 5, 'Republic of the Philippines', 0, 1, 'C');
-      $poa_pdf->SetFont('Arial', 'B', 12);
-      $poa_pdf->Cell(0, 5, 'Laguna State Polytechnic University', 0, 1, 'C');
-      $poa_pdf->SetFont('Arial', '', 10);
-      $poa_pdf->Cell(0, 5, 'Province of Laguna', 0, 1, 'C');
-      
-      $poa_pdf->Ln(5);
-      
-      // Title
-      $poa_pdf->SetFont('Arial', 'B', 14);
-      $poa_pdf->Cell(0, 10, 'PLAN OF ACTIVITIES', 0, 1, 'C');
-      
-      $poa_pdf->SetFont('Arial', 'B', 11);
-      $poa_pdf->Cell(0, 7, 'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION', 0, 1, 'C');
-      
-      $poa_pdf->SetFont('Arial', '', 10);
-      $poa_pdf->Cell(0, 6, 'Name of Organization', 0, 1, 'C');
-      $poa_pdf->SetFont('Arial', 'B', 10);
-      $poa_pdf->Cell(0, 6, '2ND SEMESTER A.Y. 2025-2026', 0, 1, 'C');
-      
-      $poa_pdf->Ln(5);
-      
-      // Table Headers
-      $headers = ['OBJECTIVE', 'ACTIVITIES', 'BRIEF DESCRIPTION', 'PERSONS INVOLVED', 'TARGET DATE', 'BUDGET'];
-      $widths = [30, 30, 40, 40, 30, 20];
-      
-      $poa_pdf->SetFont('Arial', 'B', 9);
-      $poa_pdf->SetFillColor(230, 230, 230);
-      foreach ($headers as $i => $header) {
-          $poa_pdf->Cell($widths[$i], 8, $header, 1, 0, 'C', true);
-      }
-      $poa_pdf->Ln();
-      
-      // Row Data
-      $rowData = [$objective, $activity_name, $description, $person_involved, $target_date, $budget_display];
-      $poa_pdf->SetFont('Arial', '', 9);
-      
-      // Handle multi-line content
-      $lineHeight = 5;
-      $cellLines = [];
-      $maxLines = 1;
-      foreach ($rowData as $i => $text) {
-          $textWidth = $widths[$i] - 2;
-          $words = explode(' ', $text);
-          $line = '';
-          $lines = 1;
-          foreach ($words as $word) {
-              if ($poa_pdf->GetStringWidth($line . ' ' . $word) < $textWidth) {
-                  $line .= ' ' . $word;
-              } else {
-                  $lines++;
-                  $line = $word;
-              }
-          }
-          $cellLines[$i] = $lines;
-          $maxLines = max($maxLines, $lines);
-      }
-      
-      $rowHeight = $lineHeight * $maxLines;
-      $x = $poa_pdf->GetX();
-      $y = $poa_pdf->GetY();
-      
-      for ($i = 0; $i < count($rowData); $i++) {
-          $poa_pdf->SetXY($x, $y);
-          $currentX = $x;
-          $poa_pdf->Rect($currentX, $y, $widths[$i], $rowHeight);
-          $poa_pdf->MultiCell($widths[$i], $lineHeight, $rowData[$i], 0);
-          $x += $widths[$i];
-      }
-      
-      $poa_pdf->SetY($y + $rowHeight);
-      $poa_pdf->Ln(10);
-      
-      // Footer Signatures
-      $poa_pdf->SetFont('Arial', '', 9);
-      $poa_pdf->Cell(90, 6, 'Prepared by:', 0, 0);
-      $poa_pdf->Cell(90, 6, '', 0, 1);
-      $poa_pdf->Cell(90, 6, '_________________________', 0, 0, 'L');
-      $poa_pdf->Cell(90, 6, '_________________________', 0, 1, 'L');
-      $poa_pdf->Cell(90, 6, 'President, CCS SBO', 0, 0, 'L');
-      $poa_pdf->Cell(90, 6, 'Secretary, CCS SBO', 0, 1, 'L');
-      
-      $poa_pdf->Ln(5);
-      $poa_pdf->Cell(90, 6, 'Noted by:', 0, 1);
-      $poa_pdf->Cell(90, 6, '_________________________', 0, 0, 'L');
-      $poa_pdf->Cell(90, 6, '_________________________', 0, 1, 'L');
-      $poa_pdf->Cell(90, 6, 'Junior Adviser, CCS SBO', 0, 0, 'L');
-      $poa_pdf->Cell(90, 6, 'Senior Adviser, CCS SBO', 0, 1, 'L');
-      
-      $poa_pdf->Ln(5);
-      $poa_pdf->Cell(180, 6, '_________________________', 0, 1, 'C');
-      $poa_pdf->Cell(180, 6, 'Dean, College of Computer Studies', 0, 1, 'C');
-      
-      $poa_pdf->Ln(3);
-      $poa_pdf->Cell(180, 6, 'Recommending Approval:', 0, 1, 'C');
-      $poa_pdf->Cell(180, 6, '_________________________', 0, 1, 'C');
-      $poa_pdf->Cell(180, 6, 'Head, Student Organization and Activities Unit', 0, 1, 'C');
-      
-      $poa_pdf->Ln(3);
-      $poa_pdf->Cell(180, 6, 'Approved/Disapproved:', 0, 1, 'C');
-      $poa_pdf->Cell(180, 6, '_________________________', 0, 1, 'C');
-      $poa_pdf->Cell(180, 6, 'Director/Chairperson, Office of Student Affairs and Services', 0, 1, 'C');
-      
-      // Save PDF
-      $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
-      $poaFile = 'plan_of_activities_' . time() . '.pdf';
-      $poaPath = $uploadDir . '/' . $poaFile;
-      $poa_pdf->Output('F', $poaPath);
-      
-  
-      if (file_exists($poaPath)) {
-          $conn->query("UPDATE sooproposal SET POA_file = '$poaFile' WHERE id = '$last_id'");
-      }
-  
-      // === END: Generate POA PDF ===
-  
-      echo "<script>
-          alert('Activity saved! Proceeding to budget form...');
-          document.addEventListener('DOMContentLoaded', function() {
+        $last_id = $stmt->insert_id;
+
+        /* ─────────────────────────────────────────────────────────
+           2)  GENERATE THE POA PDF  (TCPDF design) 
+        ───────────────────────────────────────────────────────── */
+        $target_date = $start_date === $end_date ? $start_date : "$start_date to $end_date";
+        $budget_disp = 'Php '.number_format((float)$budget,2);
+
+        $pdf = new TCPDF('P','mm','A4',true,'UTF-8',false);
+        $pdf->SetMargins(15,10,15);
+        $pdf->AddPage();
+
+        /* HEADER */
+        $pdf->SetFont('helvetica','',10);
+        $pdf->Cell(0,5,'Republic of the Philippines',0,1,'C');
+        $pdf->SetFont('helvetica','B',12);
+        $pdf->Cell(0,5,'Laguna State Polytechnic University',0,1,'C');
+        $pdf->SetFont('helvetica','',10);
+        $pdf->Cell(0,5,'Province of Laguna',0,1,'C');
+        $pdf->Ln(5);
+
+        $pdf->SetFont('helvetica','B',12);
+        $pdf->Cell(0,5,'PLAN OF ACTIVITIES',0,1,'C');
+        $pdf->SetFont('helvetica','BU',11);
+        $pdf->Cell(0,6,'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION',0,1,'C');
+        $pdf->Ln(2);
+        $pdf->SetFont('helvetica','',11);
+        $pdf->Cell(0,5,'Name of Organization',0,1,'C');
+        $pdf->SetFont('helvetica','B',11);
+        $pdf->Cell(0,5,'2ND SEMESTER A.Y. 2025-2026',0,1,'C');
+        $pdf->Ln(6);
+
+        /* TABLE */
+        $tbl = '
+        <style>th{font-weight:bold;background:#f2f2f2;}</style>
+        <table border="1" cellpadding="4" cellspacing="0">
+          <tr>
+            <th width="16%">OBJECTIVE</th>
+            <th width="16%">ACTIVITIES</th>
+            <th width="22%">BRIEF DESCRIPTION</th>
+            <th width="20%">PERSONS INVOLVED</th>
+            <th width="13%">TARGET DATE</th>
+            <th width="13%">BUDGET</th>
+          </tr>
+          <tr>
+            <td height="55">'.htmlspecialchars($objective).'</td>
+            <td>'.htmlspecialchars($activity_name).'</td>
+            <td>'.htmlspecialchars($description).'</td>
+            <td>'.htmlspecialchars($person_involved).'</td>
+            <td>'.$target_date.'</td>
+            <td>'.$budget_disp.'</td>
+          </tr>
+        </table>';
+        $pdf->SetFont('helvetica','',9.5);
+        $pdf->writeHTML($tbl,true,false,false,false,'');
+
+        /* SIGNATURES */
+        $pdf->Ln(10);
+        $pdf->SetFont('helvetica','',10);
+        function sigRow($pdf,$left='',$right=''){
+            $pdf->Cell(95,8,$left,0,0,'C'); $pdf->Cell(95,8,$right,0,1,'C');
+            $pdf->Cell(95,12,'_________________________',0,0,'C');
+            $pdf->Cell(95,12,'_________________________',0,1,'C');
+        }
+        sigRow($pdf,'Prepared by:');
+        $pdf->SetFont('helvetica','I',9);
+        $pdf->Cell(95,5,'President, CCS SBO',0,0,'C');
+        $pdf->Cell(95,5,'Secretary, CCS SBO',0,1,'C'); $pdf->Ln(4);
+
+        $pdf->SetFont('helvetica','',10); sigRow($pdf);
+        $pdf->SetFont('helvetica','I',9);
+        $pdf->Cell(95,5,'Junior Adviser, CCS SBO',0,0,'C');
+        $pdf->Cell(95,5,'Senior Adviser, CCS SBO',0,1,'C'); $pdf->Ln(4);
+
+        $pdf->Cell(190,12,'_________________________',0,1,'C');
+        $pdf->Cell(190,5,'Dean, College of Computer Studies',0,1,'C'); $pdf->Ln(4);
+
+        $pdf->Cell(190,12,'_________________________',0,1,'C');
+        $pdf->Cell(190,5,'Head, Student Organization and Activities Unit',0,1,'C'); $pdf->Ln(4);
+
+        $pdf->Cell(190,12,'_________________________',0,1,'C');
+        $pdf->Cell(190,5,'Director/Chairperson, Office of Student Affairs and Services',0,1,'C');
+
+        /* FOOTER */
+        $pdf->Ln(4);
+        $pdf->SetFont('helvetica','',8);
+        $pdf->MultiCell(0,5,'LSPU-OSAS-SF-004     Rev. 1     2025     July',0,'L');
+
+        /* SAVE FILE + DB UPDATE */
+        $uploadDir = realpath(__DIR__.'/../proposal/uploads');
+        if(!is_dir($uploadDir)) mkdir($uploadDir,0775,true);
+        $poaFile = 'plan_of_activities_'.time().'.pdf';
+        $poaPath = $uploadDir.'/'.$poaFile;
+        $pdf->Output($poaPath,'F');
+
+        if (file_exists($poaPath)) {
+            $conn->query("UPDATE sooproposal SET POA_file='$poaFile' WHERE id='$last_id'");
+        }
+
+        echo "<script>
+          alert('Activity saved! Proceeding to budget form…');
+          document.addEventListener('DOMContentLoaded',function(){
               switchTab('eventBudgetContent');
-              document.getElementById('budgetProposalId').value = '$last_id';
+              document.getElementById('budgetProposalId').value='$last_id';
           });
-      </script>";
-  }
-   else {
+        </script>";
+
+    } else {
         echo "<script>alert('Error saving activity.');</script>";
     }
 }
