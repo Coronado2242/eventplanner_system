@@ -1052,7 +1052,43 @@ $conn->close();
     
 </div>
 
-
+<!-- POA -->
+<div id="activitiesContent" style="display:none">
+  <main class="content">
+    <h1>POA Activities</h1>
+    <a href="activities.php" class="add-user-btn" style="background-color: #007bff;">+ Add Activities</a><br><br>
+    <table>
+      <thead>
+        <tr>
+          <th>Department</th>
+          <th>Activity Name</th>
+          <th>Objective</th>
+          <th>Brief Description</th>
+          <th>Persons Involved</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php
+        $conn = new mysqli("localhost", "root", "", "eventplanner");
+        $sql = "SELECT * FROM activities ORDER BY created_at DESC";
+        $res = $conn->query($sql);
+        if ($res->num_rows > 0):
+          while ($row = $res->fetch_assoc()):
+        ?>
+        <tr>
+          <td><?= htmlspecialchars($row['department']) ?></td>
+          <td><?= htmlspecialchars($row['activity_name']) ?></td>
+          <td><?= htmlspecialchars($row['objective']) ?></td>
+          <td><?= htmlspecialchars($row['brief_description']) ?></td>
+          <td><?= htmlspecialchars($row['person_involved']) ?></td>
+        </tr>
+        <?php endwhile; else: ?>
+        <tr><td colspan="6">No activities found.</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </main>
+</div>
 
 
 <!-- Approval Modal -->
