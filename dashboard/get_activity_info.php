@@ -10,7 +10,8 @@ if ($conn->connect_error) {
 $activityName = $_GET['activity_name'] ?? '';
 $activityName = $conn->real_escape_string($activityName);
 
-$sql = "SELECT objective, brief_description, person_involved FROM activities WHERE activity_name = '$activityName' LIMIT 1";
+
+$sql = "SELECT objective, brief_description, person_involved, budgets FROM activities WHERE activity_name = '$activityName' LIMIT 1";
 $result = $conn->query($sql);
 
 if ($result && $result->num_rows > 0) {
@@ -18,8 +19,9 @@ if ($result && $result->num_rows > 0) {
     echo json_encode([
         'success' => true,
         'objective' => $row['objective'],
-        'description' => $row['brief_description'], // mapped to `#description`
-        'person_involved' => $row['person_involved']
+        'description' => $row['brief_description'], 
+        'person_involved' => $row['person_involved'],
+        'budgets' => $row['budgets'] ?? '' 
     ]);
 } else {
     echo json_encode(['success' => false, 'message' => 'Activity not found']);

@@ -340,7 +340,7 @@ if (!$result) {
             </div>
             <div class="col-md-6">
             <label class="form-label">Budget:</label>
-            <input type="number" class="form-control" name="budget" required>
+            <input type="number" class="form-control" name="budget" id="budget" required>
             </div>
         </div>
 
@@ -917,7 +917,7 @@ function switchTab(tabId) {
 }
 </script>
 <script>
-document.getElementById("activity_name").addEventListener("change", function() {
+document.getElementById("activity_name").addEventListener("change", function () {
     const activity = this.value;
 
     if (activity !== "") {
@@ -928,6 +928,7 @@ document.getElementById("activity_name").addEventListener("change", function() {
                     document.getElementById("objective").value = data.objective || "";
                     document.getElementById("description").value = data.description || "";
                     document.getElementById("person_involved").value = data.person_involved || "";
+                    document.getElementById("budget").value = data.budgets || "";
                 } else {
                     alert("Activity not found.");
                 }
@@ -940,8 +941,10 @@ document.getElementById("activity_name").addEventListener("change", function() {
         document.getElementById("objective").value = "";
         document.getElementById("description").value = "";
         document.getElementById("person_involved").value = "";
+        document.getElementById("budget").value = "";
     }
 });
+
 
 function openModal(action, proposalId) {
   const modalLabel = document.getElementById('confirmationModalLabel');
