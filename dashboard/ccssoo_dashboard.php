@@ -19,7 +19,8 @@ if ($result && $row = $result->fetch_assoc()) {
     }
 }
 
-      
+
+
   //SAVE PLAN OF ACTIVITIES
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
 
@@ -59,18 +60,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
         /* ─────────────────────────────────────────────────────────
            2)  GENERATE THE POA PDF  (TCPDF design) 
         ───────────────────────────────────────────────────────── */
+        require_once __DIR__ . '/../tcpdf/tcpdf.php';  // Classic TCPDF include
+
         $target_date = $start_date === $end_date ? $start_date : "$start_date to $end_date";
         $budget_disp = 'Php '.number_format((float)$budget,2);
 
         $pdf = new TCPDF('P','mm','A4',true,'UTF-8',false);
         $pdf->SetMargins(15,10,15);
         $pdf->AddPage();
-
+        $logoWidth = 25;
+        $pdf->Image($logoSrc, 15, 10, $logoWidth);
+        $pdf->SetXY(15 + $logoWidth + 5, 10);
         /* HEADER */
+        $pdf->SetFont('helvetica','',10);
+        $pdf->Cell(0,5,'',0,1,'C');
         $pdf->SetFont('helvetica','',10);
         $pdf->Cell(0,5,'Republic of the Philippines',0,1,'C');
         $pdf->SetFont('helvetica','B',12);
-        $pdf->Cell(0,5,'Laguna State Polytechnic University',0,1,'C');
+        $pdf->Cell(0,5,'EventSync',0,1,'C');
         $pdf->SetFont('helvetica','',10);
         $pdf->Cell(0,5,'Province of Laguna',0,1,'C');
         $pdf->Ln(5);
