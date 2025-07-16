@@ -7,8 +7,8 @@ $conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
-$logoSrc = "../img/lspulogo.jpg"; // fallback
+$logoSrcLSPU = "../img/lspulogo.jpg"; 
+$logoSrc = "../img/lspulogo.jpg"; 
 
 $sql = "SELECT filepath FROM site_logo ORDER BY date_uploaded DESC LIMIT 1";
 $result = $conn->query($sql);
@@ -57,116 +57,165 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
 
         $last_id = $stmt->insert_id;
 
-        /* ─────────────────────────────────────────────────────────
-           2)  GENERATE THE POA PDF  (TCPDF design) 
-        ───────────────────────────────────────────────────────── */
-        require_once __DIR__ . '/../tcpdf/tcpdf.php';  // Classic TCPDF include
+/* ─────────────────────────────────────────────────────────
+   2)  GENERATE THE POA PDF  (TCPDF design) 
+───────────────────────────────────────────────────────── */
+require_once __DIR__ . '/../tcpdf/tcpdf.php';
 
-        $target_date = $start_date === $end_date ? $start_date : "$start_date to $end_date";
-        $budget_disp = 'Php '.number_format((float)$budget,2);
+$target_date = $start_date === $end_date ? $start_date : "$start_date to $end_date";
+$budget_disp = 'Php ' . number_format((float)$budget, 2);
 
-        $pdf = new TCPDF('P','mm','A4',true,'UTF-8',false);
-        $pdf->SetMargins(15,10,15);
-        $pdf->AddPage();
-        $logoWidth = 25;
-        $pdf->Image($logoSrc, 15, 10, $logoWidth);
-        $pdf->SetXY(15 + $logoWidth + 5, 10);
-        /* HEADER */
-        $pdf->SetFont('helvetica','',10);
-        $pdf->Cell(0,5,'',0,1,'C');
-        $pdf->SetFont('helvetica','',10);
-        $pdf->Cell(0,5,'Republic of the Philippines',0,1,'C');
-        $pdf->SetFont('helvetica','B',12);
-        $pdf->Cell(0,5,'EventSync',0,1,'C');
-        $pdf->SetFont('helvetica','',10);
-        $pdf->Cell(0,5,'Province of Laguna',0,1,'C');
-        $pdf->Ln(5);
+$pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+$pdf->SetMargins(15, 10, 15);
+$pdf->SetAutoPageBreak(true, 25); // regular break behavior
+$pdf->AddPage();
 
-        $pdf->SetFont('helvetica','B',12);
-        $pdf->Cell(0,5,'PLAN OF ACTIVITIES',0,1,'C');
-        $pdf->SetFont('helvetica','BU',11);
-        $pdf->Cell(0,6,'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION',0,1,'C');
-        $pdf->Ln(2);
-        $pdf->SetFont('helvetica','',11);
-        $pdf->Cell(0,5,'Name of Organization',0,1,'C');
-        $pdf->SetFont('helvetica','B',11);
-        $pdf->Cell(0,5,'2ND SEMESTER A.Y. 2025-2026',0,1,'C');
-        $pdf->Ln(6);
+$logoWidth = 25;
+$pdf->Image($logoSrcLSPU, 15, 10, $logoWidth);
+$pdf->SetXY(15 + $logoWidth + 5, 10);
 
-        /* TABLE */
-        $tbl = '
-        <style>th{font-weight:bold;background:#f2f2f2;}</style>
-        <table border="1" cellpadding="4" cellspacing="0">
-          <tr>
-            <th width="16%">OBJECTIVE</th>
-            <th width="16%">ACTIVITIES</th>
-            <th width="22%">BRIEF DESCRIPTION</th>
-            <th width="20%">PERSONS INVOLVED</th>
-            <th width="13%">TARGET DATE</th>
-            <th width="13%">BUDGET</th>
-          </tr>
-          <tr>
-            <td height="55">'.htmlspecialchars($objective).'</td>
-            <td>'.htmlspecialchars($activity_name).'</td>
-            <td>'.htmlspecialchars($description).'</td>
-            <td>'.htmlspecialchars($person_involved).'</td>
-            <td>'.$target_date.'</td>
-            <td>'.$budget_disp.'</td>
-          </tr>
-        </table>';
-        $pdf->SetFont('helvetica','',9.5);
-        $pdf->writeHTML($tbl,true,false,false,false,'');
+/* HEADER */
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(0, 5, '', 0, 1, 'C');
+$pdf->Cell(0, 5, 'Republic of the Philippines', 0, 1, 'C');
+$pdf->SetFont('helvetica', 'B', 12);
+$pdf->Cell(0, 5, 'Laguna State Polytechnic University', 0, 1, 'C');
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(0, 5, 'Province of Laguna', 0, 1, 'C');
+$pdf->Ln(5);
 
-        /* SIGNATURES */
-        $pdf->Ln(10);
-        $pdf->SetFont('helvetica','',10);
-        function sigRow($pdf,$left='',$right=''){
-            $pdf->Cell(95,8,$left,0,0,'C'); $pdf->Cell(95,8,$right,0,1,'C');
-            $pdf->Cell(95,12,'_________________________',0,0,'C');
-            $pdf->Cell(95,12,'_________________________',0,1,'C');
-        }
-        sigRow($pdf,'Prepared by:');
-        $pdf->SetFont('helvetica','I',9);
-        $pdf->Cell(95,5,'President, CCS SBO',0,0,'C');
-        $pdf->Cell(95,5,'Secretary, CCS SBO',0,1,'C'); $pdf->Ln(4);
+$pdf->SetFont('helvetica', 'B', 12);
+$pdf->Cell(0, 5, 'PLAN OF ACTIVITIES', 0, 1, 'C');
+$pdf->SetFont('helvetica', 'BU', 11);
+$pdf->Cell(0, 6, 'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION', 0, 1, 'C');
+$pdf->Ln(2);
+$pdf->SetFont('helvetica', '', 11);
+$pdf->Cell(0, 5, 'Name of Organization', 0, 1, 'C');
+$pdf->SetFont('helvetica', 'B', 11);
+$pdf->Cell(0, 5, '2ND SEMESTER A.Y. 2025-2026', 0, 1, 'C');
+$pdf->Ln(6);
 
-        $pdf->SetFont('helvetica','',10); sigRow($pdf);
-        $pdf->SetFont('helvetica','I',9);
-        $pdf->Cell(95,5,'Junior Adviser, CCS SBO',0,0,'C');
-        $pdf->Cell(95,5,'Senior Adviser, CCS SBO',0,1,'C'); $pdf->Ln(4);
+/* TABLE */
+$tbl = '
+<style>th{font-weight:bold;background-color:#f2f2f2;}</style>
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr>
+    <th width="16%">OBJECTIVE</th>
+    <th width="16%">ACTIVITIES</th>
+    <th width="22%">BRIEF DESCRIPTION</th>
+    <th width="20%">PERSONS INVOLVED</th>
+    <th width="13%">TARGET DATE</th>
+    <th width="13%">BUDGET</th>
+  </tr>
+  <tr>
+    <td height="55">' . htmlspecialchars($objective) . '</td>
+    <td>' . htmlspecialchars($activity_name) . '</td>
+    <td>' . htmlspecialchars($description) . '</td>
+    <td>' . htmlspecialchars($person_involved) . '</td>
+    <td>' . $target_date . '</td>
+    <td>' . $budget_disp . '</td>
+  </tr>
+</table>';
 
-        $pdf->Cell(190,12,'_________________________',0,1,'C');
-        $pdf->Cell(190,5,'Dean, College of Computer Studies',0,1,'C'); $pdf->Ln(4);
+$pdf->SetFont('helvetica', '', 9.5);
+$pdf->writeHTML($tbl, true, false, false, false, '');
 
-        $pdf->Cell(190,12,'_________________________',0,1,'C');
-        $pdf->Cell(190,5,'Head, Student Organization and Activities Unit',0,1,'C'); $pdf->Ln(4);
+// DISABLE page breaks to force signatures + footer to stay on same page
+$pdf->SetAutoPageBreak(false, 20);
 
-        $pdf->Cell(190,12,'_________________________',0,1,'C');
-        $pdf->Cell(190,5,'Director/Chairperson, Office of Student Affairs and Services',0,1,'C');
+/* SIGNATURES */
+$pdf->Ln(10);
+$pdf->SetFont('helvetica', '', 10);
 
-        /* FOOTER */
-        $pdf->Ln(4);
-        $pdf->SetFont('helvetica','',8);
-        $pdf->MultiCell(0,5,'LSPU-OSAS-SF-004     Rev. 1     2025     July',0,'L');
+// Helper function: two-column signature
+function sigRow($pdf, $left = '', $right = '') {
+    $pdf->Cell(95, 8, $left, 0, 0, 'C');
+    $pdf->Cell(95, 8, $right, 0, 1, 'C');
+    $pdf->Cell(95, 6, '_________________________', 0, 0, 'C');
+    $pdf->Cell(95, 6, '_________________________', 0, 1, 'C');
+}
 
-        /* SAVE FILE + DB UPDATE */
-        $uploadDir = realpath(__DIR__.'/../proposal/uploads');
-        if(!is_dir($uploadDir)) mkdir($uploadDir,0775,true);
-        $poaFile = 'plan_of_activities_'.time().'.pdf';
-        $poaPath = $uploadDir.'/'.$poaFile;
-        $pdf->Output($poaPath,'F');
+// Helper function: centered signature
+function centerSigRow($pdf, $label = '', $name = '') {
+  $pdf->Ln(3); // gap above the label
+  $pdf->Cell(190, 8, $label, 0, 1, 'C');
+  $pdf->Ln(5); // gap below the label, above the line
+  $pdf->Cell(190, 6, '_________________________', 0, 1, 'C');
+  $pdf->Cell(190, 4, $name, 0, 1, 'C');
+}
 
-        if (file_exists($poaPath)) {
-            $conn->query("UPDATE sooproposal SET POA_file='$poaFile' WHERE id='$last_id'");
-        }
+// Prepared by
+$pdf->Cell(95, 8, 'Prepared by:', 0, 1, 'L');
+sigRow($pdf, '');
+$pdf->SetFont('helvetica', 'I', 9);
+$pdf->Cell(95, 4, 'President, CCS SBO', 0, 0, 'C');
+$pdf->Cell(95, 4, 'Secretary, CCS SBO', 0, 1, 'C');
+$pdf->Ln(4);
 
-        echo "<script>
-          alert('Activity saved! Proceeding to budget form…');
-          document.addEventListener('DOMContentLoaded',function(){
-              switchTab('eventBudgetContent');
-              document.getElementById('budgetProposalId').value='$last_id';
-          });
-        </script>";
+// Noted by
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(95, 8, 'Prepared by:', 0, 1, 'L');
+sigRow($pdf, '');
+$pdf->SetFont('helvetica', 'I', 9);
+$pdf->Cell(95, 4, 'Junior Adviser, CCS SBO', 0, 0, 'C');
+$pdf->Cell(95, 4, 'Senior Adviser, CCS SBO', 0, 1, 'C');
+$pdf->Ln(4);
+
+// Dean
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(190, 6, '_________________________', 0, 1, 'C');
+$pdf->Cell(190, 4, 'Dean, College of Computer Studies', 0, 1, 'C');
+$pdf->Ln(4);
+
+// Recommending Approval
+centerSigRow($pdf, 'Recommending Approval:', 'Head, Student Organization and Activities Unit');
+
+// Approved/Disapproved
+centerSigRow($pdf, 'Approved/Disapproved:', 'Director/Chairperson, Office of Student Affairs and Services');
+
+/* FOOTER — shown only on page 1 */
+$pdf->SetFont('helvetica', '', 8);
+$pageWidth = $pdf->getPageWidth();
+$margin = 10;
+
+$pdf->SetY(-15);
+$pdf->SetX($margin);
+$pdf->Cell(0, 5, 'LSPU-OSAS-SF-004', 0, 0, 'L');
+
+$pdf->SetX($pageWidth / 2 - 10);
+$pdf->Cell(20, 5, 'Rev. 1', 0, 0, 'C');
+
+$pdf->SetX(-$margin - 20);
+$pdf->Cell(20, 5, 'July', 0, 1, 'R');
+
+// Bottom center: year
+$pdf->SetY(-10);
+$pdf->SetX($pageWidth / 2 - 10);
+$pdf->Cell(20, 5, '2025', 0, 0, 'C');
+
+// Optional: re-enable auto page break if needed
+$pdf->SetAutoPageBreak(true, 25);
+
+/* SAVE PDF + DB UPDATE */
+$uploadDir = realpath(__DIR__ . '/../proposal/uploads');
+if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
+
+$poaFile = 'plan_of_activities_' . time() . '.pdf';
+$poaPath = $uploadDir . '/' . $poaFile;
+$pdf->Output($poaPath, 'F');
+
+if (file_exists($poaPath)) {
+    $conn->query("UPDATE sooproposal SET POA_file='$poaFile' WHERE id='$last_id'");
+}
+
+echo "<script>
+    alert('Activity saved! Proceeding to budget form…');
+    document.addEventListener('DOMContentLoaded', function() {
+        switchTab('eventBudgetContent');
+        document.getElementById('budgetProposalId').value = '$last_id';
+    });
+</script>";
+
 
     } else {
         echo "<script>alert('Error saving activity.');</script>";
@@ -293,28 +342,6 @@ if (!$result) {
   </div>
 
   <div id="createEventContent" class="content">
-  <ul class="nav nav-tabs justify-content-center mb-4 custom-tabs" id="eventTabs">
-  <li class="nav-item">
-    <a class="nav-link active" onclick="switchTab('createEventContent')">
-      <i class="fa fa-clipboard-list me-2"></i> Create Event Form
-    </a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" onclick="switchTab('eventSummaryContent')">
-      <i class="fa fa-check-circle me-2"></i> Summary Requirements
-    </a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" onclick="switchTab('eventPendingContent')">
-      <i class="fa fa-clipboard-list me-2"></i> Request Pending
-    </a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" onclick="switchTab('eventCompletedContent')">
-      <i class="fa fa-check-circle me-2"></i> Completed
-    </a>
-  </li>
-</ul>
     <h2 class="text-center fw-bold mb-4">PLAN OF ACTIVITIES</h2>
         <form class="container" style="max-width: 900px;" method="POST" action="">
         <div class="row mb-3">
