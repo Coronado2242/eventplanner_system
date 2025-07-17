@@ -323,7 +323,6 @@ body {
       <li>Event Monitoring</li>
       <li>Budget Analytics</li>
       <li id="venueTab">Venue</li>
-      <li id="activitiesTab">Activities</li>   
       <li id="logoTab">Logo Management</li>
     </ul>
   </aside>

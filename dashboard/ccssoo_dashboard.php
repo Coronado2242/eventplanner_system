@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 error_reporting(E_ALL);
@@ -8,7 +7,6 @@ $conn = new mysqli("localhost", "root", "", "eventplanner");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
 $logoSrcLSPU = "../img/lspulogo.jpg"; 
 $logoSrc = "../img/lspulogo.jpg"; 
 
@@ -21,217 +19,206 @@ if ($result && $row = $result->fetch_assoc()) {
     }
 }
 
-//SAVE PLAN OF ACTIVITIES
+
+
+  //SAVE PLAN OF ACTIVITIES
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
 
-    // Check if there is an existing scheduled proposal
-    $username = $_SESSION['username'] ?? 'unknown';
-    $checkQuery = "SELECT status FROM sooproposal WHERE username = ? AND (status = 'Scheduled')";
-    $checkStmt = $conn->prepare($checkQuery);
-    $checkStmt->bind_param("s", $username);
-    $checkStmt->execute();
-    $checkResult = $checkStmt->get_result();
+    // a.  Collect form data
+    $activity_name   = $_POST['activity_name'];
+    $date_range      = $_POST['date_range'];          // "06/21/2025 to 06/23/2025"
+    [$d1,$d2]        = array_pad(explode(' to ',$date_range),2,$date_range);
+    $start_date      = date('Y-m-d', strtotime($d1));
+    $end_date        = $d2 ? date('Y-m-d', strtotime($d2)) : $start_date;
+    $objective       = $_POST['objective'];
+    $budget          = $_POST['budget'];
+    $description     = $_POST['description'];
+    $venue           = $_POST['venue'];
+    $person_involved = $_POST['person_involved'];
 
-    if ($checkResult->num_rows > 0) {
-        // Existing scheduled proposal found
-        echo "<script>
-            alert('You cannot add a new proposal while there is a scheduled proposal. Please disapprove any scheduled ones first.');
-        </script>";
+    $department      = $_SESSION['department'] ?? 'CCS';
+    $username        = $_SESSION['username']   ?? 'unknown';
+
+    // b.  Insert to DB
+    $stmt = $conn->prepare(
+        "INSERT INTO sooproposal
+        (department, activity_name, start_date, end_date, objective, budget,
+         description, venue, person_involved, username)
+         VALUES (?,?,?,?,?,?,?,?,?,?)"
+    );
+    $stmt->bind_param(
+        "sssssdssss",
+        $department, $activity_name, $start_date, $end_date,
+        $objective,  $budget,        $description, $venue,
+        $person_involved, $username
+    );
+
+    if ($stmt->execute()) {
+
+        $last_id = $stmt->insert_id;
+
+/* ─────────────────────────────────────────────────────────
+   2)  GENERATE THE POA PDF  (TCPDF design) 
+───────────────────────────────────────────────────────── */
+require_once __DIR__ . '/../tcpdf/tcpdf.php';
+
+$target_date = $start_date === $end_date ? $start_date : "$start_date to $end_date";
+$budget_disp = 'Php ' . number_format((float)$budget, 2);
+
+$pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+$pdf->SetMargins(15, 10, 15);
+$pdf->SetAutoPageBreak(true, 25); // regular break behavior
+$pdf->AddPage();
+
+$logoWidth = 25;
+$pdf->Image($logoSrcLSPU, 15, 10, $logoWidth);
+$pdf->SetXY(15 + $logoWidth + 5, 10);
+
+/* HEADER */
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(0, 5, '', 0, 1, 'C');
+$pdf->Cell(0, 5, 'Republic of the Philippines', 0, 1, 'C');
+$pdf->SetFont('helvetica', 'B', 12);
+$pdf->Cell(0, 5, 'Laguna State Polytechnic University', 0, 1, 'C');
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(0, 5, 'Province of Laguna', 0, 1, 'C');
+$pdf->Ln(5);
+
+$pdf->SetFont('helvetica', 'B', 12);
+$pdf->Cell(0, 5, 'PLAN OF ACTIVITIES', 0, 1, 'C');
+$pdf->SetFont('helvetica', 'BU', 11);
+$pdf->Cell(0, 6, 'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION', 0, 1, 'C');
+$pdf->Ln(2);
+$pdf->SetFont('helvetica', '', 11);
+$pdf->Cell(0, 5, 'Name of Organization', 0, 1, 'C');
+$pdf->SetFont('helvetica', 'B', 11);
+$pdf->Cell(0, 5, '2ND SEMESTER A.Y. 2025-2026', 0, 1, 'C');
+$pdf->Ln(6);
+
+/* TABLE */
+$tbl = '
+<style>th{font-weight:bold;background-color:#f2f2f2;}</style>
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr>
+    <th width="16%">OBJECTIVE</th>
+    <th width="16%">ACTIVITIES</th>
+    <th width="22%">BRIEF DESCRIPTION</th>
+    <th width="20%">PERSONS INVOLVED</th>
+    <th width="13%">TARGET DATE</th>
+    <th width="13%">BUDGET</th>
+  </tr>
+  <tr>
+    <td height="55">' . htmlspecialchars($objective) . '</td>
+    <td>' . htmlspecialchars($activity_name) . '</td>
+    <td>' . htmlspecialchars($description) . '</td>
+    <td>' . htmlspecialchars($person_involved) . '</td>
+    <td>' . $target_date . '</td>
+    <td>' . $budget_disp . '</td>
+  </tr>
+</table>';
+
+$pdf->SetFont('helvetica', '', 9.5);
+$pdf->writeHTML($tbl, true, false, false, false, '');
+
+// DISABLE page breaks to force signatures + footer to stay on same page
+$pdf->SetAutoPageBreak(false, 20);
+
+/* SIGNATURES */
+$pdf->Ln(10);
+$pdf->SetFont('helvetica', '', 10);
+
+// Helper function: two-column signature
+function sigRow($pdf, $left = '', $right = '') {
+    $pdf->Cell(95, 8, $left, 0, 0, 'C');
+    $pdf->Cell(95, 8, $right, 0, 1, 'C');
+    $pdf->Cell(95, 6, '_________________________', 0, 0, 'C');
+    $pdf->Cell(95, 6, '_________________________', 0, 1, 'C');
+}
+
+// Helper function: centered signature
+function centerSigRow($pdf, $label = '', $name = '') {
+  $pdf->Ln(3); // gap above the label
+  $pdf->Cell(190, 8, $label, 0, 1, 'C');
+  $pdf->Ln(5); // gap below the label, above the line
+  $pdf->Cell(190, 6, '_________________________', 0, 1, 'C');
+  $pdf->Cell(190, 4, $name, 0, 1, 'C');
+}
+
+// Prepared by
+$pdf->Cell(95, 8, 'Prepared by:', 0, 1, 'L');
+sigRow($pdf, '');
+$pdf->SetFont('helvetica', 'I', 9);
+$pdf->Cell(95, 4, 'President, CCS SBO', 0, 0, 'C');
+$pdf->Cell(95, 4, 'Secretary, CCS SBO', 0, 1, 'C');
+$pdf->Ln(4);
+
+// Noted by
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(95, 8, 'Prepared by:', 0, 1, 'L');
+sigRow($pdf, '');
+$pdf->SetFont('helvetica', 'I', 9);
+$pdf->Cell(95, 4, 'Junior Adviser, CCS SBO', 0, 0, 'C');
+$pdf->Cell(95, 4, 'Senior Adviser, CCS SBO', 0, 1, 'C');
+$pdf->Ln(4);
+
+// Dean
+$pdf->SetFont('helvetica', '', 10);
+$pdf->Cell(190, 6, '_________________________', 0, 1, 'C');
+$pdf->Cell(190, 4, 'Dean, College of Computer Studies', 0, 1, 'C');
+$pdf->Ln(4);
+
+// Recommending Approval
+centerSigRow($pdf, 'Recommending Approval:', 'Head, Student Organization and Activities Unit');
+
+// Approved/Disapproved
+centerSigRow($pdf, 'Approved/Disapproved:', 'Director/Chairperson, Office of Student Affairs and Services');
+
+/* FOOTER — shown only on page 1 */
+$pdf->SetFont('helvetica', '', 8);
+$pageWidth = $pdf->getPageWidth();
+$margin = 10;
+
+$pdf->SetY(-15);
+$pdf->SetX($margin);
+$pdf->Cell(0, 5, 'LSPU-OSAS-SF-004', 0, 0, 'L');
+
+$pdf->SetX($pageWidth / 2 - 10);
+$pdf->Cell(20, 5, 'Rev. 1', 0, 0, 'C');
+
+$pdf->SetX(-$margin - 20);
+$pdf->Cell(20, 5, 'July', 0, 1, 'R');
+
+// Bottom center: year
+$pdf->SetY(-10);
+$pdf->SetX($pageWidth / 2 - 10);
+$pdf->Cell(20, 5, '2025', 0, 0, 'C');
+
+// Optional: re-enable auto page break if needed
+$pdf->SetAutoPageBreak(true, 25);
+
+/* SAVE PDF + DB UPDATE */
+$uploadDir = realpath(__DIR__ . '/../proposal/uploads');
+if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
+
+$poaFile = 'plan_of_activities_' . time() . '.pdf';
+$poaPath = $uploadDir . '/' . $poaFile;
+$pdf->Output($poaPath, 'F');
+
+if (file_exists($poaPath)) {
+    $conn->query("UPDATE sooproposal SET POA_file='$poaFile' WHERE id='$last_id'");
+}
+
+echo "<script>
+    alert('Activity saved! Proceeding to budget form…');
+    document.addEventListener('DOMContentLoaded', function() {
+        switchTab('eventBudgetContent');
+        document.getElementById('budgetProposalId').value = '$last_id';
+    });
+</script>";
+
+
     } else {
-        // a.  Collect form data
-        $activity_name   = $_POST['activity_name'];
-        $date_range      = $_POST['date_range']; // "06/21/2025 to 06/23/2025"
-        [$d1, $d2] = array_pad(explode(' to ', $date_range), 2, $date_range);
-        $start_date    = date('Y-m-d', strtotime($d1));
-        $end_date      = $d2 ? date('Y-m-d', strtotime($d2)) : $start_date;
-        $objective     = $_POST['objective'];
-        $budget        = $_POST['budget'];
-        $description   = $_POST['description'];
-        $venue         = $_POST['venue'];
-        $person_involved = $_POST['person_involved'];
-
-        $department  = $_SESSION['department'] ?? 'CCS';
-        $username    = $_SESSION['username'] ?? 'unknown';
-    
-        // b.  Insert to DB
-        $stmt = $conn->prepare(
-            "INSERT INTO sooproposal
-            (department, activity_name, start_date, end_date, objective, budget,
-             description, venue, person_involved, username)
-             VALUES (?,?,?,?,?,?,?,?,?,?)"
-        );
-        $stmt->bind_param(
-            "sssssdssss",
-            $department, $activity_name, $start_date, $end_date,
-            $objective, $budget, $description, $venue,
-            $person_involved, $username
-        );
-
-        if ($stmt->execute()) {
-            $last_id = $stmt->insert_id;
-
-            /* ─────────────────────────────────────────────────────────
-            2)  GENERATE THE POA PDF  (TCPDF design) 
-            ────────────────────────────────────────────────────────── */
-            require_once __DIR__ . '/../tcpdf/tcpdf.php';
-
-            $target_date = $start_date === $end_date ? $start_date : "$start_date to $end_date";
-            $budget_disp = 'Php ' . number_format((float)$budget, 2);
-
-            $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-            $pdf->SetMargins(15, 10, 15);
-            $pdf->SetAutoPageBreak(true, 25); // regular break behavior
-            $pdf->AddPage();
-
-            $logoWidth = 25;
-            $pdf->Image($logoSrcLSPU, 15, 10, $logoWidth);
-            $pdf->SetXY(15 + $logoWidth + 5, 10);
-
-            /* HEADER */
-            $pdf->SetFont('helvetica', '', 10);
-            $pdf->Cell(0, 5, '', 0, 1, 'C');
-            $pdf->Cell(0, 5, 'Republic of the Philippines', 0, 1, 'C');
-            $pdf->SetFont('helvetica', 'B', 12);
-            $pdf->Cell(0, 5, 'Laguna State Polytechnic University', 0, 1, 'C');
-            $pdf->SetFont('helvetica', '', 10);
-            $pdf->Cell(0, 5, 'Province of Laguna', 0, 1, 'C');
-            $pdf->Ln(5);
-
-            $pdf->SetFont('helvetica', 'B', 12);
-            $pdf->Cell(0, 5, 'PLAN OF ACTIVITIES', 0, 1, 'C');
-            $pdf->SetFont('helvetica', 'BU', 11);
-            $pdf->Cell(0, 6, 'COLLEGE OF COMPUTER STUDIES – STUDENT BODY ORGANIZATION', 0, 1, 'C');
-            $pdf->Ln(2);
-            $pdf->SetFont('helvetica', '', 11);
-            $pdf->Cell(0, 5, 'Name of Organization', 0, 1, 'C');
-            $pdf->SetFont('helvetica', 'B', 11);
-            $pdf->Cell(0, 5, '2ND SEMESTER A.Y. 2025-2026', 0, 1, 'C');
-            $pdf->Ln(6);
-
-            /* TABLE */
-            $tbl = '
-            <style>th{font-weight:bold;background-color:#f2f2f2;}</style>
-            <table border="1" cellpadding="4" cellspacing="0">
-              <tr>
-                <th width="16%">OBJECTIVE</th>
-                <th width="16%">ACTIVITIES</th>
-                <th width="22%">BRIEF DESCRIPTION</th>
-                <th width="20%">PERSONS INVOLVED</th>
-                <th width="13%">TARGET DATE</th>
-                <th width="13%">BUDGET</th>
-              </tr>
-              <tr>
-                <td height="55">' . htmlspecialchars($objective) . '</td>
-                <td>' . htmlspecialchars($activity_name) . '</td>
-                <td>' . htmlspecialchars($description) . '</td>
-                <td>' . htmlspecialchars($person_involved) . '</td>
-                <td>' . $target_date . '</td>
-                <td>' . $budget_disp . '</td>
-              </tr>
-            </table>';
-
-            $pdf->SetFont('helvetica', '', 9.5);
-            $pdf->writeHTML($tbl, true, false, false, false, '');
-
-            // DISABLE page breaks to force signatures + footer to stay on same page
-            $pdf->SetAutoPageBreak(false, 20);
-
-            /* SIGNATURES */
-            $pdf->Ln(10);
-            $pdf->SetFont('helvetica', '', 10);
-
-            // Helper function: two-column signature
-            function sigRow($pdf, $left = '', $right = '') {
-                $pdf->Cell(95, 8, $left, 0, 0, 'C');
-                $pdf->Cell(95, 8, $right, 0, 1, 'C');
-                $pdf->Cell(95, 6, '_________________________', 0, 0, 'C');
-                $pdf->Cell(95, 6, '_________________________', 0, 1, 'C');
-            }
-
-            // Helper function: centered signature
-            function centerSigRow($pdf, $label = '', $name = '') {
-                $pdf->Ln(3); // gap above the label
-                $pdf->Cell(190, 8, $label, 0, 1, 'C');
-                $pdf->Ln(5); // gap below the label, above the line
-                $pdf->Cell(190, 6, '_________________________', 0, 1, 'C');
-                $pdf->Cell(190, 4, $name, 0, 1, 'C');
-            }
-
-            // Prepared by
-            $pdf->Cell(95, 8, 'Prepared by:', 0, 1, 'L');
-            sigRow($pdf, '');
-            $pdf->SetFont('helvetica', 'I', 9);
-            $pdf->Cell(95, 4, 'President, CCS SBO', 0, 0, 'C');
-            $pdf->Cell(95, 4, 'Secretary, CCS SBO', 0, 1, 'C');
-            $pdf->Ln(4);
-
-            // Noted by
-            $pdf->SetFont('helvetica', '', 10);
-            $pdf->Cell(95, 8, 'Prepared by:', 0, 1, 'L');
-            sigRow($pdf, '');
-            $pdf->SetFont('helvetica', 'I', 9);
-            $pdf->Cell(95, 4, 'Junior Adviser, CCS SBO', 0, 0, 'C');
-            $pdf->Cell(95, 4, 'Senior Adviser, CCS SBO', 0, 1, 'C');
-            $pdf->Ln(4);
-
-            // Dean
-            $pdf->SetFont('helvetica', '', 10);
-            $pdf->Cell(190, 6, '_________________________', 0, 1, 'C');
-            $pdf->Cell(190, 4, 'Dean, College of Computer Studies', 0, 1, 'C');
-            $pdf->Ln(4);
-
-            // Recommending Approval
-            centerSigRow($pdf, 'Recommending Approval:', 'Head, Student Organization and Activities Unit');
-
-            // Approved/Disapproved
-            centerSigRow($pdf, 'Approved/Disapproved:', 'Director/Chairperson, Office of Student Affairs and Services');
-
-            /* FOOTER — shown only on page 1 */
-            $pdf->SetFont('helvetica', '', 8);
-            $pageWidth = $pdf->getPageWidth();
-            $margin = 10;
-
-            $pdf->SetY(-15);
-            $pdf->SetX($margin);
-            $pdf->Cell(0, 5, 'LSPU-OSAS-SF-004', 0, 0, 'L');
-
-            $pdf->SetX($pageWidth / 2 - 10);
-            $pdf->Cell(20, 5, 'Rev. 1', 0, 0, 'C');
-
-            $pdf->SetX(-$margin - 20);
-            $pdf->Cell(20, 5, 'July', 0, 1, 'R');
-
-            // Bottom center: year
-            $pdf->SetY(-10);
-            $pdf->SetX($pageWidth / 2 - 10);
-            $pdf->Cell(20, 5, '2025', 0, 0, 'C');
-
-            // Optional: re-enable auto page break if needed
-            $pdf->SetAutoPageBreak(true, 25);
-
-            /* SAVE PDF + DB UPDATE */
-            $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
-
-            $poaFile = 'plan_of_activities_' . time() . '.pdf';
-            $poaPath = $uploadDir . '/' . $poaFile;
-            $pdf->Output($poaPath, 'F');
-
-            if (file_exists($poaPath)) {
-                $conn->query("UPDATE sooproposal SET POA_file='$poaFile' WHERE id='$last_id'");
-            }
-
-            echo "<script>
-                alert('Activity saved! Proceeding to budget form…');
-                document.addEventListener('DOMContentLoaded', function() {
-                    switchTab('eventBudgetContent');
-                    document.getElementById('budgetProposalId').value = '$last_id';
-                });
-            </script>";
-
-        } else {
-            echo "<script>alert('Error saving activity.');</script>";
-        }
+        echo "<script>alert('Error saving activity.');</script>";
     }
 }
 
@@ -566,6 +553,8 @@ while ($row = $result->fetch_assoc()):
   </div>
 </div>
 
+
+
 <div id="eventPendingContent" class="content">
   <h2 class="mb-3 fw-bold">Pending Proposal</h2>
   <div class="table-responsive">
@@ -580,6 +569,7 @@ while ($row = $result->fetch_assoc()):
       </thead>
       <tbody>
       <?php
+
       $username = $_SESSION['username'] ?? '';
       $query = "SELECT * FROM sooproposal WHERE username = ? AND status = 'Pending'";
       $stmt = $conn->prepare($query);
@@ -633,6 +623,7 @@ while ($row = $result->fetch_assoc()):
       </thead>
       <tbody>
       <?php
+
       $username = $_SESSION['username'] ?? '';
       $query = "SELECT * FROM sooproposal WHERE username = ? AND level = 'Completed'";
       $stmt = $conn->prepare($query);
@@ -672,7 +663,7 @@ while ($row = $result->fetch_assoc()):
   </div>
 </div>
 
-<div id="eventFinancialReportContent" class="content">
+<div id="financialReportContent" class="content">
   <h2>Financial Report</h2>
   <div class="table-responsive">
     <table class="table table-bordered table-hover table-striped text-center align-middle shadow-sm rounded">
@@ -693,6 +684,8 @@ while ($row = $result->fetch_assoc()):
       $stmt->bind_param("s", $username);
       $stmt->execute();
       $result = $stmt->get_result();
+
+      $today = date("Y-m-d");
 
       while ($row = $result->fetch_assoc()):
           $poa = $row['POA_file'];
@@ -744,6 +737,7 @@ while ($row = $result->fetch_assoc()):
     </table>
   </div>
 </div>
+
 
 <div id="eventFinancialPendingContent" class="content">
   <h2 class="mb-3 fw-bold">Pending Report</h2>
@@ -839,6 +833,7 @@ $result = $conn->query($sql);
               <td><?= htmlspecialchars($row['start_date']) ?></td>
               <td><?= htmlspecialchars($row['end_date']) ?></td>
               <td><span class="badge bg-success">Completed</span></td>
+
             </tr>
           <?php endwhile; ?>
         </tbody>
@@ -849,23 +844,6 @@ $result = $conn->query($sql);
   <?php endif; ?>
 </div>
 
-<!-- Modal for already scheduled proposal -->
-<div class="modal fade" id="alreadyScheduledModal" tabindex="-1" aria-labelledby="alreadyScheduledModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="alreadyScheduledModalLabel">Scheduled Proposal</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        You cannot add a new proposal while there is a scheduled proposal. Please disapprove any scheduled ones first.
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 function addRow() {
@@ -901,16 +879,13 @@ function calculateTotal() {
   document.getElementById("grandTotal").value = grand.toFixed(2);
 }
 
-flatpickr("input[name='date_range']", {
+  flatpickr("input[name='date_range']", {
     mode: "range",
     dateFormat: "m/d/Y",
     showMonths: 1,
     disableMobile: true,
     theme: "material_orange" // If using the orange theme
-});
-
-// Handle modal trigger for scheduled proposals
-const alreadyScheduledModal = new bootstrap.Modal(document.getElementById('alreadyScheduledModal'));
+  });
 </script>
 
 <script>
@@ -927,6 +902,21 @@ function toggleSubMenu(id) {
 function switchTab(tabId) {
   document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
+}
+
+function goToBudgetPlan() {
+  const requiredFields = ['activity_name', 'target_date', 'objective', 'budget', 'person_involved'];
+  for (const id of requiredFields) {
+    const input = document.getElementById(id);
+    if (!input.value.trim()) {
+      alert("Please fill out all required fields.");
+      return;
+    }
+  }
+
+  if (confirm("Are you sure you want to proceed to the Budget Plan?")) {
+    switchTab('eventBudgetContent');
+  }
 }
 
 function confirmSubmit() {
@@ -955,8 +945,11 @@ document.addEventListener("DOMContentLoaded", function () {
   qtyInputs.forEach(input => input.addEventListener("input", calculateTotal));
   amountInputs.forEach(input => input.addEventListener("input", calculateTotal));
 });
+function switchTab(tabId) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+}
 </script>
-
 <script>
 document.getElementById("activity_name").addEventListener("change", function () {
     const activity = this.value;
@@ -985,7 +978,144 @@ document.getElementById("activity_name").addEventListener("change", function () 
         document.getElementById("budget").value = "";
     }
 });
+
+
+function openModal(action, proposalId) {
+  const modalLabel = document.getElementById('confirmationModalLabel');
+  const modalMessage = document.getElementById('modalMessage');
+  const modalSubmitButton = document.getElementById('modalSubmitButton');
+  const modalProposalId = document.getElementById('modalProposalId');
+
+  // Update modal content
+  if (action === 'submit') {
+    modalLabel.textContent = 'Confirm Submission';
+    modalMessage.textContent = 'Are you sure you want to submit this proposal?';
+    modalSubmitButton.textContent = 'Submit';
+    modalSubmitButton.className = 'btn btn-success';
+    modalSubmitButton.name = 'submit_proposal';
+  } else if (action === 'cancel') {
+    modalLabel.textContent = 'Confirm Cancellation';
+    modalMessage.textContent = 'Are you sure you want to cancel this proposal?';
+    modalSubmitButton.textContent = 'Cancel';
+    modalSubmitButton.className = 'btn btn-danger';
+    modalSubmitButton.name = 'cancel_proposal';
+  }
+
+  modalProposalId.value = proposalId;
+
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+  modal.show();
+}
+
+
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Select all file inputs
+  const inputs = document.querySelectorAll('.receipt-input');
+
+  inputs.forEach(input => {
+    input.addEventListener('change', function() {
+      const proposalId = this.dataset.proposalId;
+      const file = this.files[0];
+      if (!file) return;
+
+      const statusDiv = document.getElementById('upload-status-' + proposalId);
+      statusDiv.textContent = 'Uploading...';
+
+      const formData = new FormData();
+      formData.append('proposal_id', proposalId);
+      formData.append('receipt_file', file);
+
+      fetch('upload_receipt.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(result => {
+        statusDiv.textContent = 'Uploaded successfully!';
+      })
+      .catch(error => {
+        console.error(error);
+        statusDiv.textContent = 'Upload failed.';
+      });
+    });
+  });
+});
+</script>
+
+<?php
+require_once('fpdf/fpdf.php');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_budget'])) {
+    $proposal_id = intval($_POST['proposal_id']);
+    $event_names = $_POST['event_name'];
+    $particulars = $_POST['particulars'];
+    $qtys = $_POST['qty'];
+    $amounts = $_POST['amount'];
+    $totals = $_POST['total'];
+
+    $grandTotal = array_sum(array_map('floatval', $totals));
+
+    // === Generate Budget Plan PDF ===
+    $pdf = new FPDF();
+    $pdf->AddPage();
+    $pdf->SetFont('Arial','B',14);
+    $pdf->Cell(0,10,'Budget Plan',0,1,'C');
+    $pdf->SetFont('Arial','B',12);
+    $pdf->Cell(40,10,'Event Name',1);
+    $pdf->Cell(50,10,'Particulars',1);
+    $pdf->Cell(20,10,'Qty',1,0,'C');
+    $pdf->Cell(30,10,'Amount',1,0,'R');
+    $pdf->Cell(30,10,'Total',1,1,'R');
+    $pdf->SetFont('Arial','',12);
+
+    foreach ($event_names as $i => $event_name) {
+        if (empty(trim($event_name)) && empty(trim($particulars[$i]))) continue;
+
+        $pdf->Cell(40,10,$event_name,1);
+        $pdf->Cell(50,10,$particulars[$i],1);
+        $pdf->Cell(20,10,$qtys[$i],1,0,'C');
+        $pdf->Cell(30,10,number_format(floatval($amounts[$i]),2),1,0,'R');
+        $pdf->Cell(30,10,number_format(floatval($totals[$i]),2),1,1,'R');
+    }
+
+    $pdf->SetFont('Arial','B',12);
+    $pdf->Cell(140,10,'Grand Total',1,0,'R');
+    $pdf->Cell(30,10,number_format($grandTotal,2),1,1,'R');
+
+    $uploadDir = realpath(__DIR__ . '/../proposal/uploads');
+    $budgetFile = 'budget_plan_' . time() . '.pdf';
+    $budgetPath = $uploadDir . '/' . $budgetFile;
+    $pdf->Output('F', $budgetPath);
+
+    // === Save Budget File & Entries ===
+    if (file_exists($budgetPath)) {
+        $conn->query("UPDATE sooproposal SET budget_file = '$budgetFile' WHERE id = '$proposal_id'");
+
+        foreach ($event_names as $i => $event_name) {
+            if (empty(trim($event_name)) && empty(trim($particulars[$i]))) continue;
+
+            $event = $conn->real_escape_string($event_name);
+            $particular = $conn->real_escape_string($particulars[$i]);
+            $qty = intval($qtys[$i]);
+            $amount = floatval($amounts[$i]);
+            $total = floatval($totals[$i]);
+
+            $conn->query("INSERT INTO budget_plans 
+              (proposal_id, event_name, particulars, qty, amount, total, grand_total, attachment)
+              VALUES ('$proposal_id', '$event', '$particular', '$qty', '$amount', '$total', '$grandTotal', '$budgetFile')");
+        }
+
+        echo "<p><a href='../proposal/uploads/$budgetFile' target='_blank'>View Generated Budget PDF</a></p>";
+    } else {
+        echo "<p style='color:red;'>Failed to generate PDF.</p>";
+    }
+}
+
+?>
 
 </body>
 </html>
