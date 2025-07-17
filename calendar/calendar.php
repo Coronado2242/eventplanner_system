@@ -5,7 +5,7 @@ session_start();
 $host = 'localhost';
 $db   = 'eventplanner';
 $user = 'root';
-$pass = ''; // Replace with your DB password
+$pass = '';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -23,7 +23,7 @@ try {
   exit;
 }
 
-// Handle AJAX calls
+// Fetch events for FullCalendar
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'fetch') {
   $stmt = $pdo->query("SELECT id, status, start_date, end_date FROM proposals");
   $events = [];
@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
   exit;
 }
 
+// Add new event
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $title = $_POST['title'] ?? '';
   $start = $_POST['start'] ?? '';
@@ -52,11 +53,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($title && $start && $end) {
     $stmt = $pdo->prepare("INSERT INTO proposals (status, start_date, end_date) VALUES (?, ?, ?)");
     $stmt->execute([$status, $start, $end]);
-    echo json_encode(['status' => 'success']);
+    echo '<script>alert("Event submitted as pending."); window.location.href = "calendar.php";</script>';
   } else {
-    echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+    echo '<script>alert("All fields are required."); window.location.href = "calendar.php";</script>';
   }
   exit;
+}
+
+// Get disabled dates for pending and approved events
+$disabledDates = [];
+$stmt = $pdo->prepare("SELECT start_date, end_date FROM proposals WHERE status IN ('pending', 'approved')");
+$stmt->execute();
+while ($row = $stmt->fetch()) {
+  $start = new DateTime($row['start_date']);
+  $end = new DateTime($row['end_date']);
+  $interval = new DateInterval('P1D');
+  $range = new DatePeriod($start, $interval, $end->modify('+1 day'));
+
+  foreach ($range as $date) {
+    $disabledDates[] = $date->format('Y-m-d');
+  }
 }
 ?>
 
@@ -98,15 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .fc-event-not-available { background-color: red !important; }
 
     .modal {
-      display: none; 
-      position: fixed; 
-      z-index: 1; 
-      left: 0;
-      top: 0;
-      width: 100%; 
-      height: 100%; 
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
       overflow: auto;
-      background-color: rgba(0, 0, 0, 0.4); 
+      background-color: rgba(0, 0, 0, 0.4);
       padding-top: 60px;
     }
     .modal-content {
@@ -158,69 +172,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <span style="color:orange;">● Pending</span>
 </div>
 
+<!-- Modal -->
+<div id="eventModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">Add Event</div>
+    <div class="modal-body">
+      <form method="POST">
+        <input type="text" name="title" id="eventTitle" placeholder="Event Title" required>
+        <input type="date" name="start" id="eventStart" required>
+        <input type="date" name="end" id="eventEnd" required>
+        <div class="modal-footer">
+          <button type="button" class="close" id="closeModal">Cancel</button>
+          <button type="submit" class="save-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script>
+  const disabledDates = <?= json_encode($disabledDates) ?>;
+
   document.addEventListener('DOMContentLoaded', function() {
-    var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
       selectable: true,
       editable: false,
       height: 550,
       events: 'calendar.php?action=fetch',
+
+      selectAllow: function(selectInfo) {
+        const start = new Date(selectInfo.startStr);
+        const end = new Date(selectInfo.endStr);
+        end.setDate(end.getDate() - 1);
+
+        let temp = new Date(start);
+        while (temp <= end) {
+          const formatted = temp.toISOString().split('T')[0];
+          if (disabledDates.includes(formatted)) {
+            alert("This date is already used by an approved or pending event. Please choose another.");
+            return false;
+          }
+          temp.setDate(temp.getDate() + 1);
+        }
+        return true;
+      },
+
       select: function(info) {
         document.getElementById('eventStart').value = info.startStr;
         document.getElementById('eventEnd').value = info.endStr;
         document.getElementById('eventModal').style.display = 'block';
       }
     });
+
     calendar.render();
 
-    var modal = document.getElementById("eventModal");
-    var closeModal = document.getElementById("closeModal");
-    var closeModalBtn = document.getElementById("closeModalBtn");
-    var saveEventBtn = document.getElementById("saveEventBtn");
-
-    closeModal.onclick = closeModalBtn.onclick = function() {
-      modal.style.display = "none";
-    };
-
-    saveEventBtn.onclick = function() {
-      var title = document.getElementById('eventTitle').value;
-      var start = document.getElementById('eventStart').value;
-      var end = document.getElementById('eventEnd').value;
-
-      if (title && start && end) {
-        var formData = new FormData();
-        formData.append("title", title);
-        formData.append("start", start);
-        formData.append("end", end);
-
-        fetch('calendar.php', {
-          method: 'POST',
-          body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            alert("Event submitted as pending.");
-            calendar.refetchEvents();
-            modal.style.display = "none";
-          } else {
-            alert("Error: " + data.message);
-          }
-        })
-        .catch(error => {
-          console.error("Fetch error:", error);
-          alert("An error occurred.");
-        });
-      } else {
-        alert("Please fill out all fields.");
-      }
+    document.getElementById("closeModal").onclick = function() {
+      document.getElementById("eventModal").style.display = "none";
     };
 
     window.onclick = function(event) {
-      if (event.target === modal) {
-        modal.style.display = "none";
+      if (event.target === document.getElementById("eventModal")) {
+        document.getElementById("eventModal").style.display = "none";
       }
     };
   });
