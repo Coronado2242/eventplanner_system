@@ -190,6 +190,19 @@ while ($row = $stmt->fetch()) {
   </div>
 </div>
 
+<!-- Modal for blocked date -->
+<div id="dateBlockedModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">Date Not Available</div>
+    <div class="modal-body">
+      <p>Sorry, the selected date is already booked (Pending or Approved).</p>
+    </div>
+    <div class="modal-footer">
+      <button class="close" onclick="document.getElementById('dateBlockedModal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const disabledDates = <?= json_encode($disabledDates) ?>;
 
@@ -212,7 +225,7 @@ while ($row = $stmt->fetch()) {
         while (temp <= end) {
           const formatted = temp.toISOString().split('T')[0];
           if (disabledDates.includes(formatted)) {
-            alert("This date is already used by an approved or pending event. Please choose another.");
+            document.getElementById('dateBlockedModal').style.display = 'block';
             return false;
           }
           temp.setDate(temp.getDate() + 1);
@@ -236,6 +249,9 @@ while ($row = $stmt->fetch()) {
     window.onclick = function(event) {
       if (event.target === document.getElementById("eventModal")) {
         document.getElementById("eventModal").style.display = "none";
+      }
+      if (event.target === document.getElementById("dateBlockedModal")) {
+        document.getElementById("dateBlockedModal").style.display = "none";
       }
     };
   });
