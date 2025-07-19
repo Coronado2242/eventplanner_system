@@ -2,6 +2,7 @@
 session_start();
 $conn = new mysqli("localhost", "root", "", "eventplanner");
 
+
 if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
   $sql = "SELECT id, department, activity_name, start_date, end_date, status FROM sooproposal";
   $result = $conn->query($sql);
@@ -20,6 +21,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch') {
       'department' => $row['department']
     ];
   }
+  
 
   echo json_encode($events);
   exit;
@@ -106,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
       inner.style.wordBreak = 'break-word';
       inner.style.fontSize = '12px';
       inner.style.lineHeight = '1.2';
-      inner.style.maxHeight = '2.4em'; // 2 lines
+      inner.style.maxHeight = '2.4em';
       inner.style.overflow = 'hidden';
       inner.textContent = arg.event.title;
 
@@ -122,6 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   calendar.render();
+  loadProposals(); // ✅ ADD THIS LINE to fix pending count on first load
 
   function loadProposals() {
     const dateEvents = {};
@@ -139,16 +142,27 @@ document.addEventListener('DOMContentLoaded', function () {
         let countUpcoming = 0;
         const groupedDates = {};
 
+        const disabledDates = new Set();
+
         events.forEach(event => {
           const start = new Date(event.start);
-          const end = new Date(event.end);
-          end.setDate(end.getDate() - 1);
+  const end = new Date(event.end);
+  end.setDate(end.getDate() - 1);
 
-          let status = event.status;
-          if (end < today) status = 'ended';
+  let status = event.status;
 
-          if (status === 'pending') countPending++;
-          if (start >= startOfWeek && start <= endOfWeek && status === 'approved') countUpcoming++;
+  if (end < today) status = 'ended';
+
+  if (status === 'pending') countPending++;
+  if (start >= startOfWeek && start <= endOfWeek && status === 'approved') countUpcoming++;
+
+  // ✅ Add disabled dates here
+  if (status === 'approved' || status === 'pending') {
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dStr = d.toISOString().slice(0, 10);
+      disabledDates.add(dStr);
+    }
+  }
 
           for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dStr = d.toISOString().slice(0, 10);
@@ -165,12 +179,11 @@ document.addEventListener('DOMContentLoaded', function () {
         Object.entries(groupedDates).forEach(([dateStr, items]) => {
           const first = items[0];
           const status = first.status;
-const bgColor =
-  status === 'pending' ? 'orange' :
-  status === 'approved' ? 'green' :
-  status === 'completed' ? 'green' :
-  status === 'ended' ? 'red' : 'gray';
-
+          const bgColor =
+            status === 'pending' ? 'orange' :
+            status === 'approved' ? 'green' :
+            status === 'completed' ? 'green' :
+            status === 'ended' ? 'red' : 'gray';
 
           let title = first.title;
           if (items.length > 1) {
@@ -200,9 +213,9 @@ const bgColor =
 
             if (cellNum) {
               let statusColor = 'transparent';
-if (first.status === 'pending') statusColor = 'orange';
-else if (first.status === 'approved' || first.status === 'completed') statusColor = 'green';
-else if (first.status === 'ended') statusColor = 'red';
+              if (first.status === 'pending') statusColor = 'orange';
+              else if (first.status === 'approved' || first.status === 'completed') statusColor = 'green';
+              else if (first.status === 'ended') statusColor = 'red';
 
               cellNum.style.setProperty('--status-color', statusColor);
             }
@@ -244,8 +257,6 @@ else if (first.status === 'ended') statusColor = 'red';
       });
   }
 });
-
-
 </script>
 </body>
 </html>
