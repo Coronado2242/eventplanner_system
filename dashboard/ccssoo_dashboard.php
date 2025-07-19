@@ -20,6 +20,19 @@ if ($result && $row = $result->fetch_assoc()) {
 }
 
 
+$unavailableDates = [];
+$sql = "SELECT start_date, end_date, status FROM sooproposal WHERE status IN ('Pending', 'Approved')";
+$result = $conn->query($sql);
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $unavailableDates[] = [
+            'from' => $row['start_date'],
+            'to' => $row['end_date'],
+            'status' => strtolower($row['status']) // 'pending' or 'approved'
+        ];
+    }
+}
+
 
   //SAVE PLAN OF ACTIVITIES
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['activity_name'])) {
@@ -229,6 +242,8 @@ $result = $conn->query($sql);
 if (!$result) {
     die("❌ Query error: " . $conn->error);
 }
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -281,6 +296,51 @@ if (!$result) {
   padding: 5px 8px;
   opacity: 0.75;
 }
+
+/* Base styles for marking cells */
+.pending-date::after,
+.approved-date::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+}
+
+/* Orange dot for pending */
+.pending-date {
+    position: relative;
+}
+.pending-date::after {
+    background-color: orange;
+}
+
+/* Green dot for approved */
+.approved-date {
+    position: relative;
+}
+.approved-date::after {
+    background-color: green;
+}
+
+/* Orange bilog para sa Pending */
+.flatpickr-day.pending-day {
+    position: relative;
+    border-radius: 50%;
+    border: 2px solid orange !important;
+    color: orange !important;
+}
+
+/* Green bilog para sa Approved */
+.flatpickr-day.approved-day {
+    position: relative;
+    border-radius: 50%;
+    border: 2px solid green !important;
+    color: green !important;
+}
+
 
   </style>
 </head>
@@ -1045,6 +1105,52 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const unavailable = <?php echo json_encode($unavailableDates); ?>;
+
+    // Convert to Set of disabled dates and status map
+    const disabledDates = new Set();
+    const statusMap = {};
+
+    unavailable.forEach(range => {
+        const start = new Date(range.from);
+        const end = new Date(range.to);
+        const status = range.status;
+
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dStr = d.toISOString().slice(0, 10);
+            disabledDates.add(dStr);
+            statusMap[dStr] = status;
+        }
+    });
+
+    function isDateBlocked(date) {
+        const d = date.toISOString().slice(0, 10);
+        return disabledDates.has(d);
+    }
+
+    flatpickr("#date_range", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        disable: [isDateBlocked],
+        onDayCreate: function (dObj, dStr, fp, dayElem) {
+            const date = dayElem.dateObj.toISOString().slice(0, 10);
+            if (statusMap[date]) {
+                if (statusMap[date] === 'pending') {
+                    dayElem.classList.add('pending-day');
+                } else if (statusMap[date] === 'approved') {
+                    dayElem.classList.add('approved-day');
+                }
+            }
+        }
+    });
+});
+</script>
+
+
+
 
 <?php
 require_once('fpdf/fpdf.php');
