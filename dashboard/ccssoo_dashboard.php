@@ -342,6 +342,14 @@ if (!$result) {
 }
 
 
+#proposalModal {
+    animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+    from {opacity: 0; transform: translate(-50%, -40%);}
+    to {opacity: 1; transform: translate(-50%, -50%);}
+}
+
   </style>
 </head>
 <body>
@@ -590,6 +598,26 @@ while ($row = $result->fetch_assoc()):
     </table>
   </div>
 </div>
+
+<!-- Modal -->
+<!-- MODAL -->
+<div id="proposalModal" style="display:none; position:fixed; top:30%; left:47%; transform:translate(-50%, -50%);
+    background: #fff8e1; border: 2px solid #ffa000; padding: 20px 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+    z-index: 1000; text-align: center; max-width: 400px; font-family: 'Segoe UI', sans-serif;">
+    
+    <div style="font-size: 40px; color: #ffa000; margin-bottom: 10px;">
+        ⚠️
+    </div>
+    
+    <p style="font-size: 18px; color: #5d4037;"><strong>Already have a proposal on this date.</strong></p>
+    
+    <button onclick="document.getElementById('proposalModal').style.display='none'" 
+        style="margin-top: 15px; padding: 10px 20px; border: none; background: #ffa000; color: white; 
+        font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+        Close
+    </button>
+</div>
+
 
 <!-- Confirmation Modal -->
 <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
@@ -1110,7 +1138,6 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener("DOMContentLoaded", function () {
     const unavailable = <?php echo json_encode($unavailableDates); ?>;
 
-    // Convert to Set of disabled dates and status map
     const disabledDates = new Set();
     const statusMap = {};
 
@@ -1122,7 +1149,7 @@ document.addEventListener("DOMContentLoaded", function () {
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dStr = d.toISOString().slice(0, 10);
             disabledDates.add(dStr);
-            statusMap[dStr] = status;
+            statusMap[dStr] = status.toLowerCase();
         }
     });
 
@@ -1137,17 +1164,36 @@ document.addEventListener("DOMContentLoaded", function () {
         disable: [isDateBlocked],
         onDayCreate: function (dObj, dStr, fp, dayElem) {
             const date = dayElem.dateObj.toISOString().slice(0, 10);
+
             if (statusMap[date]) {
                 if (statusMap[date] === 'pending') {
                     dayElem.classList.add('pending-day');
                 } else if (statusMap[date] === 'approved') {
                     dayElem.classList.add('approved-day');
                 }
+
+                // Attach click event for disabled dates
+                dayElem.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    showModal();
+                });
             }
         }
     });
+
+    // Modal functions
+    window.showModal = function () {
+        document.getElementById('proposalModal').style.display = 'block';
+        document.getElementById('modalOverlay').style.display = 'block';
+    }
+
+    window.closeModal = function () {
+        document.getElementById('proposalModal').style.display = 'none';
+        document.getElementById('modalOverlay').style.display = 'none';
+    }
 });
 </script>
+
 
 
 
